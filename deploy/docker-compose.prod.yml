@@ -1,0 +1,77 @@
+# docker-compose.prod.yml — production-equivalent local stack.
+#
+# Use this to test the production wiring on your laptop before pushing to Fly.
+# It mirrors the Fly setup: separate openemr + mariadb containers, no debug
+# flags, MariaDB only reachable on the internal network.
+#
+# Run:    docker compose -f docker-compose.yml -f docker-compose.prod.yml up
+# Stop:   docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+#
+# Differences from dev (docker-compose.yml from PR-01):
+#   - No EASY_DEV_MODE shortcut
+#   - MariaDB has no published port (3306 NOT exposed to host)
+#   - All credentials sourced from .env (gitignored), not inline defaults
+#   - Resource limits set so a runaway query can't OOM your laptop
+
+services:
+  openemr:
+    image: openemr/openemr:7.0.2
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    ports:
+      - "8443:443"   # HTTPS only on the host; remove ":80" exposure
+    environment:
+      EASY_DEV_MODE: "no"
+      EASY_DEV_MODE_NEW: "no"
+      MYSQL_HOST: mariadb
+      MYSQL_ROOT_PASS: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASS: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      OE_USER: ${OE_USER}
+      OE_PASS: ${OE_PASS}
+    volumes:
+      - openemr_sites:/var/www/localhost/htdocs/openemr/sites
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: "1.0"
+    networks:
+      - internal
+
+  mariadb:
+    image: mariadb:10.11
+    restart: unless-stopped
+    # NO `ports:` block — MariaDB is reachable only from other containers on
+    # the `internal` network. Mirrors Fly's no-public-service posture.
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_INITDB_SKIP_TZINFO: "1"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: "1.0"
+    networks:
+      - internal
+
+volumes:
+  openemr_sites:
+  mariadb_data:
+
+networks:
+  internal:
+    driver: bridge
