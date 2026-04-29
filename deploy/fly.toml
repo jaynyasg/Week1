@@ -1,0 +1,56 @@
+# fly.toml — OpenEMR (PHP/Apache) Fly app
+# Deploy: fly deploy --config fly.toml
+# Public URL: https://clinical-copilot.fly.dev
+#
+# Connects to MariaDB at clinical-copilot-db.internal (see fly.db.toml).
+# All MYSQL_* and OE_* values come from fly secrets set — never commit them.
+
+app = "clinical-copilot"
+primary_region = "iad"
+
+[build]
+  # Use the official OpenEMR image. Pinned tag for reproducibility.
+  # Bump deliberately — review release notes before changing.
+  image = "openemr/openemr:7.0.2"
+
+[env]
+  # Tells the OpenEMR auto-installer to run on first boot if sqlconf.php is absent.
+  # Do not set EASY_DEV_MODE=yes in production — it weakens defaults.
+  EASY_DEV_MODE = "no"
+  EASY_DEV_MODE_NEW = "no"
+
+  # Apache listens on 80 inside the container. Fly's edge terminates TLS and
+  # forwards 443 → 80 via the [http_service] block below.
+  OPENEMR_PORT = "80"
+
+  # Force HTTPS-aware URLs in OpenEMR (Apache will see X-Forwarded-Proto from Fly).
+  TRUST_PROXY = "true"
+
+# Persist OpenEMR's per-site config and uploaded documents across deploys.
+# Without this, sqlconf.php and patient documents disappear on every redeploy.
+[[mounts]]
+  source = "openemr_sites"
+  destination = "/var/www/localhost/htdocs/openemr/sites"
+
+# Public HTTPS service. Fly handles TLS automatically using its shared cert
+# for *.fly.dev (or your custom domain if you add one with `fly certs add`).
+[http_service]
+  internal_port = 80
+  force_https = true
+  auto_stop_machines = "off"        # OpenEMR sessions break under cold start
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "120s"            # auto-installer can take 2–3 min on first boot
+    interval = "30s"
+    method = "get"
+    timeout = "10s"
+    path = "/interface/login/login.php"
+
+# Resource sizing. OpenEMR + Apache is comfortable at 1 shared CPU + 1GB.
+# Bump to performance-2x if you start streaming many concurrent requests.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
