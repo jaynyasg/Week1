@@ -1,0 +1,39 @@
+# fly.db.toml — MariaDB Fly app for OpenEMR
+# Deploy: fly deploy --config fly.db.toml
+#
+# CRITICAL: this app intentionally has NO [http_service] or [[services]] block.
+# That means MariaDB is reachable ONLY via Fly's private 6PN network at
+#     clinical-copilot-db.internal:3306
+# A public TCP scan of port 3306 will be refused — this satisfies PR-02's
+# "MySQL not exposed to the internet" security requirement.
+
+app = "clinical-copilot-db"
+primary_region = "iad"
+
+[build]
+  # MariaDB 10.11 LTS — supported through Feb 2028. Pinned for reproducibility.
+  image = "mariadb:10.11"
+
+[env]
+  # Bind to all interfaces inside the container so .internal DNS works.
+  # 6PN restricts who can reach the container; the bind itself is broad.
+  MYSQL_INITDB_SKIP_TZINFO = "1"
+
+# All credentials come from `fly secrets set --app clinical-copilot-db`:
+#   MYSQL_ROOT_PASSWORD, MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD
+# Never commit these to the repo.
+
+# Persist the database files across deploys. Destroying this volume = data loss.
+[[mounts]]
+  source = "mariadb_data"
+  destination = "/var/lib/mysql"
+
+# Restart on crash — MariaDB stop = OpenEMR down.
+[deploy]
+  strategy = "immediate"
+
+# Resource sizing. 1GB is comfortable for ~5–20 demo patients.
+# Bump memory before bumping CPU — MariaDB is memory-bound for OpenEMR's workload.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
