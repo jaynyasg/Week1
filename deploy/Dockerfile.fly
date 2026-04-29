@@ -1,0 +1,25 @@
+# Dockerfile.fly — optional override of the base openemr/openemr image.
+#
+# The default fly.toml uses `image = "openemr/openemr:7.0.2"` directly,
+# which is the simplest path. Use this Dockerfile ONLY if you need to:
+#   - Bake in custom OpenEMR modules (e.g., the future copilot_panel.php from PR-10)
+#   - Add PHP extensions or system packages OpenEMR doesn't ship with
+#   - Pre-load demo data into the image (not recommended — use a seed script instead)
+#
+# To use this Dockerfile instead of the registry image:
+#   1. Replace the `[build]` block in fly.toml with:
+#         [build]
+#           dockerfile = "Dockerfile.fly"
+#   2. Run `fly deploy --config fly.toml` — Fly will build remotely on its builders.
+
+FROM openemr/openemr:7.0.2
+
+# Example: copy the future Clinical Co-Pilot module into OpenEMR.
+# Uncomment after PR-10 lands and the module exists in the fork.
+# COPY interface/modules/clinical_copilot/ /var/www/localhost/htdocs/openemr/interface/modules/clinical_copilot/
+
+# Example: extra PHP extensions (none currently required by the MVP).
+# RUN apk add --no-cache php83-redis
+
+# Default CMD/ENTRYPOINT inherited from the base image — do not override unless
+# you understand the OpenEMR auto-installer flow.
