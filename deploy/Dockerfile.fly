@@ -14,12 +14,10 @@
 
 FROM openemr/openemr:7.0.2
 
-# Example: copy the future Clinical Co-Pilot module into OpenEMR.
-# Uncomment after PR-10 lands and the module exists in the fork.
-# COPY interface/modules/clinical_copilot/ /var/www/localhost/htdocs/openemr/interface/modules/clinical_copilot/
-
-# Example: extra PHP extensions (none currently required by the MVP).
-# RUN apk add --no-cache php83-redis
+# Use a file-based wrapper so the startup patch is preserved in the final image.
+COPY deploy/openemr_wrapper.sh /openemr_wrapper.sh
+RUN chmod +x /openemr_wrapper.sh
+ENTRYPOINT ["/openemr_wrapper.sh"]
 
 # Default CMD/ENTRYPOINT inherited from the base image — do not override unless
 # you understand the OpenEMR auto-installer flow.

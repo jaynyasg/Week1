@@ -14,10 +14,8 @@
 
 set -euo pipefail
 
-#OPENEMR_APP="clinical-copilot-v2"
-#DB_APP="clinical-copilot-db-v2"
-OPENEMR_APP="clinical-copilot-$(date +%s)"
-DB_APP="clinical-copilot-db-$(date +%s)"
+OPENEMR_APP="clinical-copilot-v2"
+DB_APP="clinical-copilot-db-v2"
 REGION="iad"
 VOL_SIZE_GB=3
 
@@ -69,10 +67,10 @@ else
   fly apps create "$OPENEMR_APP"
 fi
 
-if fly volumes list --app "$OPENEMR_APP" | grep -q "openemr_sites"; then
-  warn "Volume openemr_sites already exists — skipping create."
+if fly volumes list --app "$OPENEMR_APP" | grep -q "openemr_sites_v2"; then
+  warn "Volume openemr_sites_v2 already exists — skipping create."
 else
-  fly volumes create openemr_sites --app "$OPENEMR_APP" --region "$REGION" --size "$VOL_SIZE_GB" --yes
+  fly volumes create openemr_sites_v2 --app "$OPENEMR_APP" --region "$REGION" --size "$VOL_SIZE_GB" --yes
 fi
 
 if ! fly secrets list --app "$OPENEMR_APP" | grep -q "MYSQL_PASS\b"; then
