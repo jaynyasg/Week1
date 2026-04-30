@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(command -v fly)",
+      "Bash(fly version *)",
+      "Bash(docker version *)"
+    ]
+  }
+}
