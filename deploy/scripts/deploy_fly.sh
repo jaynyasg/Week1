@@ -14,8 +14,8 @@
 
 set -euo pipefail
 
-OPENEMR_APP="clinical-copilot"
-DB_APP="clinical-copilot-db"
+OPENEMR_APP="clinical-copilot-v2"
+DB_APP="clinical-copilot-db-v2"
 REGION="iad"
 VOL_SIZE_GB=3
 
@@ -75,9 +75,7 @@ fi
 
 if ! fly secrets list --app "$OPENEMR_APP" | grep -q "MYSQL_PASS\b"; then
   bold "Wiring OpenEMR to the database"
-  # Pull the db-side secrets so OpenEMR can talk to MariaDB.
-  DB_USER_PW=$(fly ssh console --app "$DB_APP" -C "printenv MYSQL_PASSWORD"     | tr -d '\r\n')
-  DB_ROOT_PW=$(fly ssh console --app "$DB_APP" -C "printenv MYSQL_ROOT_PASSWORD" | tr -d '\r\n')
+  # Secrets are already in variables from DB setup above - no need to SSH
   OE_PASS_GEN=$(openssl rand -hex 16)
 
   fly secrets set --app "$OPENEMR_APP" --stage \
