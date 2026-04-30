@@ -14,8 +14,10 @@
 
 set -euo pipefail
 
-OPENEMR_APP="clinical-copilot-v2"
-DB_APP="clinical-copilot-db-v2"
+#OPENEMR_APP="clinical-copilot-v2"
+#DB_APP="clinical-copilot-db-v2"
+OPENEMR_APP="clinical-copilot-$(date +%s)"
+DB_APP="clinical-copilot-db-$(date +%s)"
 REGION="iad"
 VOL_SIZE_GB=3
 
