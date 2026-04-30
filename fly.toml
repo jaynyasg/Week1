@@ -41,7 +41,7 @@ primary_region = "iad"
   processes = ["app"]
 
   [[http_service.checks]]
-    grace_period = "120s"            # auto-installer can take 2–3 min on first boot
+    grace_period = "300s"            # auto-installer can take 2–3 min on first boot
     interval = "30s"
     method = "get"
     timeout = "10s"

@@ -75,7 +75,17 @@ fi
 
 if ! fly secrets list --app "$OPENEMR_APP" | grep -q "MYSQL_PASS\b"; then
   bold "Wiring OpenEMR to the database"
-  # Secrets are already in variables from DB setup above - no need to SSH
+  # If DB secrets pre-existed (re-run, or DB app set up separately), the local
+  # vars are unset — pull them from the DB machine. The DB app was just
+  # deployed above, so SSH is available.
+  if [[ -z "${DB_ROOT_PW:-}" ]]; then
+    DB_ROOT_PW=$(fly ssh console --app "$DB_APP" -C "printenv MYSQL_ROOT_PASSWORD" | tr -d '\r\n')
+  fi
+  if [[ -z "${DB_USER_PW:-}" ]]; then
+    DB_USER_PW=$(fly ssh console --app "$DB_APP" -C "printenv MYSQL_PASSWORD" | tr -d '\r\n')
+  fi
+  [[ -n "$DB_ROOT_PW" ]] || fail "Empty MYSQL_ROOT_PASSWORD from $DB_APP — DB app not ready?"
+  [[ -n "$DB_USER_PW" ]] || fail "Empty MYSQL_PASSWORD from $DB_APP — DB app not ready?"
   OE_PASS_GEN=$(openssl rand -hex 16)
 
   fly secrets set --app "$OPENEMR_APP" --stage \

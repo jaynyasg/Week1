@@ -3,7 +3,12 @@
     "allow": [
       "Bash(command -v fly)",
       "Bash(fly version *)",
-      "Bash(docker version *)"
+      "Bash(docker version *)",
+      "Bash(docker run *)",
+      "Bash(docker build *)",
+      "Bash(docker rm *)",
+      "Bash(docker exec *)",
+      "Bash(docker volume *)"
     ]
   }
 }
