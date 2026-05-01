@@ -1,5 +1,5 @@
 """
-Minimal FastAPI surface for Phase 2: session validation + per-tool RBAC before dispatch.
+Minimal FastAPI surface: OpenEMR session validation, per-tool RBAC, and Phase 3 scaffold chat (RGV).
 
 Mount this app at /agent behind Nginx in the full stack (see ARCHITECTURE.md).
 """
@@ -11,12 +11,14 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 
 import httpx
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, Header, Request
 from fastapi.responses import JSONResponse
 
 from agent.access.rbac import ToolRefusal, assert_tool_allowed, log_tool_refusal
 from agent.http.deps import resolve_agent_role
 from agent.http.env import load_dotenv_if_present
+from agent.http.schemas import ChatRequest, ChatResponse
+from agent.services.chat_turn import new_session_id, run_scaffold_chat_turn
 
 _LOG = logging.getLogger(__name__)
 
@@ -52,6 +54,34 @@ def create_app() -> FastAPI:
     @app.get("/agent/health")
     async def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.post("/agent/chat", response_model=ChatResponse)
+    async def chat(
+        body: ChatRequest,
+        role: Annotated[str, Depends(resolve_agent_role)],
+        x_session: Annotated[str | None, Header(alias="X-Clinical-Session-Id")] = None,
+    ) -> ChatResponse:
+        """
+        Multi-turn scaffold: prior ``messages`` + new ``user_message`` → RGV → assistant reply.
+
+        Full stack replaces scaffold retrieve/generate/verify with LangGraph + LLM + rules.
+        """
+        session_id = (x_session or "").strip() or new_session_id()
+        st, assistant = run_scaffold_chat_turn(
+            patient_id=body.patient_id,
+            user_role=role,
+            session_id=session_id,
+            messages=body.messages,
+            user_message=body.user_message,
+        )
+        return ChatResponse(
+            assistant_message=assistant,
+            verified=st.verified,
+            verification_notes=list(st.verification_notes),
+            verify_retry_count=st.verify_retry_count,
+            tool_result_keys=sorted(st.tool_results.keys()),
+            messages=st.messages,
+        )
 
     @app.post("/agent/tools/{tool_name}")
     async def invoke_tool(
