@@ -37,3 +37,25 @@ test:
 #     - pip install -r requirements.txt
 #   script:
 #     - python -m pytest agent/tests/integration/test_live_openemr_optional.py -q
+#
+# -----------------------------------------------------------------------------
+# Optional: Docker image build for Dockerfile.agent (off by default)
+# -----------------------------------------------------------------------------
+# GitLab.com shared runners do not provide a host Docker socket. To run
+# `docker build` you usually need either Docker-in-Docker (`services: docker:dind`
+# plus TLS/env setup) or a rootless/Kaniko-based build job. Uncomment and adapt
+# only when your runner supports DinD, a privileged setup, or Kaniko — not all
+# shared-runner configurations allow these.
+#
+# build-agent-image:
+#   stage: test
+#   image: docker:24-cli
+#   services:
+#     - docker:24-dind
+#   variables:
+#     DOCKER_TLS_CERTDIR: "/certs"
+#   rules:
+#     - when: manual
+#       allow_failure: true
+#   script:
+#     - docker build -f Dockerfile.agent -t agent-scaffold:ci .

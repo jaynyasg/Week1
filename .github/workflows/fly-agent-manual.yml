@@ -1,0 +1,33 @@
+# Manual deploy of the Fly agent app (fly.agent.toml).
+# Trigger: Actions → this workflow → Run workflow.
+#
+# Secrets (required):
+#   FLY_API_TOKEN — Create a deploy token in Fly.io (e.g. `fly tokens create deploy`)
+#   and store it as a GitHub Actions **repository secret** named FLY_API_TOKEN.
+#   Never commit tokens or paste them into workflow files.
+#
+# Runtime config (production):
+#   OPENEMR_BASE_URL and other sensitive app settings should be set on the Fly app
+#   with `fly secrets set ...` (or the Fly dashboard), not as plaintext `env:` in
+#   this workflow — avoids leaking production URLs/credentials in CI logs and YAML.
+
+name: Fly agent (manual deploy)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy agent app to Fly.io
+        run: flyctl deploy --config fly.agent.toml
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

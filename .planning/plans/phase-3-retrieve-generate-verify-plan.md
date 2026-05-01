@@ -51,6 +51,20 @@ Maps [Phase 3 success criteria in ROADMAP](../ROADMAP.md) and exit IDs above to 
 
 **Decision:** Do **not** mark ROADMAP Phase 3 complete: **SC3** (real domain + source attribution) and **`REQ-agent-requirements-coverage`** are honest blockers for closure in this repo. `.planning/AI-ARCHITECTURE.md` requirement traceability may show design satisfaction; runtime PRD coverage remains fork-owned.
 
+### Schedule guidance (fork)
+
+| Surface | What stays / completes here |
+|--------|-----------------------------|
+| **This repo (Week1)** | Scaffold: RGV ordering, bounded retry, multi-turn HTTP + session headers, verify **contract** (structured pass/fail + notes), tests and optional live OpenEMR hooks — matches Gap rows already **Met** / **Met (scaffold)** / **Met (contract)**. |
+| **Fork / deployed stack** | Real EMR-backed retrieve, production LLM generate, domain verify + **record-backed source attribution** (SC3), runnable PRD path for **`REQ-agent-requirements-coverage`** — same rows as **Gap** / **OpenEMR fork** in the table above and in [ROADMAP Phase 3 gap table](../ROADMAP.md). Phase 3 stays **in progress** in the progress table until fork/runtime clears those gaps. |
+
+**Week-range estimates (order-of-magnitude; not commitments):**
+
+- **Thin MVP (~2–4 weeks):** Assumes Phase 2 RBAC/tools reused as-is, one primary clinical use-case, single LLM provider, thin verify rules, no LangGraph migration. Goal: end-to-end chat with real retrieve + generate + verify sufficient to start closing **`REQ-agent-requirements-coverage`** under staged/CI evidence; SC3 attribution may be minimal (e.g., tool refs) with follow-up polish.
+- **Broader agent (~6–10 weeks):** Assumes multiple flows, richer session/clinical state, fuller grounding + domain verify modules, streaming hardening, optional graph orchestration, and SC3 closer to full response-artifact parity (attribution + verification-limit notes aligned with PRD).
+
+Downstream work stays ROADMAP-sequenced after Phase 3 closure: [Phase 4 — Observability](./phase-4-observability-plan.md) (operator-question telemetry, safety flagging) depends on Phase 3; [Phase 5 — Evaluation](./phase-5-evaluation-plan.md) (latency, RBAC eval breadth, cost gates) depends on Phase 4. Trace **`REQ-agent-requirements-coverage`** to the Exit Criteria table and the Gap table row **`REQ-agent-requirements-coverage` → OpenEMR fork**.
+
 ## Suggested Order
 1. Tool-backed retrieve + RBAC (reuse Phase 2).
 2. Verify module + unit tests.

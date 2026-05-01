@@ -1,0 +1,36 @@
+# FastAPI agent (scaffold) — separate Fly app from OpenEMR in root fly.toml.
+#
+# App name is a placeholder; change `app` before first deploy or use:
+#   fly apps create <name> && fly deploy --config fly.agent.toml --app <name>
+#
+# Deploy from repo root:
+#   fly deploy --config fly.agent.toml
+
+app = "clinical-agent-scaffold"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile.agent"
+  ignorefile = ".dockerignore.agent"
+
+[env]
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "15s"
+    interval = "15s"
+    method = "get"
+    timeout = "5s"
+    path = "/agent/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

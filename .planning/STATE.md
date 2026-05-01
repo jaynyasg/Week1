@@ -39,6 +39,11 @@
 ### Known Blockers
 - None currently; ingest conflict gate reports 0 unresolved blockers.
 
+### Coordination / parallel work
+- **Fly agent deploy bundle (landed in Week1)**: Operator-facing layout is in place — build context via [`Dockerfile.agent`](../Dockerfile.agent), ignore rules in [`.dockerignore.agent`](../.dockerignore.agent), app config in [`fly.agent.toml`](../fly.agent.toml), Python deps in [`deploy/requirements-agent.txt`](../deploy/requirements-agent.txt), and runbook-style notes in [`deploy/README-fly-agent.md`](../deploy/README-fly-agent.md) (read there for env/secrets naming; do not duplicate in STATE).
+- **This repo (Week1)**: Phase 3 stays **scaffold** here until fork integration (RGV contracts + tests in-repo; full runtime remains fork-owned — consistent with Session Continuity below). Other Fly manifests still exist for non-agent paths: [`fly.toml`](../fly.toml), [`deploy/fly.toml`](../deploy/fly.toml) (no root `Dockerfile` in-repo; agent image is `Dockerfile.agent` only).
+- **Next user actions (agent stack)**: `fly auth login` → `fly apps create <name>` (set `app` in [`fly.agent.toml`](../fly.agent.toml) to that name, or pass `--app <name>` on deploy as the file header documents) → set required Fly secrets per [`deploy/README-fly-agent.md`](../deploy/README-fly-agent.md) → `fly deploy --config fly.agent.toml` → smoke health/chat per that README.
+
 ## Session Continuity
 - **Last completed milestone**: Per ROADMAP, Phases 1–2 are completed; Phase 3 is in progress (RGV scaffold + tests in repo, not the full fork runtime). **2026-04-30 gap review**: Phase 3 **not** closed in this repo — SC3 + `REQ-agent-requirements-coverage` remain fork-owned (see ROADMAP Phase 3 Notes gap table and `phase-3-retrieve-generate-verify-plan.md`). Phases 4–6 remain not started for execution; plan stubs are linked from ROADMAP: `phase-4-observability-plan.md`, `phase-5-evaluation-plan.md`, `phase-6-documentation-governance-plan.md` under `.planning/plans/`.
 - **Agent tests (verified locally)**: `python -m pytest agent/tests -q` → **75 passed, 4 skipped** (same command as README and CI). Skips align with optional/gated tests (e.g. live OpenEMR E2E).

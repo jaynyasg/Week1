@@ -24,6 +24,23 @@ These checks call the real deployed OpenEMR (and optionally your deployed agent)
 
 Implementation: [`agent/tests/integration/test_live_openemr_optional.py`](agent/tests/integration/test_live_openemr_optional.py) (four tests; skipped unless the env vars above are set).
 
+## Deploy agent (Fly.io, ~minutes)
+
+Full steps and context: [`deploy/README-fly-agent.md`](deploy/README-fly-agent.md). This app uses [`fly.agent.toml`](fly.agent.toml) and [`Dockerfile.agent`](Dockerfile.agent).
+
+```bash
+fly deploy --config fly.agent.toml
+fly secrets set OPENEMR_BASE_URL=https://your-openemr.example/
+```
+
+After deploy, smoke the service (replace the host with your Fly app URL):
+
+```bash
+curl -fsS https://<your-app>.fly.dev/agent/health
+```
+
+On Windows you can optionally run [`scripts/smoke_agent_service.ps1`](scripts/smoke_agent_service.ps1) instead. Do not put tokens or other secrets in the README; configure them via `fly secrets` or your shell environment.
+
 ## Getting started
 
 To make it easy for you to get started with GitLab, here's a list of recommended next steps.
