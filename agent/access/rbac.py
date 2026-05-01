@@ -9,6 +9,8 @@ from __future__ import annotations
 import logging
 from typing import Final, Iterable
 
+from agent.observability.events import LOG_EXTRA_EVENT, LOG_EXTRA_EVENT_TYPE
+
 # Canonical tool identifiers — must match USERS.md matrix.
 PHYSICIAN_TOOLS: Final[frozenset[str]] = frozenset(
     {
@@ -94,7 +96,8 @@ def log_tool_refusal(
         patient_id_hash or "",
         session_id_hash or "",
         extra={
-            "event": "tool_refusal",
+            LOG_EXTRA_EVENT: "tool_refusal",
+            LOG_EXTRA_EVENT_TYPE: "tool_refusal",
             "role": role,
             "tool": tool,
             "patient_id_hash": patient_id_hash,

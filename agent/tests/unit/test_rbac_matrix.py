@@ -16,6 +16,7 @@ from agent.access.rbac import (
     log_tool_refusal,
     refusal_message,
 )
+from agent.observability.events import LOG_EXTRA_EVENT, LOG_EXTRA_EVENT_TYPE
 
 
 def _matrix_cases():
@@ -57,4 +58,8 @@ def test_log_tool_refusal(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.INFO)
     log = logging.getLogger("rbac_test")
     log_tool_refusal(log, "ADMIN", "labs", patient_id_hash="abc", session_id_hash="def")
-    assert any("tool_refusal" in r.message for r in caplog.records)
+    rec = next(r for r in caplog.records if "tool_refusal" in r.message)
+    assert getattr(rec, LOG_EXTRA_EVENT) == "tool_refusal"
+    assert getattr(rec, LOG_EXTRA_EVENT_TYPE) == "tool_refusal"
+    assert rec.role == "ADMIN"
+    assert rec.tool == "labs"

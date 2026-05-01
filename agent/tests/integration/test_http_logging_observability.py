@@ -54,7 +54,7 @@ def test_post_agent_chat_logs_chat_turn_complete_with_event_fields(app, caplog: 
 
 
 def test_post_agent_tools_rbac_403_logs_tool_refusal_with_event_field(app, caplog: pytest.LogCaptureFixture) -> None:
-    """RBAC denial triggers ``log_tool_refusal`` at INFO with structured ``event`` extra."""
+    """RBAC denial triggers ``log_tool_refusal`` at INFO with ``event`` / ``event_type`` extras."""
 
     async def fake_nurse(
         _request: Request,
@@ -73,3 +73,4 @@ def test_post_agent_tools_rbac_403_logs_tool_refusal_with_event_field(app, caplo
     rec = _find_record(caplog, logger_name="agent.http.app", msg_substr="tool_refusal")
     assert rec is not None, f"expected tool_refusal log; got: {[r.getMessage() for r in caplog.records]}"
     assert getattr(rec, LOG_EXTRA_EVENT) == "tool_refusal"
+    assert getattr(rec, LOG_EXTRA_EVENT_TYPE) == "tool_refusal"

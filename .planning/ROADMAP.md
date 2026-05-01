@@ -80,12 +80,13 @@
 ### Phase 6: Documentation Governance Cleanup
 **Goal**: Governance prevents requirement/decision drift by treating markdown planning artifacts as authoritative.
 **Depends on**: Phase 5
+**Notes**: Stub plan covers canonical markdown vs Word, reconciliation, and ADR/SPEC traceability under `SAFE-canonical-markdown-governance`.
 **Requirements**: SAFE-canonical-markdown-governance
 **Success Criteria** (what must be TRUE):
   1. Repository governance explicitly states markdown planning docs are canonical over Word exports.
   2. Any divergent Word artifact is either reconciled to markdown or marked non-authoritative.
   3. Planning updates preserve source traceability IDs and cannot silently overwrite ADR/SPEC decisions.
-**Plans**: TBD
+**Plans**: `.planning/plans/phase-6-documentation-governance-plan.md`
 
 ## Progress
 
@@ -96,4 +97,4 @@
 | 3. Retrieve-Generate-Verify Runtime Flow | 1/1 | In progress | RGV scaffold + tests in repo |
 | 4. Observability and Clinical Safety Flagging | 1/1 | Not started | - |
 | 5. Evaluation and Performance Validation | 1/1 | Not started | - |
-| 6. Documentation Governance Cleanup | 0/1 | Not started | - |
+| 6. Documentation Governance Cleanup | 1/1 | Not started | - |
