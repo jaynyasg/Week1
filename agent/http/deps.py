@@ -21,6 +21,7 @@ def get_chat_turn_runner():
     Callable that runs one scaffold RGV chat turn (override in tests).
 
     Returns ``run_scaffold_chat_turn``; inject a partial or wrapper to swap verify/retrieve.
+    Integration overrides: ``agent/tests/integration/test_chat_route.py``.
     """
     return run_scaffold_chat_turn
 

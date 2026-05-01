@@ -4,19 +4,10 @@ from __future__ import annotations
 
 from typing import Annotated
 
-import pytest
 from fastapi import Header, Request
 from fastapi.testclient import TestClient
 
-from agent.http.app import create_app
 from agent.http.deps import resolve_agent_role
-
-
-@pytest.fixture
-def app():
-    application = create_app()
-    yield application
-    application.dependency_overrides.clear()
 
 
 def test_health(app) -> None:

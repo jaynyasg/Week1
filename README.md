@@ -6,6 +6,8 @@
 python -m pytest agent/tests -q
 ```
 
+CI runs the same suite on **GitLab** (`.gitlab-ci.yml`) and **GitHub Actions** (`.github/workflows/agent-tests.yml`).
+
 ### Optional: gated live OpenEMR E2E
 
 These checks call the real deployed OpenEMR (and optionally your deployed agent). They are **skipped by default**. Do not commit tokens; copy variables from [`.env.example`](.env.example) into a local `.env` (gitignored).

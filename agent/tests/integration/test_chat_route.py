@@ -5,21 +5,12 @@ from __future__ import annotations
 import functools
 from typing import Annotated
 
-import pytest
 from fastapi import Header, Request
 from fastapi.testclient import TestClient
 
-from agent.http.app import create_app
 from agent.http.deps import get_chat_turn_runner, resolve_agent_role
 from agent.runtime.rgv_pipeline import MAX_VERIFY_RETRIES
 from agent.services.chat_turn import run_scaffold_chat_turn
-
-
-@pytest.fixture
-def app():
-    application = create_app()
-    yield application
-    application.dependency_overrides.clear()
 
 
 def _fake_physician(
