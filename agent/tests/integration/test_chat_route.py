@@ -24,6 +24,33 @@ def _fake_physician(
     return "PHYSICIAN"
 
 
+@pytest.mark.parametrize(
+    ("payload", "reason"),
+    [
+        (
+            {"patient_id": "", "user_message": "hi", "messages": []},
+            "empty_patient_id",
+        ),
+        (
+            {"patient_id": "p1", "user_message": "", "messages": []},
+            "empty_user_message",
+        ),
+    ],
+)
+def test_chat_invalid_body_returns_422(
+    app, payload: dict, reason: str
+) -> None:
+    """FastAPI + Pydantic reject empty required strings (min_length=1)."""
+    app.dependency_overrides[resolve_agent_role] = _fake_physician
+    with TestClient(app) as client:
+        r = client.post(
+            "/agent/chat",
+            json=payload,
+            headers={"Authorization": "Bearer test"},
+        )
+    assert r.status_code == 422, f"{reason}: {r.text}"
+
+
 def test_chat_missing_authorization_returns_401(app) -> None:
     with TestClient(app) as client:
         r = client.post(

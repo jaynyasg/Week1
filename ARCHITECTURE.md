@@ -2,6 +2,20 @@
 
 **AgentForge · Gauntlet AI**
 
+## Executive summary (~500 words)
+
+The Clinical Co-Pilot is a **chart-scoped conversational agent** that sits beside OpenEMR: clinicians authenticate with the **same session** the EHR already trusts (Bearer token and/or browser cookies forwarded to OpenEMR’s **`/api/user`** endpoint). The agent never replaces OpenEMR authorization; it **inherits** role and session semantics and enforces an additional **tool-level RBAC** matrix (`PHYSICIAN`, `NURSE`, `ADMIN`, etc.) so that retrieval paths cannot escalate privileges (see [`USERS.md`](USERS.md)).
+
+At runtime the assistant follows a **retrieve → generate → verify** loop. **Retrieve** aggregates patient-context tools (FHIR-first demographics, problems, meds, labs, vitals, allergies, notes, schedule—**eight** distinct tools so labs and vitals can be separated for nursing workflows). **Generate** calls the configured LLM with grounded prompts built from tool outputs (architecture intent: Claude/LangGraph-class orchestration; **this repository ships a FastAPI scaffold** with deterministic placeholders when keys are absent). **Verify** applies programmatic checks: scaffold mode validates presence of tool bundles and supports a bounded retry path; **production intent** adds grounding against retrieved records and clinical domain rules, with explicit **`verified: false`** degradation rather than silent success.
+
+**Trust boundaries** are explicit: (1) OpenEMR session boundary, (2) RBAC enforcement before side-effecting or sensitive retrieval, (3) verification before user-visible assertions as facts, (4) logging that must not leak raw tokens or full PHI. The **HTTP API** exposes `POST /agent/chat` with multi-turn `messages` and session correlation via **`X-Clinical-Session-Id`**. Responses include **`assistant_message`**, verification metadata (`verified`, `verify_retry_count`, `verification_notes`), and **tool result keys** for traceability. Observability is **not optional**: structured **`agent_event`** log lines (see `agent/observability/`) record turn completion, category-boundary review signals, and RBAC refusals; future phases wire deeper cost/token export. **Deployment** uses a **separate Fly.io app** for the agent (`fly.agent.toml`, `Dockerfile.agent`) so the OpenEMR stack and agent can scale and roll independently; the chat UI can be embedded with a Vite build and `VITE_*` configuration.
+
+**Known tradeoffs in this repo snapshot:** the **mermaid** diagram and table below describe the **target** architecture (LangGraph, Langfuse, `POST /flag`); the **checked-in code** proves **contracts, ordering, session behavior, and testable verification fields** on a **scaffold** implementation. Full **record-level source attribution in prose**, **production LLM** paths, and **OpenEMR fork** integration are tracked in the roadmap and [`USER.md`](USER.md) as **fork / deployment** work—not claimed as complete here. **Evaluation** is handled by `pytest` (unit, integration, optional live OpenEMR gates) with explicit skips for live credentials; see [`README.md`](README.md) and [`.planning/eval-artifacts/`](.planning/eval-artifacts/README.md).
+
+---
+
+## Diagram and component view
+
 This diagram shows the full system architecture for the Clinical Co-Pilot, including the browser client, cloud infrastructure (OpenEMR + Agent microservice), external LLM, and test infrastructure. Reflects PRD v1.1: 8 tools (vitals split from labs), POST /flag endpoint, session scoping, and agent-unreachable fallback state.
 
 ```mermaid

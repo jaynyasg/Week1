@@ -14,14 +14,35 @@ Lint (matches CI):
 python -m ruff check agent
 ```
 
-A typical local run is about **160 passed**, **15 skipped**; skips include optional live OpenEMR, `RUN_LATENCY_GATE`, and other gated tests (counts vary—run pytest to confirm). HTTP-focused coverage includes [`test_http_deps.py`](agent/tests/unit/test_http_deps.py), [`test_http_logging_observability.py`](agent/tests/integration/test_http_logging_observability.py), and [`test_openemr_base_url_misconfiguration.py`](agent/tests/integration/test_openemr_base_url_misconfiguration.py) (OpenEMR base URL wiring regressions).
+A typical local run is about **162 passed**, **15 skipped**; skips include optional live OpenEMR, `RUN_LATENCY_GATE`, and other gated tests (counts vary—run pytest to confirm). HTTP-focused coverage includes [`test_http_deps.py`](agent/tests/unit/test_http_deps.py), [`test_http_logging_observability.py`](agent/tests/integration/test_http_logging_observability.py), and [`test_openemr_base_url_misconfiguration.py`](agent/tests/integration/test_openemr_base_url_misconfiguration.py) (OpenEMR base URL wiring regressions).
 
 CI runs **ruff** and **pytest** on `agent/tests` and `deploy/tests` on **GitLab** (`.gitlab-ci.yml`) and **GitHub Actions** (`.github/workflows/agent-tests.yml`).
 
 Planning and contribution norms: [CONTRIBUTING.md](CONTRIBUTING.md).
 
+### Gauntlet / course submission (quick links)
+
+| Deliverable | Location |
+| --- | --- |
+| User + use cases | [`USER.md`](USER.md) |
+| Architecture (+ executive summary) | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| Audit | [`AUDIT.md`](AUDIT.md) |
+| AI cost analysis (fill TBD spend) | [`AI-COST-ANALYSIS.md`](AI-COST-ANALYSIS.md) |
+| Eval snapshot / how to reproduce results | [`.planning/eval-artifacts/2026-05-01-submission-prep-snapshot.md`](.planning/eval-artifacts/2026-05-01-submission-prep-snapshot.md) |
+| Observability gap inventory | [`.planning/observability-gap-analysis.md`](.planning/observability-gap-analysis.md) |
+
+**Deployed agent (Fly.io)** — smoke check (replace host if your app name differs):
+
+```bash
+curl -fsS https://clinical-agent-scaffold.fly.dev/agent/health
+```
+
+Configure OpenEMR origin via `fly secrets` per [`deploy/README-fly-agent.md`](deploy/README-fly-agent.md). **Demo (3–5 min):** show OpenEMR session → chat panel → multi-turn follow-up → point to `verified` / `verification_notes` in JSON; mention fork vs scaffold boundaries from [`USER.md`](USER.md).
+
 ### Documentation index
 
+- [`USER.md`](USER.md) — primary user + use cases (submission)
+- [`AI-COST-ANALYSIS.md`](AI-COST-ANALYSIS.md) — cost template (fill TBD)
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [.planning/ROADMAP.md](.planning/ROADMAP.md)
 - [.planning/STATE.md](.planning/STATE.md)

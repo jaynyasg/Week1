@@ -1,5 +1,7 @@
 # RBAC — Agent tool access (`rbac.py`)
 
+For **primary-user persona and clinical use-case traceability** (Gauntlet `USER.md`), see [`USER.md`](USER.md).
+
 This document matches **PRD v1.1 · Feature 8 (Role-Based Access Control)**. Enforcement happens at the **agent layer** (e.g. retrieve node → `rbac.py`) so role boundaries are not UI-only.
 
 **Normative source:** `AF/PRD.md` §4 Feature 8, §2 Definitions (`ADMIN`, `Role`).
