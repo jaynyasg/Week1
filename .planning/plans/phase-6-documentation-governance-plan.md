@@ -26,3 +26,11 @@ Eliminate **markdown-vs-Word drift** by making **`.planning/` markdown** the sin
 1. Canonical markdown + authoring rules in repo docs.
 2. Inventory → reconcile or mark non-authoritative per item.
 3. Traceability conventions + spot-check against recent changes.
+
+## Repo evidence (scaffold)
+- **Planning root**: `.planning/` is the repository’s canonical planning directory (roadmap, state, requirements, plans, intel, ingest outputs).
+- **ROADMAP**: Present at `.planning/ROADMAP.md`.
+- **STATE**: Present at `.planning/STATE.md`.
+- **REQUIREMENTS**: Present at `.planning/REQUIREMENTS.md` (separate `requirements.md` also exists under `.planning/intel/`).
+- **Ingest artifacts**: `.planning/ingest/` exists with `synthesis.json` and per-document JSON under `.planning/ingest/classifications/`; `.planning/INGEST-CONFLICTS.md` cites multiple paths under `.planning/ingest/classifications/`.
+- **Word vs markdown (verified)**: `.planning/PROJECT.md` § *Canonical Source Policy* states that markdown artifacts in the repository are canonical and that divergent Word exports are non-authoritative and must not override markdown decisions, requirements, or runbooks. `.planning/STATE.md` records the same as a **Canonical policy** bullet (markdown authoritative; divergent Word non-authoritative).

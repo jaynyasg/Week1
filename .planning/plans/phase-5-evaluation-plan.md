@@ -30,3 +30,16 @@ Prove **latency**, **unauthorized-access resilience**, **cost envelopes**, **Pre
 2. Expand eval suite (including unauthorized-access).
 3. Cost artifact template + first run.
 4. Checklist-to-evidence matrix; store all outputs as checkpoint artifacts.
+
+## Repo evidence (scaffold)
+- **RBAC / denial (HTTP):** `agent/tests/integration/test_tool_route_rbac.py` — `/agent/tools/{tool_name}` dependency overrides; asserts `403` on disallowed tools.
+- **RBAC / denial (logging):** `agent/tests/integration/test_http_logging_observability.py` — e.g. `test_post_agent_tools_rbac_403_logs_tool_refusal_with_event_field` asserts `403` and log extras for tool refusal.
+- **RBAC matrix (unit):** `agent/tests/unit/test_rbac_matrix.py` — parameterized matrix vs `USERS.md`; partial-denial / `assert_tools_allowed` coverage.
+- **Observability HTTP tests:** same file `agent/tests/integration/test_http_logging_observability.py` for request/response logging behavior.
+- **Live OpenEMR (gated, optional):** `agent/tests/integration/test_live_openemr_optional.py` — enabled when `RUN_LIVE_OPENEMR_E2E` or `RUN_LIVE_OPENEMR_TESTS` is set (and related auth env); not required for default CI runs.
+- **CI — GitHub Actions:** `.github/workflows/agent-tests.yml` runs `python -m pytest agent/tests -q` (see workflow `pytest` job).
+- **CI — GitLab:** `.gitlab-ci.yml` runs `python -m pytest agent/tests -q` in the test job (live OpenEMR job commented with pointer to the optional test file).
+
+### Pytest snapshot (repo state, not Phase 5 completion)
+- Command: `python -m pytest agent/tests -q`
+- Result (local run, workspace as checked out): **71 passed**, **4 skipped** (~2.43s). Skips reflect optional/gated tests in the suite, not a claim that Phase 5 exit criteria are met.
