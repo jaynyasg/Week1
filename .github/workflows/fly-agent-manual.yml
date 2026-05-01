@@ -16,6 +16,11 @@ name: Fly agent (manual deploy)
 on:
   workflow_dispatch:
 
+# One deploy at a time: queue overlapping runs instead of canceling (safer for Fly).
+concurrency:
+  group: fly-agent-manual
+  cancel-in-progress: false
+
 permissions:
   contents: read
 

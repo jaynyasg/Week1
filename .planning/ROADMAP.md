@@ -8,6 +8,8 @@
 - [ ] **Phase 5: Evaluation and Performance Validation** - Prove latency, unauthorized-access resilience, and cost gates.
 - [ ] **Phase 6: Documentation Governance Cleanup** - Eliminate markdown-vs-Word drift and lock governance workflow.
 
+**Note**: OpenEMR stack uses root `fly.toml` and `deploy/`. The scaffold FastAPI agent is a **separate Fly app** (`fly.agent.toml`, `Dockerfile.agent`, `deploy/README-fly-agent.md`) — two deployables; do not conflate them.
+
 ## Phase Details
 
 ### Phase 1: Deployment Baseline Hardening

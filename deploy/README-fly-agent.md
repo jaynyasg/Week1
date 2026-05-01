@@ -103,6 +103,26 @@ Health **and** authenticated chat (pass a raw token or a full `Bearer <token>` s
 
 The script always runs `GET {BaseUrl}/agent/health`. When `-AuthHeader` is non-empty, it also runs `POST {BaseUrl}/agent/chat` with a small JSON body. Exit code `1` on failure.
 
+### Bash (`scripts/smoke_agent_service.sh`)
+
+From the **repository root** (so `./scripts/` resolves). Health only:
+
+```bash
+./scripts/smoke_agent_service.sh --base-url "https://clinical-agent-scaffold.fly.dev"
+```
+
+Health **and** authenticated chat (pass a raw token or a full `Bearer <token>` string; the script normalizes bare tokens to `Bearer …`):
+
+```bash
+./scripts/smoke_agent_service.sh \
+  --base-url "https://clinical-agent-scaffold.fly.dev" \
+  --auth-header "Bearer <paste-from-browser-openemr-request>"
+```
+
+The script always runs `GET {base}/agent/health`. When `--auth-header` is set, it also runs `POST {base}/agent/chat`. Exit code `1` on failure.
+
+**JSON for chat:** If you use `--auth-header`, you need **`jq` or `python3`** on your `PATH` — the script uses one of them to build the JSON body for `POST /agent/chat` (see `scripts/smoke_agent_service.sh`).
+
 ## Troubleshooting
 
 | Symptom | Likely cause | What to do |
@@ -125,6 +145,7 @@ fly ssh console --app clinical-agent-scaffold
 | `deploy/requirements-agent.txt` | Runtime pip deps (`httpx`, `fastapi`, `python-dotenv`, `uvicorn[standard]`) |
 | `.dockerignore.agent` | Smaller/faster agent image builds |
 | `scripts/smoke_agent_service.ps1` | Local or remote smoke: health + optional chat with `-AuthHeader` |
+| `scripts/smoke_agent_service.sh` | Same for Bash/macOS/Linux/Git Bash: `--base-url`, optional `--auth-header` (`jq` or `python3` when chat runs) |
 
 ## Local sanity (no server)
 

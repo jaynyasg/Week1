@@ -39,7 +39,7 @@ After deploy, smoke the service (replace the host with your Fly app URL):
 curl -fsS https://<your-app>.fly.dev/agent/health
 ```
 
-On Windows you can optionally run [`scripts/smoke_agent_service.ps1`](scripts/smoke_agent_service.ps1) instead. Do not put tokens or other secrets in the README; configure them via `fly secrets` or your shell environment.
+You can optionally run [`scripts/smoke_agent_service.sh`](scripts/smoke_agent_service.sh), or on Windows [`scripts/smoke_agent_service.ps1`](scripts/smoke_agent_service.ps1). Do not put tokens or other secrets in the README; configure them via `fly secrets` or your shell environment.
 
 ## Getting started
 
