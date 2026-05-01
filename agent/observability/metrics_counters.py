@@ -17,6 +17,7 @@ _verify_failures_total: int = 0
 _rgv_degraded_total: int = 0
 _category_boundary_flags_total: int = 0
 _openemr_auth_failures_total: int = 0
+_openemr_misconfiguration_total: int = 0
 
 
 def inc_chat_turn() -> None:
@@ -55,6 +56,12 @@ def inc_openemr_auth_failure() -> None:
         _openemr_auth_failures_total += 1
 
 
+def inc_openemr_misconfiguration() -> None:
+    global _openemr_misconfiguration_total
+    with _lock:
+        _openemr_misconfiguration_total += 1
+
+
 def snapshot() -> dict[str, int]:
     with _lock:
         return {
@@ -64,6 +71,7 @@ def snapshot() -> dict[str, int]:
             "rgv_degraded_total": _rgv_degraded_total,
             "category_boundary_flags_total": _category_boundary_flags_total,
             "openemr_auth_failures_total": _openemr_auth_failures_total,
+            "openemr_misconfiguration_total": _openemr_misconfiguration_total,
         }
 
 
@@ -77,6 +85,10 @@ _METRIC_META: Final[list[tuple[str, str]]] = [
     ("rgv_degraded_total", "RGV turns ending in unverified degraded path."),
     ("category_boundary_flags_total", "Category boundary review events logged."),
     ("openemr_auth_failures_total", "OpenEMR session validation failures."),
+    (
+        "openemr_misconfiguration_total",
+        "OpenEMR base URL / config misconfiguration signals.",
+    ),
 ]
 
 
@@ -94,7 +106,7 @@ def reset_counters_for_testing() -> None:
     """Zero all counters (test-only; not for production use)."""
     global _chat_turns_total, _tool_refusals_total, _verify_failures_total
     global _rgv_degraded_total, _category_boundary_flags_total
-    global _openemr_auth_failures_total
+    global _openemr_auth_failures_total, _openemr_misconfiguration_total
     with _lock:
         _chat_turns_total = 0
         _tool_refusals_total = 0
@@ -102,3 +114,4 @@ def reset_counters_for_testing() -> None:
         _rgv_degraded_total = 0
         _category_boundary_flags_total = 0
         _openemr_auth_failures_total = 0
+        _openemr_misconfiguration_total = 0

@@ -28,6 +28,7 @@ def _fake_physician(
     return "PHYSICIAN"
 
 
+@pytest.mark.eval
 @pytest.mark.skipif(
     not os.environ.get("RUN_LATENCY_GATE"),
     reason="set RUN_LATENCY_GATE=1 to run coarse chat latency sampling",

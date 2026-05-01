@@ -43,4 +43,4 @@ Prove **latency**, **unauthorized-access resilience**, **cost envelopes**, **Pre
 
 ### Pytest snapshot (repo state, not Phase 5 completion)
 - Command: `python -m pytest agent/tests deploy/tests -q`; lint: `python -m ruff check agent`
-- Typical local run (approximate): ~**136 passed**, ~**15 skipped**—counts vary; run pytest to confirm. Skips reflect optional live OpenEMR, `RUN_LATENCY_GATE`, and other gated tests, not a claim that Phase 5 exit criteria are met.
+- Typical local run (approximate): ~**139 passed**, ~**15 skipped**—counts vary; run pytest to confirm. Skips reflect optional live OpenEMR, `RUN_LATENCY_GATE`, and other gated tests, not a claim that Phase 5 exit criteria are met. Optional scheduled workflow: `.github/workflows/latency-gate-scheduled.yml`.

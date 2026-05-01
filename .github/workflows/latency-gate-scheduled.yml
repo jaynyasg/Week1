@@ -1,0 +1,26 @@
+# Optional: coarse scaffold chat latency gate on a schedule (does not block PR CI).
+# Uses TestClient only; does not call a live OpenEMR. Tune AGENT_LATENCY_GATE_MS if runners are slow.
+name: Latency gate (scheduled)
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  latency-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RUN_LATENCY_GATE: "1"
+      OPENEMR_BASE_URL: "https://openemr.example.invalid"
+      AGENT_LATENCY_GATE_MS: "5000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Coarse chat latency (scaffold)
+        run: python -m pytest agent/tests/integration/test_latency_gate_optional.py -v --tb=short

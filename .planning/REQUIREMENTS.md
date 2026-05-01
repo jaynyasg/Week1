@@ -8,12 +8,13 @@ V1 requirements are derived from `.planning/ingest/synthesis.json` with ADR/SPEC
 - Word exports are reference-only and non-authoritative when divergent.
 
 ## Verification / evidence (repo)
-- **CI**: GitHub Actions `.github/workflows/agent-tests.yml` (`pytest` job: `python -m pytest agent/tests -q`); GitLab `.gitlab-ci.yml` (`test` stage / `test` job, same command).
+- **CI**: GitHub Actions `.github/workflows/agent-tests.yml` and GitLab `.gitlab-ci.yml` run **`ruff check` / `ruff format --check`** on `agent/` and **`python -m pytest agent/tests deploy/tests -q`**.
 - **GitLab CI**: `.gitlab-ci.yml` `test` job sets **`timeout: 20m`** to cap stuck pytest on shared runners.
-- **Local**: `python -m pytest agent/tests -q` (aligns with CI and the **Agent tests** section in `README.md`).
-- **Key test modules**: `agent/tests/unit/test_rbac_matrix.py`, `agent/tests/integration/test_http_logging_observability.py`, `agent/tests/integration/test_live_openemr_optional.py`, `agent/tests/unit/test_http_deps.py`.
+- **Local**: `python -m pytest agent/tests deploy/tests -q` (see `README.md` **Agent tests**). Optional: `-m "not eval"` to skip `@pytest.mark.eval` latency gate tests.
+- **Key test modules**: `agent/tests/unit/test_rbac_matrix.py`, `agent/tests/integration/test_http_logging_observability.py`, `agent/tests/integration/test_live_openemr_optional.py`, `agent/tests/unit/test_http_deps.py`, `deploy/tests/integration/test_deployment.py`.
+- **REQ ↔ tests map**: `.planning/REQ-TEST-TRACEABILITY.md`.
 - **Docs**: `README.md` — section **Agent tests** (command + optional live OpenEMR notes).
-- **Recorded run (2026-04-30, local)**: `python -m pytest agent/tests -q` → **80 passed, 4 skipped**.
+- **Recorded run (approximate)**: `python -m pytest agent/tests deploy/tests -q` → **~139 passed**, **~15 skipped** (run locally to confirm).
 - **Fly.io scaffold agent** smoke — `GET /agent/health`; optional `POST /agent/chat` with a real OpenEMR `Authorization` header when exercising live paths. Repo: `Dockerfile.agent`, `fly.agent.toml`, `deploy/README-fly-agent.md`, `scripts/smoke_agent_service.ps1`; deploy with `fly deploy --config fly.agent.toml`. **No secrets** in verification notes, docs, or command examples.
 - **Optional CI/manual deploy (Fly agent)**: `.github/workflows/fly-agent-manual.yml` — `workflow_dispatch`, GitHub Actions secret `FLY_API_TOKEN`, and `fly deploy --config fly.agent.toml`. This path is **optional** convenience only and **does not replace** local `fly deploy` plus smoke checks.
 

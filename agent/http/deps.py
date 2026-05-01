@@ -19,6 +19,7 @@ from agent.observability.taxonomy import (
     OPENEMR_AUTH_FAILURE,
     OPENEMR_MISCONFIGURATION,
 )
+from agent.observability.metrics_counters import inc_openemr_misconfiguration
 from agent.services.chat_turn import run_scaffold_chat_turn
 
 _LOG = logging.getLogger(__name__)
@@ -81,6 +82,7 @@ def get_openemr_base_url(request: Request | None = None) -> str:
             cost_envelope="unknown",
             client_request_id=cid or "none",
         )
+        inc_openemr_misconfiguration()
         raise HTTPException(
             status_code=500,
             detail="OPENEMR_BASE_URL is not configured",

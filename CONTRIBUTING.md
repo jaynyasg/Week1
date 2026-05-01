@@ -8,11 +8,19 @@ Run the automated test suites from the repository root:
 python -m pytest agent/tests deploy/tests -q
 ```
 
+Faster local loop (skips tests marked `@pytest.mark.eval`; optional gates may still skip on their own):
+
+```text
+python -m pytest agent/tests deploy/tests -q -m "not eval"
+```
+
 Optionally run lint on the agent package:
 
 ```text
 python -m ruff check agent
 ```
+
+Optional Git hooks: install with `pip install pre-commit && pre-commit install` to run `.pre-commit-config.yaml` (e.g. Ruff on `agent/`) before commit.
 
 Do not commit secrets. Keep credentials and environment-specific values in a local `.env` file (ignored by git), following `.env.example` where provided.
 

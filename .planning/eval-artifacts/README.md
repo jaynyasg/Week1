@@ -4,4 +4,6 @@ This directory holds checkpoint-ready evaluation outputs: latency summaries, cos
 
 **Suggested naming**: `YYYY-MM-DD-<checkpoint>-<topic>.md` or `YYYY-MM-DD-<checkpoint>-<topic>.json` so runs sort chronologically and tie to milestones or checkpoints.
 
+**Template**: copy [`TEMPLATE-latency-cost-snapshot.md`](TEMPLATE-latency-cost-snapshot.md) for latency/cost checkpoint notes.
+
 Continuous integration stays fast by design. Heavy or expensive evaluations belong in local runs or scheduled pipelines that opt in through environment gates and quotas, rather than blocking every merge job.

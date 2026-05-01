@@ -43,6 +43,7 @@ def test_health_ready_and_metrics_exist() -> None:
             "rgv_degraded_total",
             "category_boundary_flags_total",
             "openemr_auth_failures_total",
+            "openemr_misconfiguration_total",
         ):
             assert name in m.text
             assert f"{name} 0" in m.text

@@ -85,6 +85,30 @@ def test_verify_retry_at_most_once_then_degrade() -> None:
     assert "recovered" in st.verification_notes
 
 
+def test_empty_tool_results_verify_fails_and_degrades_with_notes() -> None:
+    """Retrieve may yield {} — verify should fail explicitly (scaffold-style contract)."""
+
+    def retrieve(_s: ClinicalTurnState) -> dict:
+        return {}
+
+    def generate(_s: ClinicalTurnState) -> str:
+        return "suggestion"
+
+    def verify(s: ClinicalTurnState, _t: str) -> tuple[bool, str]:
+        if not s.tool_results:
+            return False, "missing tool results"
+        return True, "ok"
+
+    st, out = run_retrieve_generate_verify(
+        _base_state(), retrieve=retrieve, generate=generate, verify=verify
+    )
+    assert st.verified is False
+    assert out == "suggestion"
+    assert st.verify_retry_count == 1
+    joined = " ".join(st.verification_notes).lower()
+    assert "missing" in joined
+
+
 def test_verify_always_fails_degrades_without_infinite_loop() -> None:
     gen_calls = 0
 
