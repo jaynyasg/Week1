@@ -21,6 +21,9 @@ RGV_DEGRADED_UNVERIFIED = "rgv_degraded_unverified"
 # Configuration / upstream
 OPENEMR_MISCONFIGURATION = "openemr_misconfiguration"
 
+# OpenEMR /api/user rejected the session, returned non-200, or role mapping failed.
+OPENEMR_AUTH_FAILURE = "openemr_auth_failure"
+
 # Demo / non-production auth bypass — only emitted when AGENT_DEMO_BYPASS=1 AND a
 # valid X-Agent-Demo-Role header short-circuits OpenEMR /api/user validation.
 # Operators MUST treat occurrences in production as a misconfiguration (PHI risk).

@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi import HTTPException
 
+from agent.access.openemr_auth import OpenEMRAuthError
 from agent.http.deps import (
     _client_request_id,
     _demo_bypass_enabled,
@@ -15,7 +16,11 @@ from agent.http.deps import (
     resolve_agent_role,
 )
 from agent.observability.events import LOG_EXTRA_EVENT
-from agent.observability.taxonomy import DEMO_BYPASS_ACTIVE, OPENEMR_MISCONFIGURATION
+from agent.observability.taxonomy import (
+    DEMO_BYPASS_ACTIVE,
+    OPENEMR_AUTH_FAILURE,
+    OPENEMR_MISCONFIGURATION,
+)
 
 
 def test_get_openemr_base_url_raises_when_unset(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -188,6 +193,7 @@ async def test_resolve_agent_role_bypass_invalid_role_falls_through(
         authorization_header_value: str | None = None,
         cookie_header_value: str | None = None,
         client,  # noqa: ARG001
+        request_id: str | None = None,  # noqa: ARG001
     ) -> str:
         called["authorization"] = authorization_header_value
         called["cookie"] = cookie_header_value
@@ -227,6 +233,7 @@ async def test_resolve_agent_role_bypass_disabled_ignores_header(
         authorization_header_value: str | None = None,
         cookie_header_value: str | None = None,
         client,  # noqa: ARG001
+        request_id: str | None = None,  # noqa: ARG001
     ) -> str:
         return "ADMIN"
 
@@ -246,6 +253,43 @@ async def test_resolve_agent_role_bypass_disabled_ignores_header(
         x_agent_demo_role="PHYSICIAN",
     )
     assert role == "ADMIN"
+
+
+@pytest.mark.asyncio
+async def test_resolve_agent_role_openemr_failure_emits_event_and_structured_http_exception(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.delenv("AGENT_DEMO_BYPASS", raising=False)
+    monkeypatch.setenv("OPENEMR_BASE_URL", "https://openemr.example.test")
+    caplog.set_level(logging.INFO)
+
+    async def _deny(_base: str, **_kw: object) -> str:
+        raise OpenEMRAuthError("bad session", reason_code="e2e_fail")
+
+    monkeypatch.setattr(
+        "agent.http.deps.validate_session_and_resolve_role",
+        _deny,
+    )
+
+    req = MagicMock()
+    req.app.state.http_client = MagicMock()
+    req.headers.get = lambda name, default=None: {"X-Request-ID": "req-for-log"}.get(name, default)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await resolve_agent_role(req, authorization="Bearer x", cookie=None, x_agent_demo_role=None)
+    assert exc_info.value.status_code == 401
+    d = exc_info.value.detail
+    assert isinstance(d, dict)
+    assert d["error"] == "openemr_auth_failed"
+    assert d["reason_code"] == "e2e_fail"
+    assert d["request_id"] == "req-for-log"
+
+    auth_fails = [
+        r
+        for r in caplog.records
+        if r.name == "agent.http.deps" and getattr(r, LOG_EXTRA_EVENT, None) == OPENEMR_AUTH_FAILURE
+    ]
+    assert auth_fails and getattr(auth_fails[0], "client_request_id") == "req-for-log"
 
 
 @pytest.mark.asyncio

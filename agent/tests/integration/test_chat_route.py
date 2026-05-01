@@ -9,6 +9,7 @@ import pytest
 from fastapi import Header, Request
 from fastapi.testclient import TestClient
 
+from agent.access.openemr_auth import OpenEMRAuthError
 from agent.http.deps import get_chat_turn_runner, resolve_agent_role
 from agent.runtime.rgv_pipeline import MAX_VERIFY_RETRIES
 from agent.services.chat_turn import run_scaffold_chat_turn
@@ -55,9 +56,11 @@ def test_chat_cookie_only_auth_reaches_chat_path(
         authorization_header_value: str | None = None,
         cookie_header_value: str | None = None,
         client,  # noqa: ARG001 - matches real signature
+        request_id: str | None = None,  # noqa: ARG001
     ) -> str:
         captured["authorization"] = authorization_header_value
         captured["cookie"] = cookie_header_value
+        captured["request_id"] = request_id
         return "PHYSICIAN"
 
     monkeypatch.setattr(
@@ -81,6 +84,69 @@ def test_chat_cookie_only_auth_reaches_chat_path(
     assert data["messages"][-1]["role"] == "assistant"
     assert captured["authorization"] is None
     assert captured["cookie"] == "OpenEMR=abc; PHPSESSID=xyz; token_main=tok"
+
+
+def test_chat_forwards_x_request_id_to_openemr_validator(
+    app, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Inbound X-Request-ID is passed to validate_session_and_resolve_role for OpenEMR tracing."""
+    monkeypatch.setenv("OPENEMR_BASE_URL", "https://openemr.example.test")
+
+    captured: dict[str, object] = {}
+
+    async def _fake_validate(
+        _base: str,
+        *,
+        authorization_header_value: str | None = None,
+        cookie_header_value: str | None = None,
+        client,  # noqa: ARG001
+        request_id: str | None = None,
+    ) -> str:
+        captured["request_id"] = request_id
+        return "PHYSICIAN"
+
+    monkeypatch.setattr(
+        "agent.http.deps.validate_session_and_resolve_role",
+        _fake_validate,
+    )
+
+    with TestClient(app) as client:
+        r = client.post(
+            "/agent/chat",
+            json={
+                "patient_id": "pat-1",
+                "user_message": "trace me",
+                "messages": [],
+            },
+            headers={"Authorization": "Bearer test", "X-Request-ID": "client-rid-42"},
+        )
+    assert r.status_code == 200
+    assert captured.get("request_id") == "client-rid-42"
+    assert r.headers.get("X-Request-ID") == "client-rid-42"
+
+
+def test_chat_openemr_auth_failure_returns_structured_detail(
+    app, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("OPENEMR_BASE_URL", "https://openemr.example.test")
+
+    async def _deny(_base: str, **_kwargs: object) -> str:
+        raise OpenEMRAuthError("session invalid", reason_code="unit_test_deny")
+
+    monkeypatch.setattr("agent.http.deps.validate_session_and_resolve_role", _deny)
+
+    with TestClient(app) as client:
+        r = client.post(
+            "/agent/chat",
+            json={"patient_id": "p", "user_message": "hi", "messages": []},
+            headers={"Authorization": "Bearer z", "X-Request-ID": "correlation-99"},
+        )
+    assert r.status_code == 401
+    detail = r.json()["detail"]
+    assert detail["error"] == "openemr_auth_failed"
+    assert detail["reason_code"] == "unit_test_deny"
+    assert detail["request_id"] == "correlation-99"
+    assert r.headers.get("X-Request-ID") == "correlation-99"
 
 
 def _verify_always_fail(_state, _text):

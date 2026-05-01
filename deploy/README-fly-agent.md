@@ -239,6 +239,8 @@ fly logs --app clinical-agent-scaffold
 fly ssh console --app clinical-agent-scaffold
 ```
 
+For **deploy order, rollback, CORS vs embedded UI, and correlation IDs**, see [safe-rollout.md](docs/safe-rollout.md).
+
 ## Files involved
 
 | File | Role |

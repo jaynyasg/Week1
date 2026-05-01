@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+import uuid
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from typing import Annotated
@@ -26,6 +27,11 @@ from agent.services.chat_turn import new_session_id
 _LOG = logging.getLogger(__name__)
 
 
+def _http_client_timeout_seconds() -> float:
+    raw = (os.environ.get("OPENEMR_HTTP_TIMEOUT_SECONDS") or "30").strip() or "30"
+    return max(1.0, float(raw))
+
+
 def _parse_cors_origins() -> list[str] | None:
     """Comma-separated origins, or ``*`` for any origin (demo only; no credentials)."""
     raw = os.environ.get("AGENT_CORS_ORIGINS", "").strip()
@@ -40,7 +46,10 @@ def _parse_cors_origins() -> list[str] | None:
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     load_dotenv_if_present()
-    async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+    async with httpx.AsyncClient(
+        timeout=_http_client_timeout_seconds(),
+        follow_redirects=True,
+    ) as client:
         app.state.http_client = client
         yield
 
@@ -51,6 +60,19 @@ def create_app() -> FastAPI:
         version="0.1.0",
         lifespan=_lifespan,
     )
+
+    @app.middleware("http")
+    async def request_id_middleware(request: Request, call_next):
+        incoming = (
+            request.headers.get("x-request-id")
+            or request.headers.get("x-correlation-id")
+            or request.headers.get("x-trace-id")
+        )
+        rid = (incoming or "").strip()[:128] or str(uuid.uuid4())
+        request.state.request_id = rid
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = rid
+        return response
 
     cors = _parse_cors_origins()
     if cors:

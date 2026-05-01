@@ -26,3 +26,19 @@ jobs:
         run: pip install -r requirements.txt
       - name: Run agent tests
         run: python -m pytest agent/tests -q
+
+  chat-ui-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: chat-ui/package-lock.json
+      - name: Install and build chat UI
+        working-directory: chat-ui
+        run: |
+          npm ci
+          npm run build

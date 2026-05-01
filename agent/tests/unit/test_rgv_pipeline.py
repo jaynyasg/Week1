@@ -15,6 +15,20 @@ def _base_state() -> ClinicalTurnState:
     )
 
 
+def test_retrieve_exception_propagates() -> None:
+    def retrieve(_s: ClinicalTurnState) -> dict:
+        raise RuntimeError("retrieve boom")
+
+    def generate(_s: ClinicalTurnState) -> str:
+        return "never"
+
+    def verify(_s: ClinicalTurnState, _t: str) -> tuple[bool, str]:
+        return True, ""
+
+    with pytest.raises(RuntimeError, match="retrieve boom"):
+        run_retrieve_generate_verify(_base_state(), retrieve=retrieve, generate=generate, verify=verify)
+
+
 def test_retrieve_runs_before_generate() -> None:
     order: list[str] = []
 

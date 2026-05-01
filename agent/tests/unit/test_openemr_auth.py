@@ -31,6 +31,46 @@ def test_map_role(payload: dict, expected: str | None) -> None:
 
 
 @pytest.mark.asyncio
+async def test_fetch_openemr_user_json_respects_openemr_http_timeout_seconds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OPENEMR_HTTP_TIMEOUT_SECONDS", "7")
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"agent_role": "PHYSICIAN"}
+
+    client = MagicMock(spec=httpx.AsyncClient)
+    client.get = AsyncMock(return_value=mock_response)
+
+    await fetch_openemr_user_json(
+        "https://example.com/",
+        authorization_header_value="Bearer t",
+        client=client,
+    )
+    _args, kwargs = client.get.await_args
+    assert kwargs["timeout"] == 7.0
+
+
+@pytest.mark.asyncio
+async def test_fetch_openemr_user_json_forwards_request_id() -> None:
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"agent_role": "NURSE"}
+
+    client = MagicMock(spec=httpx.AsyncClient)
+    client.get = AsyncMock(return_value=mock_response)
+
+    await fetch_openemr_user_json(
+        "https://example.com/openemr",
+        authorization_header_value="Bearer token",
+        client=client,
+        request_id="upstream-trace-7",
+    )
+    _args, kwargs = client.get.await_args
+    assert kwargs["headers"]["X-Request-ID"] == "upstream-trace-7"
+
+
+@pytest.mark.asyncio
 async def test_fetch_openemr_user_json_success() -> None:
     mock_response = MagicMock()
     mock_response.status_code = 200

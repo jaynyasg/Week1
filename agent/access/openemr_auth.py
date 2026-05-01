@@ -8,6 +8,7 @@ plus a small heuristic mapper for tests and bootstrap environments.
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 import httpx
@@ -15,6 +16,10 @@ import httpx
 
 class OpenEMRAuthError(Exception):
     """Missing/invalid session or role could not be resolved to PHYSICIAN|NURSE|ADMIN."""
+
+    def __init__(self, message: str, *, reason_code: str = "openemr_auth_error") -> None:
+        super().__init__(message)
+        self.reason_code = reason_code
 
 
 def map_openemr_payload_to_agent_role(payload: dict[str, Any]) -> str | None:
@@ -47,12 +52,18 @@ def map_openemr_payload_to_agent_role(payload: dict[str, Any]) -> str | None:
     return None
 
 
+def _openemr_http_timeout_seconds() -> float:
+    raw = (os.environ.get("OPENEMR_HTTP_TIMEOUT_SECONDS") or "30").strip() or "30"
+    return max(1.0, float(raw))
+
+
 async def fetch_openemr_user_json(
     openemr_base_url: str,
     *,
     authorization_header_value: str | None = None,
     cookie_header_value: str | None = None,
     client: httpx.AsyncClient,
+    request_id: str | None = None,
 ) -> dict[str, Any]:
     """
     GET {base}/api/user with ``Authorization`` and/or ``Cookie`` forwarded.
@@ -69,6 +80,7 @@ async def fetch_openemr_user_json(
     if not auth_value and not cookie_value:
         raise OpenEMRAuthError(
             "OpenEMR /api/user call requires Authorization or Cookie header",
+            reason_code="missing_credentials",
         )
 
     base = openemr_base_url.rstrip("/")
@@ -78,21 +90,34 @@ async def fetch_openemr_user_json(
         headers["Authorization"] = auth_value
     if cookie_value:
         headers["Cookie"] = cookie_value
+    rid = (request_id or "").strip()[:128]
+    if rid:
+        headers["X-Request-ID"] = rid
     try:
-        response = await client.get(url, headers=headers, timeout=30.0)
+        response = await client.get(url, headers=headers, timeout=_openemr_http_timeout_seconds())
     except httpx.RequestError as exc:  # pragma: no cover - network
-        raise OpenEMRAuthError(f"OpenEMR /api/user request failed: {exc}") from exc
+        raise OpenEMRAuthError(
+            f"OpenEMR /api/user request failed: {exc}",
+            reason_code="upstream_unreachable",
+        ) from exc
 
     if response.status_code != 200:
         raise OpenEMRAuthError(
             f"OpenEMR /api/user returned {response.status_code}",
+            reason_code=f"openemr_http_{response.status_code}",
         )
     try:
         data = response.json()
     except ValueError as exc:
-        raise OpenEMRAuthError("OpenEMR /api/user returned non-JSON body") from exc
+        raise OpenEMRAuthError(
+            "OpenEMR /api/user returned non-JSON body",
+            reason_code="invalid_json",
+        ) from exc
     if not isinstance(data, dict):
-        raise OpenEMRAuthError("OpenEMR /api/user JSON must be an object")
+        raise OpenEMRAuthError(
+            "OpenEMR /api/user JSON must be an object",
+            reason_code="invalid_payload_shape",
+        )
     return data
 
 
@@ -102,6 +127,7 @@ async def validate_session_and_resolve_role(
     authorization_header_value: str | None = None,
     cookie_header_value: str | None = None,
     client: httpx.AsyncClient,
+    request_id: str | None = None,
 ) -> str:
     """Fetch /api/user and map to agent role; raises ``OpenEMRAuthError`` if denied.
 
@@ -113,8 +139,12 @@ async def validate_session_and_resolve_role(
         authorization_header_value=authorization_header_value,
         cookie_header_value=cookie_header_value,
         client=client,
+        request_id=request_id,
     )
     role = map_openemr_payload_to_agent_role(payload)
     if role is None:
-        raise OpenEMRAuthError("Could not map OpenEMR user to agent role")
+        raise OpenEMRAuthError(
+            "Could not map OpenEMR user to agent role",
+            reason_code="role_mapping_failed",
+        )
     return role

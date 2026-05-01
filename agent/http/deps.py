@@ -11,7 +11,11 @@ from fastapi import Header, HTTPException, Request
 
 from agent.access.openemr_auth import OpenEMRAuthError, validate_session_and_resolve_role
 from agent.observability.events import log_agent_event
-from agent.observability.taxonomy import DEMO_BYPASS_ACTIVE, OPENEMR_MISCONFIGURATION
+from agent.observability.taxonomy import (
+    DEMO_BYPASS_ACTIVE,
+    OPENEMR_AUTH_FAILURE,
+    OPENEMR_MISCONFIGURATION,
+)
 from agent.services.chat_turn import run_scaffold_chat_turn
 
 _LOG = logging.getLogger(__name__)
@@ -32,9 +36,13 @@ def _demo_bypass_enabled() -> bool:
 
 
 def _client_request_id(request: Request | None) -> str | None:
-    """Prefer inbound correlation headers for operator log joins (no secrets)."""
+    """Correlation id: middleware ``request.state.request_id`` or inbound headers."""
     if request is None:
         return None
+    state = getattr(request, "state", None)
+    state_id = getattr(state, "request_id", None) if state is not None else None
+    if isinstance(state_id, str) and state_id.strip():
+        return state_id.strip()[:128]
     for header_name in ("X-Request-ID", "X-Correlation-ID", "X-Trace-ID"):
         raw = request.headers.get(header_name)
         if raw and raw.strip():
@@ -125,12 +133,33 @@ async def resolve_agent_role(
         )
     base = get_openemr_base_url(request)
     client = get_http_client(request)
+    cid = _client_request_id(request) or "none"
     try:
         return await validate_session_and_resolve_role(
             base,
             authorization_header_value=auth_value,
             cookie_header_value=cookie_value,
             client=client,
+            request_id=cid if cid != "none" else None,
         )
     except OpenEMRAuthError as exc:
-        raise HTTPException(status_code=401, detail=str(exc)) from exc
+        log_agent_event(
+            _LOG,
+            OPENEMR_AUTH_FAILURE,
+            what="openemr_session_validation_failed",
+            why=str(exc)[:500],
+            reason_code=getattr(exc, "reason_code", "openemr_auth_error"),
+            duration_ms=0.0,
+            fallback="none",
+            cost_envelope="unknown",
+            client_request_id=cid,
+        )
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error": "openemr_auth_failed",
+                "reason_code": getattr(exc, "reason_code", "openemr_auth_error"),
+                "message": str(exc),
+                "request_id": cid,
+            },
+        ) from exc
