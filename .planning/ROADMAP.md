@@ -32,7 +32,7 @@
   2. Each role can invoke only the tools allowed by the defined 8-tool RBAC matrix.
   3. ADMIN role access is constrained to demographics and schedule actions as specified.
   4. Denied calls return explicit role+tool refusal responses and produce auditable logs without sensitive leakage.
-**Plans**: TBD
+**Plans**: `.planning/plans/phase-2-rbac-enforcement-plan.md`
 
 ### Phase 3: Retrieve-Generate-Verify Runtime Flow
 **Goal**: Clinical response generation follows a reliable retrieve/generate/verify loop with bounded retries.
@@ -86,7 +86,7 @@
 | Phase | Plans Complete | Status | Completed |
 |---|---|---|---|
 | 1. Deployment Baseline Hardening | 1/1 | Completed | 2026-04-30 (EMR evidence + AI integration plan finalized) |
-| 2. RBAC Enforcement and Test Matrix | 0/1 | In progress | - |
+| 2. RBAC Enforcement and Test Matrix | 1/1 | In progress | Planned 2026-04-30 |
 | 3. Retrieve-Generate-Verify Runtime Flow | 0/1 | Not started | - |
 | 4. Observability and Clinical Safety Flagging | 0/1 | Not started | - |
 | 5. Evaluation and Performance Validation | 0/1 | Not started | - |

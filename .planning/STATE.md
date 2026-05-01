@@ -7,7 +7,7 @@
 
 ## Current Position
 - **Current phase**: Phase 2 - RBAC Enforcement and Test Matrix
-- **Current plan**: TBD
+- **Current plan**: `.planning/plans/phase-2-rbac-enforcement-plan.md`
 - **Status**: In progress
 - **Progress**: 2/6 phases active (1 complete)
 - **Progress bar**: `[##----] 33% active, 17% complete`
@@ -30,7 +30,7 @@
 - Observation category quality must preserve RBAC boundaries (`ASM-observation-category-integrity`).
 
 ### Current TODOs
-- Prepare Phase 2 RBAC implementation plan with matrix test coverage.
+- Execute `.planning/plans/phase-2-rbac-enforcement-plan.md` task groups 1-4.
 - Define Phase 3 multi-turn + verification-layer contract tests tied to clinical use cases.
 - Define observability minimum-question schema and cost-envelope signals for Phase 4.
 - Prepare Phase 5 eval suite expansion (including unauthorized-access tests and Pre-Search Checklist evidence) plus checkpoint cost analysis.
@@ -40,5 +40,5 @@
 
 ## Session Continuity
 - **Last completed milestone**: Bootstrap ingest synthesis and planning initialization.
-- **Next command target**: `/gsd-plan-phase 2`
-- **Resume note**: Phase 1 is complete (EMR evidence + AI integration artifacts). Start RBAC enforcement planning and role-matrix test design.
+- **Next command target**: `/gsd-execute-phase 2`
+- **Resume note**: Phase 2 plan is complete; execute RBAC enforcement, matrix validation tests, and deny-path logging checks.
