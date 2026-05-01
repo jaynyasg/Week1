@@ -26,6 +26,19 @@ def _fake_physician(
     return "PHYSICIAN"
 
 
+def test_chat_missing_authorization_returns_401(app) -> None:
+    with TestClient(app) as client:
+        r = client.post(
+            "/agent/chat",
+            json={
+                "patient_id": "pat-1",
+                "user_message": "hello",
+                "messages": [],
+            },
+        )
+    assert r.status_code == 401
+
+
 def test_chat_scaffold_returns_messages(app) -> None:
     app.dependency_overrides[resolve_agent_role] = _fake_physician
     with TestClient(app) as client:

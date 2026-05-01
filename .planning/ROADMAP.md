@@ -37,6 +37,10 @@
 ### Phase 3: Retrieve-Generate-Verify Runtime Flow
 **Goal**: Clinical response generation follows a reliable retrieve/generate/verify loop with bounded retries.
 **Depends on**: Phase 2
+**Notes**:
+  - Gated live E2E: `agent/tests/integration/test_live_openemr_optional.py` — env vars in root [`.env.example`](../.env.example) (`RUN_LIVE_OPENEMR_E2E`, `OPENEMR_BASE_URL`, `OPENEMR_AUTHORIZATION` / `OPENEMR_BEARER_TOKEN`, optional `AGENT_BASE_URL`).
+  - In-repo **scaffold** proves HTTP/RGV contracts; **fork** work still needed for real retrieve/LLM/verify against EMR.
+  - `REQ-agent-requirements-coverage`: **pending** until fork closes the executable path (scaffold alone is insufficient).
 **Requirements**: REQ-retrieve-generate-verify-loop, REQ-multi-turn-usecase-behavior, REQ-verification-layer-contracts, REQ-agent-requirements-coverage
 **Success Criteria** (what must be TRUE):
   1. Every eligible request runs retrieval before generation and verification before final response.
