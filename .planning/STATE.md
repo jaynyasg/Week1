@@ -3,7 +3,7 @@
 ## Project Reference
 - **Core value**: Role-safe clinical copilot integrated with OpenEMR, deployable on Fly.io, with auditable runtime behavior.
 - **Canonical policy**: Markdown planning artifacts are authoritative; divergent Word exports are non-authoritative.
-- **Current focus**: Complete Phase 3 fork work — real tools, LLM, and verification modules beyond the in-repo scaffold.
+- **Current focus**: Phase 3 remains **in progress** in Week1: RGV + multi-turn + verify **contracts** and tests are in-repo; **SC3** (record-backed source attribution + real domain verification) and **`REQ-agent-requirements-coverage`** (full PRD runnable path) are **fork / deployed stack** work — see gap tables in `.planning/ROADMAP.md` (Phase 3 Notes) and `.planning/plans/phase-3-retrieve-generate-verify-plan.md`.
 
 ## Current Position
 - **Current phase**: Phase 3 - Retrieve-Generate-Verify Runtime Flow
@@ -40,8 +40,8 @@
 - None currently; ingest conflict gate reports 0 unresolved blockers.
 
 ## Session Continuity
-- **Last completed milestone**: Per ROADMAP, Phases 1–2 are completed; Phase 3 is in progress (RGV scaffold + tests in repo, not the full fork runtime). Phases 4–6 remain not started for execution; plan stubs are linked from ROADMAP: `phase-4-observability-plan.md`, `phase-5-evaluation-plan.md`, `phase-6-documentation-governance-plan.md` under `.planning/plans/`.
-- **Agent tests (verified locally)**: `python -m pytest agent/tests -q` → **62 passed, 4 skipped** (same command as README and CI). Skips align with optional/gated tests (e.g. live OpenEMR E2E).
+- **Last completed milestone**: Per ROADMAP, Phases 1–2 are completed; Phase 3 is in progress (RGV scaffold + tests in repo, not the full fork runtime). **2026-04-30 gap review**: Phase 3 **not** closed in this repo — SC3 + `REQ-agent-requirements-coverage` remain fork-owned (see ROADMAP Phase 3 Notes gap table and `phase-3-retrieve-generate-verify-plan.md`). Phases 4–6 remain not started for execution; plan stubs are linked from ROADMAP: `phase-4-observability-plan.md`, `phase-5-evaluation-plan.md`, `phase-6-documentation-governance-plan.md` under `.planning/plans/`.
+- **Agent tests (verified locally)**: `python -m pytest agent/tests -q` → **75 passed, 4 skipped** (same command as README and CI). Skips align with optional/gated tests (e.g. live OpenEMR E2E).
 - **CI**: `.gitlab-ci.yml` (GitLab) and `.github/workflows/agent-tests.yml` (GitHub) run `python -m pytest agent/tests`.
 - **Observability in repo (tests, not Phase 4 completion)**: `agent/tests/integration/test_http_logging_observability.py` asserts structured log extras on `/agent/chat` (`chat_turn_complete`) and on RBAC tool denial (`tool_refusal` / 403 on `/agent/tools/labs`), using `agent.observability.events` keys — contract-level coverage only; ROADMAP Phase 4 success criteria are still outstanding.
 - **Phase 3 scaffold**: `agent/runtime/rgv_pipeline.py`, `services/chat_turn.py`, `/agent/chat` integration tests + missing-Authorization 401. Gated live E2E: `agent/tests/integration/test_live_openemr_optional.py` — `RUN_LIVE_OPENEMR_E2E=1`, `OPENEMR_BASE_URL`, `OPENEMR_AUTHORIZATION` or `OPENEMR_BEARER_TOKEN` (optional `AGENT_BASE_URL`); see root `.env.example`. `REQ-agent-requirements-coverage` stays pending until the fork wires real retrieve/LLM/verify.

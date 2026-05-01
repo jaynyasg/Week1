@@ -40,7 +40,22 @@
 **Notes**:
   - Gated live E2E: `agent/tests/integration/test_live_openemr_optional.py` — env vars in root [`.env.example`](../.env.example) (`RUN_LIVE_OPENEMR_E2E`, `OPENEMR_BASE_URL`, `OPENEMR_AUTHORIZATION` / `OPENEMR_BEARER_TOKEN`, optional `AGENT_BASE_URL`).
   - In-repo **scaffold** proves HTTP/RGV contracts; **fork** work still needed for real retrieve/LLM/verify against EMR.
-  - `REQ-agent-requirements-coverage`: **pending** until fork closes the executable path (scaffold alone is insufficient).
+  - `REQ-agent-requirements-coverage`: **pending** until fork closes the executable path (scaffold alone is insufficient). Production LLM, FHIR-backed retrieve, LangGraph (if adopted), and **record-backed source attribution** in responses remain **fork / deployed stack** work — do not treat in-repo scaffold as full PRD runtime.
+  - **Gap table (2026-04-30 review)** — criterion or exit ID → repo status → owner for remaining work:
+
+| Criterion / exit ID | Repo status | Fork / deployed stack |
+|---|---|---|
+| SC1 RGV ordering | **Met** — `agent/runtime/rgv_pipeline.py`, `agent/tests/unit/test_rgv_pipeline.py::test_retrieve_runs_before_generate`, `run_scaffold_chat_turn` | — |
+| SC2 Multi-turn session/role | **Met** — `POST /agent/chat`, `agent/tests/integration/test_chat_route.py::test_chat_multiturn_carries_history`, `X-Clinical-Session-Id`, `resolve_agent_role` | Richer clinical state in fork if needed |
+| SC3 Domain verify + source attribution + limit notes | **Partial** — `ChatResponse.verification_notes`, `verified`, `tool_result_keys`; scaffold verify only; **no** record-backed attribution in response artifacts | OpenEMR fork / full agent |
+| SC4 AI architecture mapping | **Met (doc)** — `.planning/AI-ARCHITECTURE.md` (Agentic Chatbot, Verification, Observability, Evaluation sections) | Executable parity in fork |
+| SC5 Bounded retry | **Met** — `MAX_VERIFY_RETRIES`, `agent/tests/unit/test_rgv_pipeline.py` | Policy alignment in fork |
+| SC6 Degradation on verify failure | **Met** — `test_chat_graceful_degradation_verified_false_after_retries`, explicit `verified: false` | Production UX copy in fork |
+| `REQ-retrieve-generate-verify-loop` | **Met (scaffold)** — ordering, ≤1 retry, explicit unverified exit | Real retrieve/verify |
+| `REQ-multi-turn-usecase-behavior` | **Met (scaffold)** — messages + session across turns | Use-case-specific continuity |
+| `REQ-verification-layer-contracts` | **Met (contract)** — structured pass/fail + notes; no silent success | Domain grounding module |
+| `REQ-agent-requirements-coverage` | **Not met (runtime)** — no full PRD tool+LLM+verify path in this repo | **OpenEMR fork** |
+| Observability fields on chat | **Met (tests)** — `agent/tests/integration/test_http_logging_observability.py` (`chat_turn_complete`) | Phase 4 for full operator-question telemetry |
 **Requirements**: REQ-retrieve-generate-verify-loop, REQ-multi-turn-usecase-behavior, REQ-verification-layer-contracts, REQ-agent-requirements-coverage
 **Success Criteria** (what must be TRUE):
   1. Every eligible request runs retrieval before generation and verification before final response.
@@ -94,7 +109,7 @@
 |---|---|---|---|
 | 1. Deployment Baseline Hardening | 1/1 | Completed | 2026-04-30 (EMR evidence + AI integration plan finalized) |
 | 2. RBAC Enforcement and Test Matrix | 1/1 | Completed | 2026-04-30 (pytest + optional live OpenEMR) |
-| 3. Retrieve-Generate-Verify Runtime Flow | 1/1 | In progress | RGV scaffold + tests in repo |
+| 3. Retrieve-Generate-Verify Runtime Flow | 1/1 | In progress | RGV scaffold + tests; gap review 2026-04-30 (SC3 + REQ-agent-requirements-coverage → fork) |
 | 4. Observability and Clinical Safety Flagging | 1/1 | Not started | - |
 | 5. Evaluation and Performance Validation | 1/1 | Not started | - |
 | 6. Documentation Governance Cleanup | 1/1 | Not started | - |
