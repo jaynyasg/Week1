@@ -53,6 +53,20 @@ def test_deployed_uses_https(client: httpx.Client) -> None:
     )
 
 
+def test_deployed_embedded_copilot_ui_reachable(client: httpx.Client) -> None:
+    """Clinical Co-Pilot static SPA is baked into the OpenEMR image."""
+    url = f"{DEPLOYED_URL}/interface/copilot/"
+    resp = client.get(url)
+    assert resp.status_code == 200, (
+        f"GET {url} returned {resp.status_code}. "
+        "Confirm deploy/Dockerfile.fly copies the Vite build to interface/copilot/."
+    )
+    body = resp.text.lower()
+    assert "clinical co-pilot" in body or 'id="root"' in body, (
+        f"Unexpected body from copilot UI: {resp.text[:300]!r}"
+    )
+
+
 def test_deployed_serves_openemr_login(client: httpx.Client) -> None:
     """The landing page should be the OpenEMR login screen."""
     resp = client.get(f"{DEPLOYED_URL}/interface/login/login.php")

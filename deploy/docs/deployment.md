@@ -90,6 +90,17 @@ fly apps destroy clinical-copilot
 fly apps destroy clinical-copilot-db
 ```
 
+## Clinical Co-Pilot UI (embedded in OpenEMR)
+
+The OpenEMR Fly image built from `deploy/Dockerfile.fly` includes:
+
+1. **Static SPA** at **`/interface/copilot/`** (Vite/React chat built in the image).
+2. **Apache reverse proxy**: **`/agent/*`** → FastAPI agent on the private network (`CLINICAL_AGENT_INTERNAL_URL`, default `http://clinical-agent-scaffold.internal:8080`).
+
+After deploy, open **`{OPENEMR_ORIGIN}/interface/copilot/`** while logged into OpenEMR. The UI uses **OpenEMR session** mode (`credentials: include`); the agent receives session cookies via the proxy and validates them against **`OPENEMR_BASE_URL`** (must equal your public OpenEMR HTTPS origin, e.g. `https://clinical-copilot-v2.fly.dev`).
+
+To point at a different agent machine, set **`CLINICAL_AGENT_INTERNAL_URL`** in `fly.toml` `[env]` or override with a Fly secret of the same name.
+
 ## Known limitations
 
 1. **Single region (iad).** Multi-region requires a volume per region and a strategy for MariaDB replication — out of scope for MVP. Document explicitly in `ARCHITECTURE.md`.

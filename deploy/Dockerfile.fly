@@ -1,23 +1,35 @@
-# Dockerfile.fly — optional override of the base openemr/openemr image.
+# OpenEMR Fly image + Clinical Co-Pilot static UI + Apache /agent reverse proxy.
 #
-# The default fly.toml uses `image = "openemr/openemr:7.0.2"` directly,
-# which is the simplest path. Use this Dockerfile ONLY if you need to:
-#   - Bake in custom OpenEMR modules (e.g., the future copilot_panel.php from PR-10)
-#   - Add PHP extensions or system packages OpenEMR doesn't ship with
-#   - Pre-load demo data into the image (not recommended — use a seed script instead)
+# Build context: repository root (see root fly.toml [build] dockerfile = "deploy/Dockerfile.fly").
 #
-# To use this Dockerfile instead of the registry image:
-#   1. Replace the `[build]` block in fly.toml with:
-#         [build]
-#           dockerfile = "Dockerfile.fly"
-#   2. Run `fly deploy --config fly.toml` — Fly will build remotely on its builders.
+# The React app is served at /interface/copilot/ on the OpenEMR hostname. POST /agent/*
+# is proxied to the FastAPI agent on Fly 6PN (default clinical-agent-scaffold.internal:8080).
+# Override with fly.toml [env] CLINICAL_AGENT_INTERNAL_URL.
 
+# --- Stage 1: Vite production build (embedded paths)
+FROM node:20-alpine AS copilot_ui
+WORKDIR /ui
+COPY chat-ui/package.json chat-ui/package-lock.json ./
+RUN npm install
+COPY chat-ui/ ./
+
+ARG VITE_BASE_PATH=/interface/copilot/
+ARG VITE_EMBEDDED=true
+ENV VITE_BASE_PATH=${VITE_BASE_PATH}
+ENV VITE_EMBEDDED=${VITE_EMBEDDED}
+ENV VITE_AGENT_BASE_URL=
+
+RUN npm run build
+
+# --- Stage 2: OpenEMR base
 FROM openemr/openemr:7.0.2
 
-# Use a file-based wrapper so the startup patch is preserved in the final image.
+COPY deploy/enable-apache-proxy-modules.sh /tmp/enable-apache-proxy-modules.sh
+RUN sh /tmp/enable-apache-proxy-modules.sh && rm -f /tmp/enable-apache-proxy-modules.sh
+
 COPY deploy/openemr_wrapper.sh /openemr_wrapper.sh
 RUN chmod +x /openemr_wrapper.sh
 ENTRYPOINT ["/openemr_wrapper.sh"]
 
-# Default CMD/ENTRYPOINT inherited from the base image — do not override unless
-# you understand the OpenEMR auto-installer flow.
+COPY --from=copilot_ui /ui/dist /var/www/localhost/htdocs/openemr/interface/copilot
+RUN chown -R apache:root /var/www/localhost/htdocs/openemr/interface/copilot

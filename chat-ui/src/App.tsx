@@ -14,6 +14,11 @@ type ChatResponse = {
 
 const ROLES = ["PHYSICIAN", "NURSE", "ADMIN"] as const;
 
+type AuthMode = "openemr" | "demo" | "bearer";
+
+const isEmbedded =
+  import.meta.env.VITE_EMBEDDED === "true" || import.meta.env.VITE_EMBEDDED === "1";
+
 function chatEndpoint(): string {
   const raw = (import.meta.env.VITE_AGENT_BASE_URL || "").trim().replace(/\/$/, "");
   return raw ? `${raw}/agent/chat` : "/agent/chat";
@@ -26,10 +31,13 @@ function randomSession(): string {
 
 export default function App() {
   const idPrefix = useId();
-  const [agentBaseDisplay] = useState(() => import.meta.env.VITE_AGENT_BASE_URL || "(same origin — dev proxy)");
+  const agentBaseDisplay = useMemo(() => {
+    if (isEmbedded) return "same origin → Apache /agent → Fly agent (6PN)";
+    return import.meta.env.VITE_AGENT_BASE_URL || "(same origin — Vite dev proxy)";
+  }, []);
   const [patientId, setPatientId] = useState("demo-patient");
   const [role, setRole] = useState<(typeof ROLES)[number]>("PHYSICIAN");
-  const [authMode, setAuthMode] = useState<"demo" | "bearer">("demo");
+  const [authMode, setAuthMode] = useState<AuthMode>(() => (isEmbedded ? "openemr" : "demo"));
   const [bearerToken, setBearerToken] = useState("");
   const [draft, setDraft] = useState("");
   const [rows, setRows] = useState<ChatRow[]>([]);
@@ -53,7 +61,7 @@ export default function App() {
     };
     if (authMode === "demo") {
       headers["X-Agent-Demo-Role"] = role;
-    } else {
+    } else if (authMode === "bearer") {
       const tok = bearerToken.trim();
       if (!tok) {
         setError("Bearer mode requires a non-empty Authorization value.");
@@ -69,7 +77,7 @@ export default function App() {
     setDraft("");
 
     try {
-      const res = await fetch(endpoint, {
+      const init: RequestInit = {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -77,7 +85,11 @@ export default function App() {
           user_message: text,
           messages: prior,
         }),
-      });
+      };
+      if (authMode === "openemr" || authMode === "bearer") {
+        init.credentials = "include";
+      }
+      const res = await fetch(endpoint, init);
       const rawText = await res.text();
       let data: ChatResponse | null = null;
       try {
@@ -136,22 +148,40 @@ export default function App() {
             Patient ID
             <input value={patientId} onChange={(e) => setPatientId(e.target.value)} autoComplete="off" />
           </label>
-          <label className="field">
-            <span className="key">Role</span>
-            <select value={role} onChange={(e) => setRole(e.target.value as (typeof ROLES)[number])}>
-              {ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-          </label>
+          {authMode === "openemr" ? (
+            <div className="field" style={{ justifyContent: "flex-end", margin: 0 }}>
+              <span className="key">Role</span>
+              <span style={{ color: "var(--muted)", fontSize: "0.9rem", lineHeight: 1.4 }}>
+                Taken from your OpenEMR session (cookie) when the agent calls /api/user.
+              </span>
+            </div>
+          ) : (
+            <label className="field">
+              <span className="key">Role</span>
+              <select value={role} onChange={(e) => setRole(e.target.value as (typeof ROLES)[number])}>
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
         <div style={{ marginTop: "1rem" }}>
           <p className="panel-title" style={{ marginBottom: "0.5rem" }}>
             Auth
           </p>
           <div className="chip-group">
+            <label className="chip">
+              <input
+                type="radio"
+                name={`${idPrefix}-auth`}
+                checked={authMode === "openemr"}
+                onChange={() => setAuthMode("openemr")}
+              />
+              OpenEMR session
+            </label>
             <label className="chip">
               <input
                 type="radio"
@@ -176,10 +206,15 @@ export default function App() {
               Authorization (paste raw token or full <span className="key">Bearer …</span>)
               <textarea value={bearerToken} onChange={(e) => setBearerToken(e.target.value)} rows={3} />
             </label>
-          ) : (
+          ) : authMode === "demo" ? (
             <p className="meta" style={{ marginTop: "0.65rem", marginBottom: 0 }}>
               Sends <span className="key">X-Agent-Demo-Role</span>. Requires{" "}
               <span className="key">AGENT_DEMO_BYPASS=1</span> on the agent.
+            </p>
+          ) : (
+            <p className="meta" style={{ marginTop: "0.65rem", marginBottom: 0 }}>
+              Sends cookies with <span className="key">credentials: include</span>. Log into OpenEMR on this same site
+              first. The agent must have <span className="key">OPENEMR_BASE_URL</span> set to this OpenEMR origin.
             </p>
           )}
         </div>

@@ -30,6 +30,54 @@ if [ -d "$SITES_DIR" ]; then
   chown -R apache:root "$SITES_DIR"
 fi
 
+COPILOT_STATIC=/var/www/localhost/htdocs/openemr/interface/copilot
+if [ -d "$COPILOT_STATIC" ]; then
+  chown -R apache:root "$COPILOT_STATIC"
+fi
+
+# Apache: reverse-proxy /agent → FastAPI agent on Fly 6PN; serve SPA under /interface/copilot/.
+# CLINICAL_AGENT_INTERNAL_URL is set in fly.toml [env] (e.g. http://clinical-agent-scaffold.internal:8080).
+write_copilot_apache_conf() {
+  agent_url="${CLINICAL_AGENT_INTERNAL_URL:-http://clinical-agent-scaffold.internal:8080}"
+  agent_url="${agent_url%/}"
+  conf=""
+  for dir in /etc/apache2/conf-enabled /etc/apache2/conf.d /etc/httpd/conf.d; do
+    if [ -d "$dir" ]; then
+      conf="$dir/99-clinical-copilot.conf"
+      break
+    fi
+  done
+  if [ -z "$conf" ]; then
+    echo "clinical-copilot: no apache conf.d found; /agent proxy not configured" >&2
+    return 0
+  fi
+  {
+    echo "<IfModule mod_proxy.c>"
+    echo "    ProxyPreserveHost On"
+    echo "    ProxyPass /agent ${agent_url}/agent"
+    echo "    ProxyPassReverse /agent ${agent_url}/agent"
+    echo "</IfModule>"
+    echo ""
+    echo "Alias /interface/copilot /var/www/localhost/htdocs/openemr/interface/copilot"
+    echo "<Directory \"/var/www/localhost/htdocs/openemr/interface/copilot\">"
+    echo "    AllowOverride None"
+    echo "    Require all granted"
+    echo "    Options FollowSymLinks"
+    echo "    <IfModule mod_rewrite.c>"
+    echo "        RewriteEngine On"
+    echo "        RewriteBase /interface/copilot/"
+    echo "        RewriteRule ^index\\.html\$ - [L]"
+    echo "        RewriteCond %{REQUEST_FILENAME} !-f"
+    echo "        RewriteCond %{REQUEST_FILENAME} !-d"
+    echo "        RewriteRule . index.html [L]"
+    echo "    </IfModule>"
+    echo "</Directory>"
+  } >"$conf"
+  echo "clinical-copilot: wrote $conf (proxy -> ${agent_url}/agent)"
+}
+
+write_copilot_apache_conf
+
 OPENEMR_SH=/var/www/localhost/htdocs/openemr/openemr.sh
 if [ -f "$OPENEMR_SH" ]; then
   python3 - <<'PY'
