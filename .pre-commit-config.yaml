@@ -1,0 +1,11 @@
+# Local hooks: pip install pre-commit && pre-commit install
+# See https://pre-commit.com
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^agent/
+      - id: ruff-format
+        files: ^agent/

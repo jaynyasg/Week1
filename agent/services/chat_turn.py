@@ -12,7 +12,11 @@ import uuid
 
 from agent.observability.events import log_agent_event
 from agent.observability.taxonomy import CATEGORY_BOUNDARY_REVIEW, CHAT_TURN_COMPLETE
-from agent.runtime.rgv_pipeline import ClinicalTurnState, VerifyFn, run_retrieve_generate_verify
+from agent.runtime.rgv_pipeline import (
+    ClinicalTurnState,
+    VerifyFn,
+    run_retrieve_generate_verify,
+)
 
 _LOG = logging.getLogger(__name__)
 

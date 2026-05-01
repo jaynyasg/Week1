@@ -9,7 +9,10 @@ from typing import Annotated
 import httpx
 from fastapi import Header, HTTPException, Request
 
-from agent.access.openemr_auth import OpenEMRAuthError, validate_session_and_resolve_role
+from agent.access.openemr_auth import (
+    OpenEMRAuthError,
+    validate_session_and_resolve_role,
+)
 from agent.observability.events import log_agent_event
 from agent.observability.taxonomy import (
     DEMO_BYPASS_ACTIVE,
@@ -124,7 +127,9 @@ async def resolve_agent_role(
             )
             return candidate
 
-    auth_value = authorization.strip() if authorization and authorization.strip() else None
+    auth_value = (
+        authorization.strip() if authorization and authorization.strip() else None
+    )
     cookie_value = cookie.strip() if cookie and cookie.strip() else None
     if auth_value is None and cookie_value is None:
         raise HTTPException(

@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from agent.runtime.rgv_pipeline import MAX_VERIFY_RETRIES, ClinicalTurnState, run_retrieve_generate_verify
+from agent.runtime.rgv_pipeline import (
+    MAX_VERIFY_RETRIES,
+    ClinicalTurnState,
+    run_retrieve_generate_verify,
+)
 
 
 def _base_state() -> ClinicalTurnState:
@@ -26,7 +30,9 @@ def test_retrieve_exception_propagates() -> None:
         return True, ""
 
     with pytest.raises(RuntimeError, match="retrieve boom"):
-        run_retrieve_generate_verify(_base_state(), retrieve=retrieve, generate=generate, verify=verify)
+        run_retrieve_generate_verify(
+            _base_state(), retrieve=retrieve, generate=generate, verify=verify
+        )
 
 
 def test_retrieve_runs_before_generate() -> None:
@@ -45,7 +51,9 @@ def test_retrieve_runs_before_generate() -> None:
         order.append("verify")
         return True, ""
 
-    st, out = run_retrieve_generate_verify(_base_state(), retrieve=retrieve, generate=generate, verify=verify)
+    st, out = run_retrieve_generate_verify(
+        _base_state(), retrieve=retrieve, generate=generate, verify=verify
+    )
     assert out == "ok"
     assert st.verified is True
     assert order == ["retrieve", "generate", "verify"]
@@ -67,7 +75,9 @@ def test_verify_retry_at_most_once_then_degrade() -> None:
             return True, "recovered"
         return False, "not yet"
 
-    st, out = run_retrieve_generate_verify(_base_state(), retrieve=retrieve, generate=generate, verify=verify)
+    st, out = run_retrieve_generate_verify(
+        _base_state(), retrieve=retrieve, generate=generate, verify=verify
+    )
     assert gen_calls == 2
     assert out == "v2"
     assert st.verified is True
@@ -89,7 +99,9 @@ def test_verify_always_fails_degrades_without_infinite_loop() -> None:
     def verify(_s: ClinicalTurnState, _text: str) -> tuple[bool, str]:
         return False, "fail"
 
-    st, out = run_retrieve_generate_verify(_base_state(), retrieve=retrieve, generate=generate, verify=verify)
+    st, out = run_retrieve_generate_verify(
+        _base_state(), retrieve=retrieve, generate=generate, verify=verify
+    )
     assert gen_calls == MAX_VERIFY_RETRIES + 1
     assert out == "bad"
     assert st.verified is False

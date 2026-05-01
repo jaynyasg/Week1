@@ -44,7 +44,9 @@ def test_build_chat_messages_ignores_client_system_role() -> None:
 
 
 @patch("openai.OpenAI")
-def test_complete_chat_openai_calls_completions_api(mock_openai: MagicMock, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_complete_chat_openai_calls_completions_api(
+    mock_openai: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key")
     monkeypatch.setenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
 
@@ -68,7 +70,9 @@ def test_complete_chat_openai_calls_completions_api(mock_openai: MagicMock, monk
     assert create_kw["messages"][-1]["content"] == "Hello"
 
 
-def test_scaffold_generate_openai_errors_degrade_gracefully(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_scaffold_generate_openai_errors_degrade_gracefully(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "sk-x")
 
     def _boom(_state: ClinicalTurnState) -> str:
@@ -87,7 +91,9 @@ def test_scaffold_generate_openai_errors_degrade_gracefully(monkeypatch: pytest.
     assert "LLM unavailable" in out
 
 
-def test_scaffold_generate_echo_without_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_scaffold_generate_echo_without_api_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     state = ClinicalTurnState(
         patient_id="p9",
@@ -101,7 +107,9 @@ def test_scaffold_generate_echo_without_api_key(monkeypatch: pytest.MonkeyPatch)
     assert "Labs ok?" in out
 
 
-def test_scaffold_generate_prefers_openai_when_key_set(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_scaffold_generate_prefers_openai_when_key_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
 
     def _stub(state: ClinicalTurnState) -> str:

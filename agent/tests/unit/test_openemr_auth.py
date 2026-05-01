@@ -141,7 +141,9 @@ async def test_validate_session_unknown_role() -> None:
 
 
 @pytest.mark.asyncio
-async def test_fetch_openemr_user_json_cookie_only_sends_cookie_no_authorization() -> None:
+async def test_fetch_openemr_user_json_cookie_only_sends_cookie_no_authorization() -> (
+    None
+):
     """Cookie-only auth path: outbound request has Cookie header but NOT Authorization."""
     mock_response = MagicMock()
     mock_response.status_code = 200

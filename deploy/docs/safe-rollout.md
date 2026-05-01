@@ -62,8 +62,16 @@ Logs include **`event_type=openemr_auth_failure`** with the same **`reason_code`
 | Variable | App | Purpose |
 |----------|-----|---------|
 | `OPENEMR_HTTP_TIMEOUT_SECONDS` | Agent | Timeout for outbound `/api/user` and shared `httpx` client (default `30`). |
+| `AGENT_MAX_BODY_BYTES` | Agent | Max `Content-Length` for POST/PUT/PATCH (default `262144`; floor `64`). |
+| `AGENT_RATE_LIMIT_CHAT` | Agent | Optional SlowAPI limit for **`POST /agent/chat`** only (e.g. `60/minute`). Unset = no limit. |
 | `CLINICAL_AGENT_INTERNAL_URL` | OpenEMR | Upstream for Apache `ProxyPass /agent` (default `http://clinical-agent-scaffold.internal:8080`). |
 
-## 7. What **not** to mix on production PHI
+## 7. Further reading
+
+- [operator-runbook.md](operator-runbook.md) — symptom → checks.
+- [preview-environment.md](preview-environment.md) — separate Fly apps for safe iteration.
+- [architecture-embedded-proxy.md](architecture-embedded-proxy.md) — browser → Apache → agent flow.
+
+## 8. What **not** to mix on production PHI
 
 - **`AGENT_DEMO_BYPASS=1`** with **`X-Agent-Demo-Role`** skips real OpenEMR validation — acceptable only for throwaway demos.

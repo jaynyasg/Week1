@@ -134,3 +134,11 @@ All seven tests must pass before submission. The tests cover:
 | `sites/default/sqlconf.php exists` error after volume destroy | Stale volume content from a prior install | `fly volumes destroy openemr_sites` then re-run deploy |
 | Login page loads but credentials rejected | `OE_PASS` not set, or installer ran with different value than current secret | Reset: `fly ssh console --app clinical-copilot -C 'cat /var/www/localhost/htdocs/openemr/sites/default/sqlconf.php' \| grep pass` |
 | `test_mysql_port_not_exposed` fails | Someone added a `[[services]]` or `[http_service]` block to `fly.db.toml` | Remove it. MariaDB must never have a public service block. |
+
+## Related documentation
+
+- [safe-rollout.md](safe-rollout.md) — flags, tunables, and rollout order.
+- [operator-runbook.md](operator-runbook.md) — symptom → checks for on-call.
+- [preview-environment.md](preview-environment.md) — staging / second Fly app pattern.
+- [architecture-embedded-proxy.md](architecture-embedded-proxy.md) — embedded copilot and `/agent` proxy.
+- [security-audits.md](security-audits.md) — `pip-audit` / `npm audit` cadence and recorded results.

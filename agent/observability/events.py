@@ -26,7 +26,12 @@ def log_agent_event(
     Phase 4 tooling can standardize on ``event`` without breaking older parsers.
     """
     passthrough = dict(extra) if extra else {}
-    merged: dict[str, Any] = {**fields, **passthrough, LOG_EXTRA_EVENT: event_type, LOG_EXTRA_EVENT_TYPE: event_type}
+    merged: dict[str, Any] = {
+        **fields,
+        **passthrough,
+        LOG_EXTRA_EVENT: event_type,
+        LOG_EXTRA_EVENT_TYPE: event_type,
+    }
     flat = " ".join(f"{k}={v!r}" for k, v in sorted(fields.items()))
     logger.info("agent_event %s=%r %s", LOG_EXTRA_EVENT, event_type, flat, extra=merged)
 

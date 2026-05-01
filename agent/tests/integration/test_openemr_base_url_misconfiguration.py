@@ -43,7 +43,8 @@ def test_tools_demographics_returns_500_when_openemr_base_url_misconfigured(
     mis = [
         r
         for r in caplog.records
-        if r.name == "agent.http.deps" and getattr(r, LOG_EXTRA_EVENT, None) == OPENEMR_MISCONFIGURATION
+        if r.name == "agent.http.deps"
+        and getattr(r, LOG_EXTRA_EVENT, None) == OPENEMR_MISCONFIGURATION
     ]
     assert mis, "expected openemr_misconfiguration structured log"
     assert getattr(mis[0], "client_request_id") == "integration-req-tools"
@@ -86,7 +87,8 @@ def test_chat_returns_500_when_openemr_base_url_misconfigured(
     mis = [
         r
         for r in caplog.records
-        if r.name == "agent.http.deps" and getattr(r, LOG_EXTRA_EVENT, None) == OPENEMR_MISCONFIGURATION
+        if r.name == "agent.http.deps"
+        and getattr(r, LOG_EXTRA_EVENT, None) == OPENEMR_MISCONFIGURATION
     ]
     assert mis, "expected openemr_misconfiguration structured log"
     assert getattr(mis[0], "client_request_id") == "integration-req-chat"

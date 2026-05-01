@@ -32,7 +32,10 @@ import os
 import httpx
 import pytest
 
-from agent.access.openemr_auth import OpenEMRAuthError, validate_session_and_resolve_role
+from agent.access.openemr_auth import (
+    OpenEMRAuthError,
+    validate_session_and_resolve_role,
+)
 
 
 def _live_openemr_e2e_enabled() -> bool:

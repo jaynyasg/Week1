@@ -17,7 +17,9 @@ import httpx
 class OpenEMRAuthError(Exception):
     """Missing/invalid session or role could not be resolved to PHYSICIAN|NURSE|ADMIN."""
 
-    def __init__(self, message: str, *, reason_code: str = "openemr_auth_error") -> None:
+    def __init__(
+        self, message: str, *, reason_code: str = "openemr_auth_error"
+    ) -> None:
         super().__init__(message)
         self.reason_code = reason_code
 
@@ -94,7 +96,9 @@ async def fetch_openemr_user_json(
     if rid:
         headers["X-Request-ID"] = rid
     try:
-        response = await client.get(url, headers=headers, timeout=_openemr_http_timeout_seconds())
+        response = await client.get(
+            url, headers=headers, timeout=_openemr_http_timeout_seconds()
+        )
     except httpx.RequestError as exc:  # pragma: no cover - network
         raise OpenEMRAuthError(
             f"OpenEMR /api/user request failed: {exc}",

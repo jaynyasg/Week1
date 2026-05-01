@@ -81,7 +81,9 @@ def run_retrieve_generate_verify(
                 why=(note[:240] if note else "verify_returned_false"),
                 verify_retry_count=state.verify_retry_count,
                 duration_ms=round((time.monotonic() - t0) * 1000, 3),
-                fallback="retry_generate" if state.verify_retry_count < MAX_VERIFY_RETRIES else "return_unverified",
+                fallback="retry_generate"
+                if state.verify_retry_count < MAX_VERIFY_RETRIES
+                else "return_unverified",
                 cost_envelope="unknown",
             )
             if state.verify_retry_count >= MAX_VERIFY_RETRIES:

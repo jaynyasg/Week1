@@ -23,7 +23,9 @@ from agent.observability.taxonomy import (
 )
 
 
-def test_get_openemr_base_url_raises_when_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_openemr_base_url_raises_when_unset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("OPENEMR_BASE_URL", raising=False)
     with pytest.raises(HTTPException) as exc_info:
         get_openemr_base_url()
@@ -31,7 +33,9 @@ def test_get_openemr_base_url_raises_when_unset(monkeypatch: pytest.MonkeyPatch)
     assert exc_info.value.detail == "OPENEMR_BASE_URL is not configured"
 
 
-def test_get_openemr_base_url_raises_when_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_openemr_base_url_raises_when_empty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("OPENEMR_BASE_URL", "")
     with pytest.raises(HTTPException) as exc_info:
         get_openemr_base_url()
@@ -53,7 +57,9 @@ def test_get_openemr_base_url_raises_when_whitespace_or_slash_only(
     assert exc_info.value.detail == "OPENEMR_BASE_URL is not configured"
 
 
-def test_get_openemr_base_url_strips_trailing_slashes(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_openemr_base_url_strips_trailing_slashes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("OPENEMR_BASE_URL", "https://openemr.example.com/")
     assert get_openemr_base_url() == "https://openemr.example.com"
 
@@ -65,7 +71,9 @@ def test_get_openemr_base_url_strips_multiple_trailing_slashes(
     assert get_openemr_base_url() == "https://openemr.example.com"
 
 
-def test_get_openemr_base_url_strips_outer_whitespace(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_openemr_base_url_strips_outer_whitespace(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("OPENEMR_BASE_URL", "  https://host/openemr/  ")
     assert get_openemr_base_url() == "https://host/openemr"
 
@@ -92,13 +100,16 @@ def test_get_openemr_base_url_misconfig_includes_client_request_id(
     monkeypatch.delenv("OPENEMR_BASE_URL", raising=False)
     caplog.set_level(logging.INFO)
     req = MagicMock()
-    req.headers.get = lambda name, default=None: {"X-Request-ID": "unit-req-7"}.get(name, default)
+    req.headers.get = lambda name, default=None: {"X-Request-ID": "unit-req-7"}.get(
+        name, default
+    )
     with pytest.raises(HTTPException):
         get_openemr_base_url(req)
     mis = [
         r
         for r in caplog.records
-        if r.name == "agent.http.deps" and getattr(r, LOG_EXTRA_EVENT, None) == OPENEMR_MISCONFIGURATION
+        if r.name == "agent.http.deps"
+        and getattr(r, LOG_EXTRA_EVENT, None) == OPENEMR_MISCONFIGURATION
     ]
     assert mis and getattr(mis[0], "client_request_id") == "unit-req-7"
 
@@ -142,8 +153,12 @@ async def test_resolve_agent_role_bypass_short_circuits_without_calling_openemr(
     monkeypatch.setenv("AGENT_DEMO_BYPASS", "1")
     caplog.set_level(logging.INFO)
 
-    async def _must_not_call(*_args, **_kwargs):  # pragma: no cover - asserted not-called
-        raise AssertionError("validate_session_and_resolve_role should not be called in bypass path")
+    async def _must_not_call(
+        *_args, **_kwargs
+    ):  # pragma: no cover - asserted not-called
+        raise AssertionError(
+            "validate_session_and_resolve_role should not be called in bypass path"
+        )
 
     monkeypatch.setattr(
         "agent.http.deps.validate_session_and_resolve_role",
@@ -151,7 +166,9 @@ async def test_resolve_agent_role_bypass_short_circuits_without_calling_openemr(
     )
 
     req = MagicMock()
-    req.headers.get = lambda name, default=None: {"X-Request-ID": "demo-1"}.get(name, default)
+    req.headers.get = lambda name, default=None: {"X-Request-ID": "demo-1"}.get(
+        name, default
+    )
 
     role = await resolve_agent_role(
         req,
@@ -164,7 +181,8 @@ async def test_resolve_agent_role_bypass_short_circuits_without_calling_openemr(
     bypass_records = [
         r
         for r in caplog.records
-        if r.name == "agent.http.deps" and getattr(r, LOG_EXTRA_EVENT, None) == DEMO_BYPASS_ACTIVE
+        if r.name == "agent.http.deps"
+        and getattr(r, LOG_EXTRA_EVENT, None) == DEMO_BYPASS_ACTIVE
     ]
     assert bypass_records, "expected an auth_demo_bypass event"
     rec = bypass_records[0]
@@ -273,10 +291,14 @@ async def test_resolve_agent_role_openemr_failure_emits_event_and_structured_htt
 
     req = MagicMock()
     req.app.state.http_client = MagicMock()
-    req.headers.get = lambda name, default=None: {"X-Request-ID": "req-for-log"}.get(name, default)
+    req.headers.get = lambda name, default=None: {"X-Request-ID": "req-for-log"}.get(
+        name, default
+    )
 
     with pytest.raises(HTTPException) as exc_info:
-        await resolve_agent_role(req, authorization="Bearer x", cookie=None, x_agent_demo_role=None)
+        await resolve_agent_role(
+            req, authorization="Bearer x", cookie=None, x_agent_demo_role=None
+        )
     assert exc_info.value.status_code == 401
     d = exc_info.value.detail
     assert isinstance(d, dict)
@@ -287,7 +309,8 @@ async def test_resolve_agent_role_openemr_failure_emits_event_and_structured_htt
     auth_fails = [
         r
         for r in caplog.records
-        if r.name == "agent.http.deps" and getattr(r, LOG_EXTRA_EVENT, None) == OPENEMR_AUTH_FAILURE
+        if r.name == "agent.http.deps"
+        and getattr(r, LOG_EXTRA_EVENT, None) == OPENEMR_AUTH_FAILURE
     ]
     assert auth_fails and getattr(auth_fails[0], "client_request_id") == "req-for-log"
 

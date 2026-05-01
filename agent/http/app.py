@@ -14,15 +14,16 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 
 import httpx
-from fastapi import Depends, FastAPI, Header, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 from agent.access.rbac import ToolRefusal, assert_tool_allowed, log_tool_refusal
-from agent.http.deps import get_chat_turn_runner, resolve_agent_role
+from agent.http.deps import resolve_agent_role
 from agent.http.env import load_dotenv_if_present
-from agent.http.schemas import ChatRequest, ChatResponse
-from agent.services.chat_turn import new_session_id
+from agent.http.middleware_body_limit import body_too_large_response
+from agent.http.routes_chat import chat_turn
+from agent.http.schemas import ChatResponse
 
 _LOG = logging.getLogger(__name__)
 
@@ -55,14 +56,59 @@ async def _lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(
-        title="Clinical Co-Pilot Agent",
-        version="0.1.0",
-        lifespan=_lifespan,
-    )
+    chat_limit = os.environ.get("AGENT_RATE_LIMIT_CHAT", "").strip()
+    limiter = None
+    if chat_limit:
+        from slowapi import Limiter, _rate_limit_exceeded_handler
+        from slowapi.errors import RateLimitExceeded
+        from slowapi.middleware import SlowAPIMiddleware
+        from slowapi.util import get_remote_address
+
+        limiter = Limiter(key_func=get_remote_address)
+        app = FastAPI(
+            title="Clinical Co-Pilot Agent",
+            version="0.1.0",
+            lifespan=_lifespan,
+            openapi_tags=[
+                {
+                    "name": "health",
+                    "description": "Process liveness and optional readiness signals.",
+                },
+                {"name": "chat", "description": "Scaffold RGV conversational turns."},
+                {"name": "tools", "description": "RBAC-gated tool invocation stubs."},
+                {
+                    "name": "observability",
+                    "description": "Prometheus-style metrics (stub).",
+                },
+            ],
+        )
+        app.state.limiter = limiter
+        app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+        app.add_middleware(SlowAPIMiddleware)
+    else:
+        app = FastAPI(
+            title="Clinical Co-Pilot Agent",
+            version="0.1.0",
+            lifespan=_lifespan,
+            openapi_tags=[
+                {
+                    "name": "health",
+                    "description": "Process liveness and optional readiness signals.",
+                },
+                {"name": "chat", "description": "Scaffold RGV conversational turns."},
+                {"name": "tools", "description": "RBAC-gated tool invocation stubs."},
+                {
+                    "name": "observability",
+                    "description": "Prometheus-style metrics (stub).",
+                },
+            ],
+        )
 
     @app.middleware("http")
     async def request_id_middleware(request: Request, call_next):
+        early = body_too_large_response(request)
+        if early is not None:
+            return early
         incoming = (
             request.headers.get("x-request-id")
             or request.headers.get("x-correlation-id")
@@ -98,40 +144,65 @@ def create_app() -> FastAPI:
             },
         )
 
-    @app.get("/agent/health")
+    @app.get(
+        "/agent/health",
+        tags=["health"],
+        summary="Liveness probe",
+        response_description="Process is running and accepting HTTP.",
+    )
     async def health() -> dict[str, str]:
         return {"status": "ok"}
 
-    @app.post("/agent/chat", response_model=ChatResponse)
-    async def chat(
-        body: ChatRequest,
-        role: Annotated[str, Depends(resolve_agent_role)],
-        run_turn: Annotated[Callable[..., object], Depends(get_chat_turn_runner)],
-        x_session: Annotated[str | None, Header(alias="X-Clinical-Session-Id")] = None,
-    ) -> ChatResponse:
-        """
-        Multi-turn scaffold: prior ``messages`` + new ``user_message`` → RGV → assistant reply.
+    @app.get(
+        "/agent/health/ready",
+        tags=["health"],
+        summary="Readiness hints",
+        response_description="Configuration snapshot for orchestrators (always 200).",
+    )
+    async def ready() -> dict[str, str | bool]:
+        openemr = bool(os.environ.get("OPENEMR_BASE_URL", "").strip())
+        return {
+            "status": "ready",
+            "openemr_base_url_configured": openemr,
+        }
 
-        Full stack replaces scaffold retrieve/generate/verify with LangGraph + LLM + rules.
-        """
-        session_id = (x_session or "").strip() or new_session_id()
-        st, assistant = run_turn(
-            patient_id=body.patient_id,
-            user_role=role,
-            session_id=session_id,
-            messages=body.messages,
-            user_message=body.user_message,
-        )
-        return ChatResponse(
-            assistant_message=assistant,
-            verified=st.verified,
-            verification_notes=list(st.verification_notes),
-            verify_retry_count=st.verify_retry_count,
-            tool_result_keys=sorted(st.tool_results.keys()),
-            messages=st.messages,
+    @app.get(
+        "/agent/metrics",
+        tags=["observability"],
+        summary="Prometheus metrics (stub)",
+        response_class=PlainTextResponse,
+    )
+    async def metrics() -> PlainTextResponse:
+        return PlainTextResponse(
+            "# HELP clinical_agent_up Process is accepting HTTP\n"
+            "# TYPE clinical_agent_up gauge\n"
+            "clinical_agent_up 1\n",
+            media_type="text/plain; version=0.0.4; charset=utf-8",
         )
 
-    @app.post("/agent/tools/{tool_name}")
+    chat_endpoint: Callable[..., object] = chat_turn
+    if limiter is not None and chat_limit:
+        chat_endpoint = limiter.limit(chat_limit)(chat_turn)
+
+    app.add_api_route(
+        "/agent/chat",
+        chat_endpoint,
+        methods=["POST"],
+        response_model=ChatResponse,
+        tags=["chat"],
+        summary="Run one RGV chat turn",
+        description=(
+            "Prior messages plus a new user_message run through retrieve → generate → verify. "
+            "Requires OpenEMR session headers unless demo bypass is enabled on the server."
+        ),
+    )
+
+    @app.post(
+        "/agent/tools/{tool_name}",
+        tags=["tools"],
+        summary="RBAC gate for a named tool",
+        response_description="Acknowledgement when the role may invoke the tool.",
+    )
     async def invoke_tool(
         tool_name: str,
         role: Annotated[str, Depends(resolve_agent_role)],

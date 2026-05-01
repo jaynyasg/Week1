@@ -18,7 +18,9 @@ def caplog_events(caplog: pytest.LogCaptureFixture) -> pytest.LogCaptureFixture:
     return caplog
 
 
-def test_log_agent_event_happy_path_sets_stable_extra(caplog_events: pytest.LogCaptureFixture) -> None:
+def test_log_agent_event_happy_path_sets_stable_extra(
+    caplog_events: pytest.LogCaptureFixture,
+) -> None:
     log = logging.getLogger("agent.tests.unit.events_under_test")
     log_agent_event(
         log,
@@ -39,7 +41,9 @@ def test_log_agent_event_happy_path_sets_stable_extra(caplog_events: pytest.LogC
     assert "agent_event" in r.getMessage()
 
 
-def test_log_agent_event_empty_optionals(caplog_events: pytest.LogCaptureFixture) -> None:
+def test_log_agent_event_empty_optionals(
+    caplog_events: pytest.LogCaptureFixture,
+) -> None:
     log = logging.getLogger("agent.tests.unit.events_under_test")
     log_agent_event(log, "minimal")
     assert len(caplog_events.records) == 1
@@ -48,7 +52,9 @@ def test_log_agent_event_empty_optionals(caplog_events: pytest.LogCaptureFixture
     assert getattr(r, LOG_EXTRA_EVENT_TYPE) == "minimal"
 
 
-def test_log_agent_event_extra_passthrough(caplog_events: pytest.LogCaptureFixture) -> None:
+def test_log_agent_event_extra_passthrough(
+    caplog_events: pytest.LogCaptureFixture,
+) -> None:
     log = logging.getLogger("agent.tests.unit.events_under_test")
     log_agent_event(
         log,
@@ -63,7 +69,9 @@ def test_log_agent_event_extra_passthrough(caplog_events: pytest.LogCaptureFixtu
     assert getattr(r, LOG_EXTRA_EVENT) == "with_extra"
 
 
-def test_log_agent_event_reserved_keys_win(caplog_events: pytest.LogCaptureFixture) -> None:
+def test_log_agent_event_reserved_keys_win(
+    caplog_events: pytest.LogCaptureFixture,
+) -> None:
     log = logging.getLogger("agent.tests.unit.events_under_test")
     log_agent_event(
         log,
@@ -89,7 +97,9 @@ def test_agent_event_emit_happy_path(caplog_events: pytest.LogCaptureFixture) ->
     assert getattr(r, "source") == "unit"
 
 
-def test_agent_event_empty_fields_and_extra(caplog_events: pytest.LogCaptureFixture) -> None:
+def test_agent_event_empty_fields_and_extra(
+    caplog_events: pytest.LogCaptureFixture,
+) -> None:
     log = logging.getLogger("agent.tests.unit.events_under_test")
     AgentEvent(event="noop").emit(log)
     r = caplog_events.records[0]

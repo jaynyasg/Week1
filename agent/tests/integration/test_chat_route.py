@@ -209,7 +209,9 @@ def test_chat_demo_bypass_allows_chat_without_auth_headers(
     validator was invoked despite the bypass."""
     monkeypatch.setenv("AGENT_DEMO_BYPASS", "1")
 
-    async def _must_not_call(*_args, **_kwargs):  # pragma: no cover - asserted not-called
+    async def _must_not_call(
+        *_args, **_kwargs
+    ):  # pragma: no cover - asserted not-called
         raise AssertionError(
             "validate_session_and_resolve_role must NOT run when demo bypass is active"
         )
@@ -245,7 +247,10 @@ def test_chat_multiturn_carries_history(app) -> None:
                 "user_message": "First question",
                 "messages": [],
             },
-            headers={"Authorization": "Bearer test", "X-Clinical-Session-Id": "sess-mt"},
+            headers={
+                "Authorization": "Bearer test",
+                "X-Clinical-Session-Id": "sess-mt",
+            },
         )
         assert first.status_code == 200
         hist = first.json()["messages"]
@@ -256,9 +261,16 @@ def test_chat_multiturn_carries_history(app) -> None:
                 "user_message": "Follow-up",
                 "messages": hist,
             },
-            headers={"Authorization": "Bearer test", "X-Clinical-Session-Id": "sess-mt"},
+            headers={
+                "Authorization": "Bearer test",
+                "X-Clinical-Session-Id": "sess-mt",
+            },
         )
     assert second.status_code == 200
-    names = [m.get("content", "")[:20] for m in second.json()["messages"] if m.get("role") == "user"]
+    names = [
+        m.get("content", "")[:20]
+        for m in second.json()["messages"]
+        if m.get("role") == "user"
+    ]
     assert any("First question" in str(c) for c in names)
     assert any("Follow-up" in str(c) for c in names)

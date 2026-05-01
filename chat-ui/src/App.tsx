@@ -1,5 +1,14 @@
-import { useCallback, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import "./App.css";
+import { strings } from "./strings/en";
 
 type ChatRow = { role: string; content: string };
 
@@ -29,11 +38,22 @@ function randomSession(): string {
   return `sess-${Date.now()}`;
 }
 
+function LoadingSkeleton() {
+  return (
+    <div className="skeleton-stack" aria-hidden="true">
+      <div className="skeleton-line w-80" />
+      <div className="skeleton-line w-60" />
+      <div className="skeleton-line w-70" />
+    </div>
+  );
+}
+
 export default function App() {
   const idPrefix = useId();
+  const titleId = `${idPrefix}-title`;
   const agentBaseDisplay = useMemo(() => {
-    if (isEmbedded) return "same origin → Apache /agent → Fly agent (6PN)";
-    return import.meta.env.VITE_AGENT_BASE_URL || "(same origin — Vite dev proxy)";
+    if (isEmbedded) return strings.agentBaseEmbedded;
+    return import.meta.env.VITE_AGENT_BASE_URL || strings.agentBaseDevProxy;
   }, []);
   const [patientId, setPatientId] = useState("demo-patient");
   const [role, setRole] = useState<(typeof ROLES)[number]>("PHYSICIAN");
@@ -44,13 +64,38 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastMeta, setLastMeta] = useState<string | null>(null);
+  const [online, setOnline] = useState(() =>
+    typeof navigator !== "undefined" ? navigator.onLine : true,
+  );
+  const [liveStatus, setLiveStatus] = useState<string>("");
   const sessionRef = useRef(randomSession());
 
   const endpoint = useMemo(() => chatEndpoint(), []);
 
+  useEffect(() => {
+    const on = () => {
+      setOnline(true);
+      setLiveStatus(strings.onlineBanner);
+    };
+    const off = () => {
+      setOnline(false);
+      setLiveStatus(strings.offlineBanner);
+    };
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
+
   const send = useCallback(async () => {
     const text = draft.trim();
     if (!text || loading) return;
+    if (!online) {
+      setError(strings.offlineBanner);
+      return;
+    }
     setError(null);
     setLoading(true);
     setLastMeta(null);
@@ -123,42 +168,73 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [authMode, bearerToken, draft, endpoint, loading, patientId, role, rows]);
+  }, [authMode, bearerToken, draft, endpoint, loading, online, patientId, role, rows]);
+
+  const onKeyDownMessage = useCallback(
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        void send();
+      }
+    },
+    [send],
+  );
 
   return (
-    <div className="app">
+    <div className="app" role="application" aria-labelledby={titleId}>
+      <div className="visually-hidden" aria-live="polite">
+        {liveStatus}
+      </div>
+      {!online ? (
+        <div className="offline-banner" role="status">
+          {strings.offlineBanner}
+        </div>
+      ) : null}
+
       <header className="app-header">
-        <h1>Clinical Co-Pilot</h1>
+        <h1 id={titleId}>{strings.title}</h1>
         <p>
-          Minimal chat against <code style={{ color: "var(--accent)" }}>/agent/chat</code> —{" "}
-          <span style={{ color: "var(--muted)" }}>API: {agentBaseDisplay}</span>
+          {strings.chatEndpointHint}{" "}
+          <code style={{ color: "var(--accent)" }}>/agent/chat</code> —{" "}
+          <span style={{ color: "var(--muted)" }}>
+            {strings.subtitleApi}: {agentBaseDisplay}
+          </span>
         </p>
       </header>
 
       {error ? (
-        <div className="alert" role="alert">
-          <strong>Error</strong> — {error}
+        <div className="alert" role="alert" aria-live="assertive">
+          <strong>{strings.errorPrefix}</strong> — {error}
         </div>
       ) : null}
 
-      <section className="panel">
-        <h2 className="panel-title">Connection</h2>
+      <section className="panel" aria-label={strings.connection}>
+        <h2 className="panel-title">{strings.connection}</h2>
         <div className="grid grid-2">
           <label className="field">
-            Patient ID
-            <input value={patientId} onChange={(e) => setPatientId(e.target.value)} autoComplete="off" />
+            {strings.patientId}
+            <input
+              value={patientId}
+              onChange={(e) => setPatientId(e.target.value)}
+              autoComplete="off"
+              aria-label={strings.patientId}
+            />
           </label>
           {authMode === "openemr" ? (
             <div className="field" style={{ justifyContent: "flex-end", margin: 0 }}>
-              <span className="key">Role</span>
+              <span className="key">{strings.roleFromSession}</span>
               <span style={{ color: "var(--muted)", fontSize: "0.9rem", lineHeight: 1.4 }}>
-                Taken from your OpenEMR session (cookie) when the agent calls /api/user.
+                {strings.roleFromSessionHelp}
               </span>
             </div>
           ) : (
             <label className="field">
-              <span className="key">Role</span>
-              <select value={role} onChange={(e) => setRole(e.target.value as (typeof ROLES)[number])}>
+              <span className="key">{strings.role}</span>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as (typeof ROLES)[number])}
+                aria-label={strings.role}
+              >
                 {ROLES.map((r) => (
                   <option key={r} value={r}>
                     {r}
@@ -170,9 +246,9 @@ export default function App() {
         </div>
         <div style={{ marginTop: "1rem" }}>
           <p className="panel-title" style={{ marginBottom: "0.5rem" }}>
-            Auth
+            {strings.auth}
           </p>
-          <div className="chip-group">
+          <div className="chip-group" role="radiogroup" aria-label={strings.auth}>
             <label className="chip">
               <input
                 type="radio"
@@ -180,7 +256,7 @@ export default function App() {
                 checked={authMode === "openemr"}
                 onChange={() => setAuthMode("openemr")}
               />
-              OpenEMR session
+              {strings.authOpenEmr}
             </label>
             <label className="chip">
               <input
@@ -189,7 +265,7 @@ export default function App() {
                 checked={authMode === "demo"}
                 onChange={() => setAuthMode("demo")}
               />
-              Demo bypass
+              {strings.authDemo}
             </label>
             <label className="chip">
               <input
@@ -198,52 +274,81 @@ export default function App() {
                 checked={authMode === "bearer"}
                 onChange={() => setAuthMode("bearer")}
               />
-              Bearer token
+              {strings.authBearer}
             </label>
           </div>
           {authMode === "bearer" ? (
             <label className="field" style={{ marginTop: "0.85rem" }}>
-              Authorization (paste raw token or full <span className="key">Bearer …</span>)
+              {strings.authBearerLabel}
               <textarea value={bearerToken} onChange={(e) => setBearerToken(e.target.value)} rows={3} />
             </label>
           ) : authMode === "demo" ? (
             <p className="meta" style={{ marginTop: "0.65rem", marginBottom: 0 }}>
-              Sends <span className="key">X-Agent-Demo-Role</span>. Requires{" "}
-              <span className="key">AGENT_DEMO_BYPASS=1</span> on the agent.
+              {strings.authDemoHelp}
             </p>
           ) : (
             <p className="meta" style={{ marginTop: "0.65rem", marginBottom: 0 }}>
-              Sends cookies with <span className="key">credentials: include</span>. Log into OpenEMR on this same site
-              first. The agent must have <span className="key">OPENEMR_BASE_URL</span> set to this OpenEMR origin.
+              {strings.authOpenEmrHelp}
             </p>
           )}
         </div>
       </section>
 
-      <section className="panel">
-        <h2 className="panel-title">Conversation</h2>
-        <div className="messages">
-          {rows.length === 0 ? (
-            <div className="empty-hint">Send a message to start. Session id is fixed until you refresh.</div>
+      <section className="panel" aria-label={strings.conversation}>
+        <h2 className="panel-title">{strings.conversation}</h2>
+        <div
+          className="messages"
+          role="log"
+          aria-label={strings.conversation}
+          aria-busy={loading}
+        >
+          {rows.length === 0 && !loading ? (
+            <div className="empty-hint">{strings.emptyHint}</div>
           ) : (
-            rows.map((m, i) => (
-              <div key={`${i}-${m.role}`} className={`msg ${m.role === "user" ? "user" : "assistant"}`}>
-                <div className="role">{m.role}</div>
-                <div className="body">{m.content}</div>
-              </div>
-            ))
+            <>
+              {rows.map((m, i) => (
+                <div
+                  key={`${i}-${m.role}`}
+                  className={`msg ${m.role === "user" ? "user" : "assistant"}`}
+                  role="article"
+                  aria-label={`${m.role} message`}
+                >
+                  <div className="role">{m.role}</div>
+                  <div className="body">{m.content}</div>
+                </div>
+              ))}
+              {loading ? (
+                <div className="loading-inline" aria-label={strings.loadingConversation}>
+                  <LoadingSkeleton />
+                </div>
+              ) : null}
+            </>
           )}
         </div>
         {lastMeta ? <div className="meta">{lastMeta}</div> : null}
         <div className="grid" style={{ marginTop: "1rem" }}>
           <label className="field">
-            Message
-            <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={3} disabled={loading} />
+            {strings.messageLabel}
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={onKeyDownMessage}
+              rows={3}
+              disabled={loading}
+              aria-label={strings.messageLabel}
+            />
           </label>
         </div>
         <div className="row" style={{ marginTop: "0.85rem" }}>
-          <button type="button" className="btn" disabled={loading || !draft.trim()} onClick={() => void send()}>
-            {loading ? "Sending…" : "Send"}
+          <button
+            type="button"
+            className="btn"
+            disabled={loading || !draft.trim() || !online}
+            onClick={() => void send()}
+            aria-busy={loading}
+            aria-label={loading ? strings.sending : strings.send}
+          >
+            {loading ? strings.sending : strings.send}
           </button>
         </div>
       </section>
