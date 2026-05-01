@@ -7,12 +7,14 @@ Mount this app at /agent behind Nginx in the full stack (see ARCHITECTURE.md).
 from __future__ import annotations
 
 import logging
+import os
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from typing import Annotated
 
 import httpx
 from fastapi import Depends, FastAPI, Header, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from agent.access.rbac import ToolRefusal, assert_tool_allowed, log_tool_refusal
@@ -22,6 +24,17 @@ from agent.http.schemas import ChatRequest, ChatResponse
 from agent.services.chat_turn import new_session_id
 
 _LOG = logging.getLogger(__name__)
+
+
+def _parse_cors_origins() -> list[str] | None:
+    """Comma-separated origins, or ``*`` for any origin (demo only; no credentials)."""
+    raw = os.environ.get("AGENT_CORS_ORIGINS", "").strip()
+    if not raw:
+        return None
+    if raw == "*":
+        return ["*"]
+    parts = [p.strip() for p in raw.split(",") if p.strip()]
+    return parts or None
 
 
 @asynccontextmanager
@@ -38,6 +51,17 @@ def create_app() -> FastAPI:
         version="0.1.0",
         lifespan=_lifespan,
     )
+
+    cors = _parse_cors_origins()
+    if cors:
+        allow_all = cors == ["*"]
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"] if allow_all else cors,
+            allow_credentials=False,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
     @app.exception_handler(ToolRefusal)
     async def _tool_refusal(_request: Request, exc: ToolRefusal) -> JSONResponse:

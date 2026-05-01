@@ -13,7 +13,9 @@ Before `fly deploy`, confirm each item:
 | **flyctl** | [`flyctl` is installed](https://fly.io/docs/hands-on/install-flyctl/) and on your `PATH` (`fly version`). |
 | **Auth** | Run `fly auth login`, then `fly auth whoami` — you must see the intended account/org. |
 | **App name** | The `app = "..."` value in `fly.agent.toml` must be **globally unique** on Fly.io. If `fly apps create <name>` fails, pick another name and pass `--app <name>` on deploy or update `fly.agent.toml`. |
-| **`OPENEMR_BASE_URL` secret** | Required for `/agent/chat` (and tool routes that call OpenEMR). Set before relying on chat: `fly secrets set OPENEMR_BASE_URL=https://your-openemr-host.example.com --app <your-app>`. **`/agent/health` does not need this secret.** |
+| **`OPENEMR_BASE_URL` secret** | Required for `/agent/chat` (and tool routes that call OpenEMR) unless you rely solely on **demo bypass** (see below). Set before relying on chat: `fly secrets set OPENEMR_BASE_URL=https://your-openemr-host.example.com --app <your-app>`. **`/agent/health` does not need this secret.** |
+| **`OPENAI_API_KEY` secret** | When set, `POST /agent/chat` uses **OpenAI** (`gpt-4o-mini` by default; override with `OPENAI_CHAT_MODEL`) for the generate step instead of the offline echo scaffold. Omit in CI or local dev if you want echo-only behavior. |
+| **`AGENT_CORS_ORIGINS`** | Optional comma-separated list of browser origins allowed to call the API (e.g. `https://clinical-chat-ui.fly.dev`). Use `*` only for throwaway demos (no credentials). Unset = no CORS middleware. |
 | **OCI source label (`IMAGE_SOURCE_URL`)** | `Dockerfile.agent` sets `org.opencontainers.image.source` from build-arg **`IMAGE_SOURCE_URL`**. Defaults live in **`fly.agent.toml`** under **`[build.args]`** (placeholder `https://gitlab.com/CHANGE_ME/Week1` — replace **`CHANGE_ME`**). Override without editing the file: `fly deploy --config fly.agent.toml --build-arg IMAGE_SOURCE_URL=https://gitlab.com/your-group/Week1`. |
 
 **Org:** If you belong to multiple orgs, use `--org <slug>` on `fly apps create` / deploy or set the org in the Fly dashboard. Personal accounts default to your user org.
@@ -82,10 +84,25 @@ On deploy it adds **`--build-arg IMAGE_SOURCE_URL=https://github.com/${{ github.
 
 ```bash
 fly secrets set OPENEMR_BASE_URL=https://your-openemr-host.example.com --app clinical-agent-scaffold
+fly secrets set OPENAI_API_KEY=sk-... --app clinical-agent-scaffold
+# Optional: allow the static chat UI origin to call the API from the browser
+fly secrets set AGENT_CORS_ORIGINS=https://clinical-chat-ui.fly.dev --app clinical-agent-scaffold
 ```
 
 - No trailing slash required (the app normalizes it).
 - Do **not** put OpenEMR cookies or bearer tokens in Fly secrets for generic chat; clients send `Authorization` per request. Only set additional secrets if you add features that need them.
+
+## Static chat UI (optional second Fly app)
+
+The repo includes **`chat-ui/`**: a Vite + React SPA (message history, role switcher, demo vs bearer auth, error states). Deploy it as its **own** Fly app so the agent API URL is baked at image build time. Run deploy **from the `chat-ui/` directory** so the Docker build context matches `Dockerfile` + `fly.toml`:
+
+```bash
+cd chat-ui
+fly apps create clinical-chat-ui   # name must be globally unique; edit fly.toml if needed
+fly deploy --build-arg VITE_AGENT_BASE_URL=https://clinical-agent-scaffold.fly.dev
+```
+
+Set **`AGENT_CORS_ORIGINS`** on the **agent** app to the chat UI’s public origin (see Secrets). For local dev, run Uvicorn on `127.0.0.1:8080` and `npm run dev` in `chat-ui/` (Vite proxies `/agent` to `VITE_DEV_PROXY_TARGET`, default `http://127.0.0.1:8080`).
 
 ## Smoke checks
 

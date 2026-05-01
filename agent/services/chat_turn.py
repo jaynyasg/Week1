@@ -7,6 +7,7 @@ Replace retrieve/generate/verify callables with LangGraph + LLM + grounding in t
 from __future__ import annotations
 
 import logging
+import os
 import uuid
 
 from agent.observability.events import log_agent_event
@@ -35,8 +36,8 @@ def scaffold_retrieve(state: ClinicalTurnState) -> dict[str, object]:
     return out
 
 
-def scaffold_generate(state: ClinicalTurnState) -> str:
-    """Placeholder LLM: echo last user turn + tool summary."""
+def _scaffold_generate_echo(state: ClinicalTurnState) -> str:
+    """Offline / CI placeholder when ``OPENAI_API_KEY`` is unset."""
     last_user = ""
     for m in reversed(state.messages):
         if m.get("role") == "user":
@@ -44,6 +45,24 @@ def scaffold_generate(state: ClinicalTurnState) -> str:
             break
     ctx = state.tool_results.get("patient_id", "?")
     return f"(scaffold) Context for patient {ctx}: {last_user}"
+
+
+def scaffold_generate(state: ClinicalTurnState) -> str:
+    """
+    LLM-backed reply when ``OPENAI_API_KEY`` is set (e.g. Fly secret); otherwise echo scaffold.
+
+    On transient model errors, returns a short parenthetical so the HTTP layer can still 200;
+    operators should watch logs for stack traces.
+    """
+    if os.environ.get("OPENAI_API_KEY", "").strip():
+        try:
+            from agent.services.openai_generate import complete_chat_openai
+
+            return complete_chat_openai(state)
+        except Exception:
+            _LOG.exception("openai_generate_failed")
+            return "(LLM unavailable; check logs and OPENAI_API_KEY / model access.)"
+    return _scaffold_generate_echo(state)
 
 
 def scaffold_verify(state: ClinicalTurnState, text: str) -> tuple[bool, str]:

@@ -1,0 +1,34 @@
+# Static React chat UI (separate Fly app). Deploy from repo root:
+#   fly deploy --config chat-ui/fly.toml
+#
+# Bake agent URL at build time:
+#   fly deploy --config chat-ui/fly.toml --build-arg VITE_AGENT_BASE_URL=https://YOUR-agent.fly.dev
+
+app = "clinical-chat-ui"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+  ignorefile = ".dockerignore"
+
+[build.args]
+  VITE_AGENT_BASE_URL = "https://clinical-agent-scaffold.fly.dev"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "5s"
+    interval = "30s"
+    method = "get"
+    timeout = "3s"
+    path = "/"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
