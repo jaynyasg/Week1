@@ -7,19 +7,34 @@ Mount this app at /agent behind Nginx in the full stack (see ARCHITECTURE.md).
 from __future__ import annotations
 
 import logging
+from contextlib import asynccontextmanager
 from typing import Annotated
 
+import httpx
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from agent.access.rbac import ToolRefusal, assert_tool_allowed, log_tool_refusal
 from agent.http.deps import resolve_agent_role
+from agent.http.env import load_dotenv_if_present
 
 _LOG = logging.getLogger(__name__)
 
 
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    load_dotenv_if_present()
+    async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+        app.state.http_client = client
+        yield
+
+
 def create_app() -> FastAPI:
-    app = FastAPI(title="Clinical Co-Pilot Agent", version="0.1.0")
+    app = FastAPI(
+        title="Clinical Co-Pilot Agent",
+        version="0.1.0",
+        lifespan=_lifespan,
+    )
 
     @app.exception_handler(ToolRefusal)
     async def _tool_refusal(_request: Request, exc: ToolRefusal) -> JSONResponse:

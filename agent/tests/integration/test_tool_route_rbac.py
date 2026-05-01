@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 import pytest
+from fastapi import Header, Request
 from fastapi.testclient import TestClient
 
 from agent.http.app import create_app
@@ -30,7 +33,10 @@ def test_tool_missing_authorization_returns_401(app) -> None:
 
 
 def test_nurse_allowed_demographics(app) -> None:
-    async def fake_role() -> str:
+    async def fake_role(
+        _request: Request,
+        _authorization: Annotated[str | None, Header(alias="Authorization")] = None,
+    ) -> str:
         return "NURSE"
 
     app.dependency_overrides[resolve_agent_role] = fake_role
@@ -44,7 +50,10 @@ def test_nurse_allowed_demographics(app) -> None:
 
 
 def test_nurse_denied_labs_returns_403_body(app) -> None:
-    async def fake_role() -> str:
+    async def fake_role(
+        _request: Request,
+        _authorization: Annotated[str | None, Header(alias="Authorization")] = None,
+    ) -> str:
         return "NURSE"
 
     app.dependency_overrides[resolve_agent_role] = fake_role
@@ -62,7 +71,10 @@ def test_nurse_denied_labs_returns_403_body(app) -> None:
 
 
 def test_admin_denied_medications(app) -> None:
-    async def fake_role() -> str:
+    async def fake_role(
+        _request: Request,
+        _authorization: Annotated[str | None, Header(alias="Authorization")] = None,
+    ) -> str:
         return "ADMIN"
 
     app.dependency_overrides[resolve_agent_role] = fake_role

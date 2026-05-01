@@ -6,9 +6,13 @@ import os
 from typing import Annotated
 
 import httpx
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, Request
 
 from agent.access.openemr_auth import OpenEMRAuthError, validate_session_and_resolve_role
+
+
+def get_http_client(request: Request) -> httpx.AsyncClient:
+    return request.app.state.http_client
 
 
 def get_openemr_base_url() -> str:
@@ -22,6 +26,7 @@ def get_openemr_base_url() -> str:
 
 
 async def resolve_agent_role(
+    request: Request,
     authorization: Annotated[str | None, Header(alias="Authorization")] = None,
 ) -> str:
     """
@@ -32,12 +37,12 @@ async def resolve_agent_role(
     if not authorization or not authorization.strip():
         raise HTTPException(status_code=401, detail="Missing Authorization header")
     base = get_openemr_base_url()
+    client = get_http_client(request)
     try:
-        async with httpx.AsyncClient() as client:
-            return await validate_session_and_resolve_role(
-                base,
-                authorization_header_value=authorization.strip(),
-                client=client,
-            )
+        return await validate_session_and_resolve_role(
+            base,
+            authorization_header_value=authorization.strip(),
+            client=client,
+        )
     except OpenEMRAuthError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc

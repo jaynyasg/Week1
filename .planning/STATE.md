@@ -40,6 +40,6 @@
 - None currently; ingest conflict gate reports 0 unresolved blockers.
 
 ## Session Continuity
-- **Last completed milestone**: Phase 2 core implementation — RBAC module, OpenEMR session helper, minimal FastAPI `/agent/tools/{tool}` gate + HTTP integration tests (`pytest agent/tests`, 44 passed).
+- **Last completed milestone**: Phase 2 — shared `httpx` client + `.env` loading in FastAPI lifespan; optional live OpenEMR check (`RUN_LIVE_OPENEMR_TESTS=1`). `pytest agent/tests`: 44 passed, 1 skipped.
 - **Next command target**: `/gsd-execute-phase 2` (continue wiring RBAC into FastAPI retrieve/dispatch + integration tests).
 - **Resume note**: Import `assert_tool_allowed` / `validate_session_and_resolve_role` from the agent package into the live graph; add integration tests against the real app when the OpenEMR fork + agent service land in-repo.
