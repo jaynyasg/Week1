@@ -2,13 +2,23 @@
 
 ## Agent tests
 
+Primary command:
+
 ```bash
-python -m pytest agent/tests -q
+python -m pytest agent/tests deploy/tests -q
 ```
 
-A stock run reports **80 passed**, **4 skipped**; the skips are the four live OpenEMR tests in [`test_live_openemr_optional.py`](agent/tests/integration/test_live_openemr_optional.py). HTTP-focused coverage includes [`test_http_deps.py`](agent/tests/unit/test_http_deps.py), [`test_http_logging_observability.py`](agent/tests/integration/test_http_logging_observability.py), and [`test_openemr_base_url_misconfiguration.py`](agent/tests/integration/test_openemr_base_url_misconfiguration.py) (OpenEMR base URL wiring regressions).
+Lint (matches CI):
 
-CI runs the same suite on **GitLab** (`.gitlab-ci.yml`) and **GitHub Actions** (`.github/workflows/agent-tests.yml`).
+```bash
+python -m ruff check agent
+```
+
+A typical local run is about **136 passed**, **15 skipped**; skips include optional live OpenEMR, `RUN_LATENCY_GATE`, and other gated tests (counts vary—run pytest to confirm). HTTP-focused coverage includes [`test_http_deps.py`](agent/tests/unit/test_http_deps.py), [`test_http_logging_observability.py`](agent/tests/integration/test_http_logging_observability.py), and [`test_openemr_base_url_misconfiguration.py`](agent/tests/integration/test_openemr_base_url_misconfiguration.py) (OpenEMR base URL wiring regressions).
+
+CI runs **ruff** and **pytest** on `agent/tests` and `deploy/tests` on **GitLab** (`.gitlab-ci.yml`) and **GitHub Actions** (`.github/workflows/agent-tests.yml`).
+
+Planning and contribution norms: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Optional: gated live OpenEMR E2E
 

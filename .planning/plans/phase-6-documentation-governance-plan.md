@@ -31,6 +31,7 @@ Eliminate **markdown-vs-Word drift** by making **`.planning/` markdown** the sin
 3. Traceability conventions + spot-check against recent changes.
 
 ## Repo evidence (scaffold)
+- **Contributing / canonical policy (root)**: [`CONTRIBUTING.md`](../../CONTRIBUTING.md) — `.planning/` markdown authoritative; preserve REQ/ADR-style IDs; test and lint commands.
 - **Planning root**: `.planning/` is the repository’s canonical planning directory (roadmap, state, requirements, plans, intel, ingest outputs).
 - **ROADMAP**: Present at `.planning/ROADMAP.md`.
 - **STATE**: Present at `.planning/STATE.md`.

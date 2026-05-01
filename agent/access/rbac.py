@@ -10,6 +10,7 @@ import logging
 from typing import Final, Iterable
 
 from agent.observability.events import LOG_EXTRA_EVENT, LOG_EXTRA_EVENT_TYPE
+from agent.observability.metrics_counters import inc_tool_refusal
 
 # Canonical tool identifiers — must match USERS.md matrix.
 PHYSICIAN_TOOLS: Final[frozenset[str]] = frozenset(
@@ -109,3 +110,4 @@ def log_tool_refusal(
             "cost_envelope": "unknown",
         },
     )
+    inc_tool_refusal()

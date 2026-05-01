@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from agent.http.app import create_app
 from agent.http.deps import resolve_agent_role
+from agent.observability.metrics_counters import reset_counters_for_testing
 
 
 def _fake_physician(
@@ -21,6 +22,7 @@ def _fake_physician(
 
 
 def test_health_ready_and_metrics_exist() -> None:
+    reset_counters_for_testing()
     app = create_app()
     with TestClient(app) as client:
         h = client.get("/agent/health")
@@ -34,6 +36,16 @@ def test_health_ready_and_metrics_exist() -> None:
         m = client.get("/agent/metrics")
         assert m.status_code == 200
         assert "clinical_agent_up" in m.text
+        for name in (
+            "chat_turns_total",
+            "tool_refusals_total",
+            "verify_failures_total",
+            "rgv_degraded_total",
+            "category_boundary_flags_total",
+            "openemr_auth_failures_total",
+        ):
+            assert name in m.text
+            assert f"{name} 0" in m.text
 
 
 def test_chat_rate_limit_enforced_when_env_set(monkeypatch: pytest.MonkeyPatch) -> None:

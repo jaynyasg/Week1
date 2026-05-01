@@ -31,10 +31,11 @@
 - Deployed OpenEMR base URL for agent session checks: `https://clinical-copilot-v2.fly.dev` (see root `.env.example` and `deploy/.env.example` for `OPENEMR_BASE_URL` / `DEPLOYED_URL`).
 
 ### Current TODOs
-- Wire `agent/runtime/rgv_pipeline.py` into real retrieve + LLM + verify in OpenEMR fork; keep `MAX_VERIFY_RETRIES` aligned with architecture (ROADMAP Phase 3 still in progress; phases 4–6 not started for execution).
+- Wire `agent/runtime/rgv_pipeline.py` into real retrieve + LLM + verify in OpenEMR fork; keep `MAX_VERIFY_RETRIES` aligned with architecture (ROADMAP Phase 3 still in progress for **full** closure).
 - Close `REQ-agent-requirements-coverage` in fork with executable chat + tool + verify path (scaffold alone is not full PRD runtime).
-- Phase 4 execution (per ROADMAP): structured telemetry for denials, failures, fallbacks, minimum operator questions, and cost envelope — beyond current log-extras tests; plan stub: `.planning/plans/phase-4-observability-plan.md`.
-- Phase 5–6 (per ROADMAP, not started): eval suite expansion, latency/unauthorized-access/cost gates, Pre-Search Checklist evidence — `.planning/plans/phase-5-evaluation-plan.md`; documentation governance — `.planning/plans/phase-6-documentation-governance-plan.md`.
+- Phase 4 **remaining** (fork / live stack): operator dashboards, live `Observation.category` validation, correlate deploy events with app logs — in-repo work added **Prometheus counters** on `/agent/metrics` and existing structured events (see `.planning/ROADMAP.md` Progress).
+- Phase 5 **remaining**: full eval suite breadth, cost artifacts at release checkpoints, stored eval outputs — in-repo: gated coarse latency test `RUN_LATENCY_GATE=1` (`agent/tests/integration/test_latency_gate_optional.py`), checklist matrix `.planning/PRE-SEARCH-CHECKLIST-EVIDENCE.md`, artifact convention `.planning/eval-artifacts/README.md`.
+- Phase 6 **remaining**: Word artifact inventory if external copies exist; traceability spot-checks — in-repo: root `CONTRIBUTING.md` states canonical `.planning/` markdown.
 
 ### Known Blockers
 - None currently; ingest conflict gate reports 0 unresolved blockers.
@@ -50,10 +51,10 @@
   - Remote chat live test: set `AGENT_BASE_URL` to that same origin when running gated tests in [`agent/tests/integration/test_live_openemr_optional.py`](../agent/tests/integration/test_live_openemr_optional.py) (with `RUN_LIVE_OPENEMR_E2E` and OpenEMR env per root `.env.example`).
 
 ## Session Continuity
-- **Last completed milestone**: Per ROADMAP, Phases 1–2 are completed; Phase 3 is in progress (RGV scaffold + tests in repo, not the full fork runtime). **2026-04-30 gap review**: Phase 3 **not** closed in this repo — SC3 + `REQ-agent-requirements-coverage` remain fork-owned (see ROADMAP Phase 3 Notes gap table and `phase-3-retrieve-generate-verify-plan.md`). Phases 4–6 remain not started for execution; plan stubs are linked from ROADMAP: `phase-4-observability-plan.md`, `phase-5-evaluation-plan.md`, `phase-6-documentation-governance-plan.md` under `.planning/plans/`.
-- **Agent tests (verified locally)**: `python -m pytest agent/tests -q` → **75 passed, 4 skipped** (same command as README and CI). Skips align with optional/gated tests (e.g. live OpenEMR E2E).
-- **CI**: `.gitlab-ci.yml` (GitLab) and `.github/workflows/agent-tests.yml` (GitHub) run `python -m pytest agent/tests`.
-- **Observability in repo (tests, not Phase 4 completion)**: `agent/tests/integration/test_http_logging_observability.py` asserts structured log extras on `/agent/chat` (`chat_turn_complete`) and on RBAC tool denial (`tool_refusal` / 403 on `/agent/tools/labs`), using `agent.observability.events` keys — contract-level coverage only; ROADMAP Phase 4 success criteria are still outstanding.
+- **Last completed milestone**: Phases 1–2 complete. Phase 3 **scaffold** in-repo (contracts + tests); **full** Phase 3 closure still fork-owned (SC3 record-backed attribution, `REQ-agent-requirements-coverage`). **2026-05-01**: non-disruptive advance — Phase 3 response-contract tests (`test_scaffold_response_contract.py`), Phase 4 Prometheus counters + wiring, Phase 5 gated latency harness + checklist/eval-artifact docs, Phase 6 `CONTRIBUTING.md`; see ROADMAP Progress table.
+- **Agent tests (verified locally)**: `python -m pytest agent/tests deploy/tests -q` — typical **~136 passed**, **~15 skipped** (live OpenEMR, `RUN_LATENCY_GATE`, `RUN_LOAD_TEST`, etc.; run pytest to confirm).
+- **CI**: `.gitlab-ci.yml` and `.github/workflows/agent-tests.yml` run `ruff check` / `ruff format --check` on `agent/` and `pytest agent/tests deploy/tests`.
+- **Observability in repo (Phase 4 partial)**: Structured log extras (`test_http_logging_observability.py`) plus **counter export** on `GET /agent/metrics` (`agent/observability/metrics_counters.py`). Full Phase 4 (operator triage dashboards, live category validation) remains fork/deploy work.
 - **Phase 3 scaffold**: `agent/runtime/rgv_pipeline.py`, `services/chat_turn.py`, `/agent/chat` integration tests + missing-Authorization 401. Gated live E2E: `agent/tests/integration/test_live_openemr_optional.py` — `RUN_LIVE_OPENEMR_E2E=1`, `OPENEMR_BASE_URL`, `OPENEMR_AUTHORIZATION` or `OPENEMR_BEARER_TOKEN` (optional `AGENT_BASE_URL`); see root `.env.example`. `REQ-agent-requirements-coverage` stays pending until the fork wires real retrieve/LLM/verify.
 - **Phase 3 note**: In-repo scaffold vs fork — scaffold proves HTTP/RGV contracts; fork delivers executable coverage against real EMR data paths.
 - **Next command target**: `/gsd-execute-phase 3` (fork: real retrieve, LLM generate, programmatic verify).

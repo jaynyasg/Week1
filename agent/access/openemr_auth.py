@@ -13,6 +13,8 @@ from typing import Any
 
 import httpx
 
+from agent.observability.metrics_counters import inc_openemr_auth_failure
+
 
 class OpenEMRAuthError(Exception):
     """Missing/invalid session or role could not be resolved to PHYSICIAN|NURSE|ADMIN."""
@@ -22,6 +24,7 @@ class OpenEMRAuthError(Exception):
     ) -> None:
         super().__init__(message)
         self.reason_code = reason_code
+        inc_openemr_auth_failure()
 
 
 def map_openemr_payload_to_agent_role(payload: dict[str, Any]) -> str | None:

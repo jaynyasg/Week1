@@ -20,6 +20,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 
 from agent.access.rbac import ToolRefusal, assert_tool_allowed, log_tool_refusal
 from agent.http.deps import resolve_agent_role
+from agent.observability.metrics_counters import render_prometheus
 from agent.http.env import load_dotenv_if_present
 from agent.http.middleware_body_limit import body_too_large_response
 from agent.http.routes_chat import chat_turn
@@ -173,10 +174,13 @@ def create_app() -> FastAPI:
         response_class=PlainTextResponse,
     )
     async def metrics() -> PlainTextResponse:
-        return PlainTextResponse(
+        body = (
             "# HELP clinical_agent_up Process is accepting HTTP\n"
             "# TYPE clinical_agent_up gauge\n"
-            "clinical_agent_up 1\n",
+            "clinical_agent_up 1\n" + render_prometheus()
+        )
+        return PlainTextResponse(
+            body,
             media_type="text/plain; version=0.0.4; charset=utf-8",
         )
 

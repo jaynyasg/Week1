@@ -112,6 +112,6 @@
 | 1. Deployment Baseline Hardening | 1/1 | Completed | 2026-04-30 (EMR evidence + AI integration plan finalized) |
 | 2. RBAC Enforcement and Test Matrix | 1/1 | Completed | 2026-04-30 (pytest + optional live OpenEMR) |
 | 3. Retrieve-Generate-Verify Runtime Flow | 1/1 | In progress | RGV scaffold + tests; gap review 2026-04-30 (SC3 + REQ-agent-requirements-coverage → fork) |
-| 4. Observability and Clinical Safety Flagging | 1/1 | In progress | Scaffold: taxonomy + RGV/RBAC/misconfig/category events + tests (2026-04-30); operator triage doc + live Observation.category validation remain |
-| 5. Evaluation and Performance Validation | 1/1 | Not started | - |
-| 6. Documentation Governance Cleanup | 1/1 | Not started | - |
+| 4. Observability and Clinical Safety Flagging | 1/1 | In progress | In-repo: taxonomy + structured events + `/agent/metrics` Prometheus **counters** (chat turns, refusals, verify fails, RGV degraded, category flags, OpenEMR auth fails) + tests (2026-05-01). Remaining: dashboards, live Observation.category validation, deploy/log correlation. |
+| 5. Evaluation and Performance Validation | 1/1 | In progress (scaffold) | In-repo: gated coarse latency gate `RUN_LATENCY_GATE` + `.planning/PRE-SEARCH-CHECKLIST-EVIDENCE.md` + `.planning/eval-artifacts/README.md` (2026-05-01). Remaining: full gates, cost artifacts, stored checkpoint evidence. |
+| 6. Documentation Governance Cleanup | 1/1 | In progress (scaffold) | In-repo: root `CONTRIBUTING.md` (canonical `.planning/` markdown, REQ ID preservation) (2026-05-01). Remaining: external Word inventory/reconciliation, formal review checkpoint. |

@@ -11,6 +11,7 @@ import os
 import uuid
 
 from agent.observability.events import log_agent_event
+from agent.observability.metrics_counters import inc_category_boundary, inc_chat_turn
 from agent.observability.taxonomy import CATEGORY_BOUNDARY_REVIEW, CHAT_TURN_COMPLETE
 from agent.runtime.rgv_pipeline import (
     ClinicalTurnState,
@@ -123,6 +124,7 @@ def run_scaffold_chat_turn(
             fallback="human_review_recommended",
             cost_envelope="unknown",
         )
+        inc_category_boundary()
     log_agent_event(
         _LOG,
         CHAT_TURN_COMPLETE,
@@ -134,6 +136,7 @@ def run_scaffold_chat_turn(
         fallback="none" if st.verified else "unverified_response",
         cost_envelope="unknown",
     )
+    inc_chat_turn()
     return st, assistant
 
 

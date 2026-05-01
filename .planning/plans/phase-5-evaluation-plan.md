@@ -37,10 +37,10 @@ Prove **latency**, **unauthorized-access resilience**, **cost envelopes**, **Pre
 - **RBAC matrix (unit):** `agent/tests/unit/test_rbac_matrix.py` — parameterized matrix vs `USERS.md`; partial-denial / `assert_tools_allowed` coverage.
 - **Observability HTTP tests:** same file `agent/tests/integration/test_http_logging_observability.py` for request/response logging behavior.
 - **Live OpenEMR (gated, optional):** `agent/tests/integration/test_live_openemr_optional.py` — enabled when `RUN_LIVE_OPENEMR_E2E` or `RUN_LIVE_OPENEMR_TESTS` is set (and related auth env); not required for default CI runs.
-- **CI — GitHub Actions:** `.github/workflows/agent-tests.yml` runs `python -m pytest agent/tests -q` (see workflow `pytest` job).
-- **CI — GitLab:** `.gitlab-ci.yml` runs `python -m pytest agent/tests -q` in the test job (live OpenEMR job commented with pointer to the optional test file).
+- **CI — GitHub Actions:** `.github/workflows/agent-tests.yml` runs `python -m ruff check agent` and `python -m pytest agent/tests deploy/tests -q` (see workflow jobs).
+- **CI — GitLab:** `.gitlab-ci.yml` runs ruff + pytest on `agent/tests` and `deploy/tests` in the test job (live OpenEMR job commented with pointer to the optional test file).
 - **Post-deploy smoke (minimal release gate):** In the evaluation story, treat post-deploy smoke—`/agent/health` plus optional `/agent/chat` exercised with real auth—as a minimal release gate after ship; scripts `scripts/smoke_agent_service.ps1` and `scripts/smoke_agent_service.sh`, with operator notes in `deploy/README-fly-agent.md`.
 
 ### Pytest snapshot (repo state, not Phase 5 completion)
-- Command: `python -m pytest agent/tests -q`
-- Result (local run, workspace as checked out): **71 passed**, **4 skipped** (~2.43s). Skips reflect optional/gated tests in the suite, not a claim that Phase 5 exit criteria are met.
+- Command: `python -m pytest agent/tests deploy/tests -q`; lint: `python -m ruff check agent`
+- Typical local run (approximate): ~**136 passed**, ~**15 skipped**—counts vary; run pytest to confirm. Skips reflect optional live OpenEMR, `RUN_LATENCY_GATE`, and other gated tests, not a claim that Phase 5 exit criteria are met.

@@ -33,6 +33,7 @@ Make **RBAC denials**, **verification failures**, **fallbacks**, and **category-
 3. Safety flag + triage documentation pass.
 
 ## Repo evidence (scaffold)
+- `agent/observability/metrics_counters.py` — thread-safe counters; `GET /agent/metrics` appends Prometheus `# HELP` / `# TYPE counter` lines (chat turns, RBAC refusals, verify failures, RGV degraded, category-boundary flags, OpenEMR auth failures).
 - `agent/observability/events.py` — `AgentEvent`, `log_agent_event()`.
 - `agent/observability/__init__.py` — exports `AgentEvent`, `log_agent_event`.
 - `agent/access/rbac.py` — `log_tool_refusal()`; `agent/http/app.py` invokes it on `ToolRefusal`. Integration coverage in `agent/tests/integration/test_http_logging_observability.py` asserts RBAC-denied tool posts log `tool_refusal` with the same structured `event` / `event_type` extras used for `log_agent_event` on chat (parity with chat-turn logging checks in that file).
@@ -40,4 +41,4 @@ Make **RBAC denials**, **verification failures**, **fallbacks**, and **category-
 - `agent/tests/integration/test_http_logging_observability.py` — HTTP-level checks for chat `agent_event` fields and RBAC `tool_refusal` fields.
 - `.github/workflows/fly-agent-manual.yml` — GitHub **fly-agent-manual** workflow provides an **audit trail** in Actions logs (who/when a deploy ran); Phase 4 should later correlate deploy events with app logs (fork).
 
-**Test run (repo state):** `python -m pytest agent/tests -q` → **80 passed, 4 skipped** (local run). Instrumentation for verify/retry/degrade, misconfig (incl. client request id), category scaffold, and RBAC minimum-question fields is in-tree; fork-only metrics remain.
+**Test run (repo state):** `python -m pytest agent/tests deploy/tests -q`; lint: `python -m ruff check agent`. Typical local run ~**136 passed**, ~**15 skipped** (approximate—counts vary). CI runs ruff + pytest on both test dirs (`.github/workflows/agent-tests.yml`, `.gitlab-ci.yml`). Instrumentation for verify/retry/degrade, misconfig (incl. client request id), category scaffold, RBAC minimum-question fields, and **Prometheus counters** on `/agent/metrics` is in-tree; hosted dashboards / trace backends remain fork-optional.

@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from agent.observability.events import log_agent_event
+from agent.observability.metrics_counters import inc_rgv_degraded, inc_verify_failure
 from agent.observability.taxonomy import (
     RGV_DEGRADED_UNVERIFIED,
     RGV_VERIFY_RETRY,
@@ -86,6 +87,7 @@ def run_retrieve_generate_verify(
                 else "return_unverified",
                 cost_envelope="unknown",
             )
+            inc_verify_failure()
             if state.verify_retry_count >= MAX_VERIFY_RETRIES:
                 state.verified = False
                 log_agent_event(
@@ -98,6 +100,7 @@ def run_retrieve_generate_verify(
                     fallback="return_unverified",
                     cost_envelope="unknown",
                 )
+                inc_rgv_degraded()
                 return state, last_text
             log_agent_event(
                 _LOG,

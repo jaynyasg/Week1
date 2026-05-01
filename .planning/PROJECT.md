@@ -32,9 +32,10 @@ Clinical Co-Pilot provides role-safe, session-validated clinical assistance on t
 Bootstrap executable planning artifacts from synthesized ingest for immediate phase planning and execution.
 
 ## Agent tests (snapshot)
-- Command: `python -m pytest agent/tests -q`
-- Last verified (local): 80 passed, 4 skipped
-- CI: `.github/workflows/agent-tests.yml`, `.gitlab-ci.yml`
+- Command: `python -m pytest agent/tests deploy/tests -q`
+- Lint: `python -m ruff check agent` (also in CI)
+- Typical local run (approximate): ~136 passed, ~15 skipped—counts vary; run pytest to confirm
+- CI: `.github/workflows/agent-tests.yml`, `.gitlab-ci.yml` — ruff + pytest on `agent/tests` and `deploy/tests`
 
 ## Agent deploy (Fly)
 - Manual deploy: `.github/workflows/fly-agent-manual.yml` (`workflow_dispatch`; repo secret `FLY_API_TOKEN`), config `fly.agent.toml`, runbook `deploy/README-fly-agent.md`.
