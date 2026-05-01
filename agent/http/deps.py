@@ -11,10 +11,24 @@ from fastapi import Header, HTTPException, Request
 
 from agent.access.openemr_auth import OpenEMRAuthError, validate_session_and_resolve_role
 from agent.observability.events import log_agent_event
-from agent.observability.taxonomy import OPENEMR_MISCONFIGURATION
+from agent.observability.taxonomy import DEMO_BYPASS_ACTIVE, OPENEMR_MISCONFIGURATION
 from agent.services.chat_turn import run_scaffold_chat_turn
 
 _LOG = logging.getLogger(__name__)
+
+_DEMO_BYPASS_TRUTHY = frozenset({"1", "true", "yes"})
+_DEMO_BYPASS_ROLES = frozenset({"PHYSICIAN", "NURSE", "ADMIN"})
+
+
+def _demo_bypass_enabled() -> bool:
+    """True iff ``AGENT_DEMO_BYPASS`` env is one of {"1","true","yes"} (case-insensitive).
+
+    Factored out of ``resolve_agent_role`` so unit tests can target the env-read
+    behavior without spinning up a request. Default (unset/empty/anything else)
+    returns False so the production auth path is byte-identical to before.
+    """
+    raw = os.environ.get("AGENT_DEMO_BYPASS", "")
+    return raw.strip().lower() in _DEMO_BYPASS_TRUTHY
 
 
 def _client_request_id(request: Request | None) -> str | None:
@@ -67,6 +81,7 @@ async def resolve_agent_role(
     request: Request,
     authorization: Annotated[str | None, Header(alias="Authorization")] = None,
     cookie: Annotated[str | None, Header(alias="Cookie")] = None,
+    x_agent_demo_role: Annotated[str | None, Header(alias="X-Agent-Demo-Role")] = None,
 ) -> str:
     """
     Validate OpenEMR session via GET /api/user and map to PHYSICIAN|NURSE|ADMIN.
@@ -76,8 +91,31 @@ async def resolve_agent_role(
     PHPSESSID=...``). At least one must be non-blank; both may be sent together
     and OpenEMR decides which to honor.
 
+    Demo bypass (NOT for production): when ``AGENT_DEMO_BYPASS`` is truthy AND
+    ``X-Agent-Demo-Role`` is one of ``PHYSICIAN|NURSE|ADMIN``, this returns the
+    supplied role without calling OpenEMR. If the env var is unset, the demo
+    header is ignored entirely (default behavior unchanged). If the env var is
+    set but the header is missing/invalid, we fall through to the normal
+    Authorization/Cookie path so existing flows still work.
+
     Override this dependency in tests to exercise RBAC without a live OpenEMR.
     """
+    if _demo_bypass_enabled() and x_agent_demo_role is not None:
+        candidate = x_agent_demo_role.strip().upper()
+        if candidate in _DEMO_BYPASS_ROLES:
+            log_agent_event(
+                _LOG,
+                DEMO_BYPASS_ACTIVE,
+                what="auth_demo_bypass",
+                why="AGENT_DEMO_BYPASS=1",
+                role=candidate,
+                fallback="none",
+                duration_ms=0.0,
+                cost_envelope="unknown",
+                client_request_id=_client_request_id(request) or "none",
+            )
+            return candidate
+
     auth_value = authorization.strip() if authorization and authorization.strip() else None
     cookie_value = cookie.strip() if cookie and cookie.strip() else None
     if auth_value is None and cookie_value is None:

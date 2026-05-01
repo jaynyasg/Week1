@@ -129,6 +129,31 @@ curl.exe -fsS -X POST "https://clinical-agent-scaffold.fly.dev/agent/chat" `
 
 > The cookie value never reaches Fly secrets and is **not logged** by the agent — it is forwarded **only** to `{OPENEMR_BASE_URL}/api/user` for the lifetime of the request.
 
+## Demo bypass mode (NOT for production)
+
+> **WARNING: Demo bypass active.** When `AGENT_DEMO_BYPASS=1` **and** the request carries `X-Agent-Demo-Role: PHYSICIAN|NURSE|ADMIN`, the agent **skips OpenEMR session validation entirely** and trusts the supplied role. Use this **only** for non-PHI demos against a throwaway environment. Never enable in real PHI environments. Either condition alone (env var without header, or header without env var) leaves the normal `Authorization` / `Cookie` validation path unchanged.
+>
+> Default behavior with the env var unset is byte-identical to before: the `X-Agent-Demo-Role` header is ignored and OpenEMR validation is still required.
+
+Enable on Fly:
+
+```bash
+fly secrets set AGENT_DEMO_BYPASS=1 --app clinical-agent-scaffold
+# Disable later:
+# fly secrets unset AGENT_DEMO_BYPASS --app clinical-agent-scaffold
+```
+
+PowerShell smoke (PS 7+ recommended; on Windows PS 5.1, use `curl.exe` not the `curl` alias):
+
+```powershell
+curl.exe -fsS -X POST "https://clinical-agent-scaffold.fly.dev/agent/chat" `
+  -H "Content-Type: application/json" `
+  -H "X-Agent-Demo-Role: PHYSICIAN" `
+  -d '{\"patient_id\":\"1\",\"messages\":[],\"user_message\":\"Hello from demo bypass\"}'
+```
+
+When the bypass fires, the agent emits a structured `agent_event` line with `event_type=auth_demo_bypass` (see the operator triage table below). Raw `Authorization` and `Cookie` values are **never** logged on this path — only the resolved role and a fixed reason string.
+
 ### PowerShell (`scripts/smoke_agent_service.ps1`)
 
 Use **PowerShell 7+** (`pwsh`) when you pass **`-AuthHeader`** (chat smoke). The script relies on `Invoke-WebRequest -SkipHttpErrorCheck`, which exists only in PS 7+; on **Windows PowerShell 5.1**, non-2xx chat responses may **throw** before status checks, so behavior differs from PS 7. Health-only (`-BaseUrl` only) is usually fine on 5.1.
@@ -180,6 +205,7 @@ Production logs use JSON-friendly **`event` / `event_type`** fields on `agent_ev
 | `verify_failure` / `rgv_verify_retry` / `rgv_degraded_unverified` | RGV verify path: failed check, bounded retry, or returned **unverified** assistant text. | `why`, `verify_retry_count`, `duration_ms`, `fallback`; inspect upstream verify rules / model output. |
 | `category_boundary_review` | Scaffold/lab signal: labs + vitals context in one turn (demo hook until fork validates FHIR `Observation.category`). | Treat as **review queue**, not a clinical assertion; correlate with real FHIR tagging in fork. |
 | `chat_turn_complete` | Turn finished (happy or unverified). | `verified`, `rgv_duration_ms`, `fallback` (`none` vs `unverified_response`); `cost_envelope` is placeholder until billing hooks exist. |
+| `auth_demo_bypass` | **Demo bypass active** — `AGENT_DEMO_BYPASS=1` AND `X-Agent-Demo-Role` short-circuited OpenEMR session validation. **Treat as misconfiguration in any PHI environment.** | `role` (the trusted demo role), `client_request_id`; in production, `fly secrets unset AGENT_DEMO_BYPASS --app <app>` immediately and rotate any data accessed during the bypass window. |
 
 **GitHub Actions:** Manual deploy runs appear under **Actions** → **Fly agent (manual deploy)**; use the run timestamp and actor to correlate with `fly releases` / app logs after a deploy.
 

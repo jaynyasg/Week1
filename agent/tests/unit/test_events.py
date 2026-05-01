@@ -95,3 +95,14 @@ def test_agent_event_empty_fields_and_extra(caplog_events: pytest.LogCaptureFixt
     r = caplog_events.records[0]
     assert getattr(r, LOG_EXTRA_EVENT) == "noop"
     assert getattr(r, LOG_EXTRA_EVENT_TYPE) == "noop"
+
+
+def test_demo_bypass_active_constant_exists() -> None:
+    """``DEMO_BYPASS_ACTIVE`` is the stable taxonomy key for demo-mode auth bypass.
+
+    Operators grep on ``event_type=auth_demo_bypass`` in ``fly logs``; the
+    constant value MUST stay ``"auth_demo_bypass"`` for that contract.
+    """
+    from agent.observability.taxonomy import DEMO_BYPASS_ACTIVE
+
+    assert DEMO_BYPASS_ACTIVE == "auth_demo_bypass"

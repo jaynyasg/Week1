@@ -8,9 +8,14 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi import HTTPException
 
-from agent.http.deps import _client_request_id, get_openemr_base_url
+from agent.http.deps import (
+    _client_request_id,
+    _demo_bypass_enabled,
+    get_openemr_base_url,
+    resolve_agent_role,
+)
 from agent.observability.events import LOG_EXTRA_EVENT
-from agent.observability.taxonomy import OPENEMR_MISCONFIGURATION
+from agent.observability.taxonomy import DEMO_BYPASS_ACTIVE, OPENEMR_MISCONFIGURATION
 
 
 def test_get_openemr_base_url_raises_when_unset(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -91,3 +96,173 @@ def test_get_openemr_base_url_misconfig_includes_client_request_id(
         if r.name == "agent.http.deps" and getattr(r, LOG_EXTRA_EVENT, None) == OPENEMR_MISCONFIGURATION
     ]
     assert mis and getattr(mis[0], "client_request_id") == "unit-req-7"
+
+
+# --- Demo bypass --------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("1", True),
+        ("TRUE", True),
+        ("True", True),
+        ("yes", True),
+        ("YES", True),
+        ("  yes  ", True),
+        ("0", False),
+        ("false", False),
+        ("no", False),
+        ("", False),
+        ("on", False),
+    ],
+)
+def test_demo_bypass_enabled_truthy_matrix(
+    monkeypatch: pytest.MonkeyPatch, value: str, expected: bool
+) -> None:
+    monkeypatch.setenv("AGENT_DEMO_BYPASS", value)
+    assert _demo_bypass_enabled() is expected
+
+
+def test_demo_bypass_enabled_unset_is_false(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("AGENT_DEMO_BYPASS", raising=False)
+    assert _demo_bypass_enabled() is False
+
+
+@pytest.mark.asyncio
+async def test_resolve_agent_role_bypass_short_circuits_without_calling_openemr(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Bypass enabled + valid role header => return role without touching /api/user."""
+    monkeypatch.setenv("AGENT_DEMO_BYPASS", "1")
+    caplog.set_level(logging.INFO)
+
+    async def _must_not_call(*_args, **_kwargs):  # pragma: no cover - asserted not-called
+        raise AssertionError("validate_session_and_resolve_role should not be called in bypass path")
+
+    monkeypatch.setattr(
+        "agent.http.deps.validate_session_and_resolve_role",
+        _must_not_call,
+    )
+
+    req = MagicMock()
+    req.headers.get = lambda name, default=None: {"X-Request-ID": "demo-1"}.get(name, default)
+
+    role = await resolve_agent_role(
+        req,
+        authorization=None,
+        cookie=None,
+        x_agent_demo_role="physician",
+    )
+    assert role == "PHYSICIAN"
+
+    bypass_records = [
+        r
+        for r in caplog.records
+        if r.name == "agent.http.deps" and getattr(r, LOG_EXTRA_EVENT, None) == DEMO_BYPASS_ACTIVE
+    ]
+    assert bypass_records, "expected an auth_demo_bypass event"
+    rec = bypass_records[0]
+    assert getattr(rec, "role") == "PHYSICIAN"
+    assert getattr(rec, "what") == "auth_demo_bypass"
+    assert getattr(rec, "why") == "AGENT_DEMO_BYPASS=1"
+    assert getattr(rec, "fallback") == "none"
+    assert getattr(rec, "duration_ms") == 0.0
+    assert getattr(rec, "cost_envelope") == "unknown"
+    assert getattr(rec, "client_request_id") == "demo-1"
+
+
+@pytest.mark.asyncio
+async def test_resolve_agent_role_bypass_invalid_role_falls_through(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bypass on but role header is junk => fall through to normal validation."""
+    monkeypatch.setenv("AGENT_DEMO_BYPASS", "1")
+    monkeypatch.setenv("OPENEMR_BASE_URL", "https://openemr.example.test")
+
+    called: dict[str, object] = {}
+
+    async def _fake_validate(
+        _base: str,
+        *,
+        authorization_header_value: str | None = None,
+        cookie_header_value: str | None = None,
+        client,  # noqa: ARG001
+    ) -> str:
+        called["authorization"] = authorization_header_value
+        called["cookie"] = cookie_header_value
+        return "NURSE"
+
+    monkeypatch.setattr(
+        "agent.http.deps.validate_session_and_resolve_role",
+        _fake_validate,
+    )
+
+    req = MagicMock()
+    req.app.state.http_client = MagicMock()
+    req.headers.get = lambda _name, default=None: default
+
+    role = await resolve_agent_role(
+        req,
+        authorization="Bearer abc",
+        cookie=None,
+        x_agent_demo_role="GUEST",
+    )
+    assert role == "NURSE"
+    assert called["authorization"] == "Bearer abc"
+    assert called["cookie"] is None
+
+
+@pytest.mark.asyncio
+async def test_resolve_agent_role_bypass_disabled_ignores_header(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Env var unset => X-Agent-Demo-Role is ignored entirely; normal validation runs."""
+    monkeypatch.delenv("AGENT_DEMO_BYPASS", raising=False)
+    monkeypatch.setenv("OPENEMR_BASE_URL", "https://openemr.example.test")
+
+    async def _fake_validate(
+        _base: str,
+        *,
+        authorization_header_value: str | None = None,
+        cookie_header_value: str | None = None,
+        client,  # noqa: ARG001
+    ) -> str:
+        return "ADMIN"
+
+    monkeypatch.setattr(
+        "agent.http.deps.validate_session_and_resolve_role",
+        _fake_validate,
+    )
+
+    req = MagicMock()
+    req.app.state.http_client = MagicMock()
+    req.headers.get = lambda _name, default=None: default
+
+    role = await resolve_agent_role(
+        req,
+        authorization="Bearer abc",
+        cookie=None,
+        x_agent_demo_role="PHYSICIAN",
+    )
+    assert role == "ADMIN"
+
+
+@pytest.mark.asyncio
+async def test_resolve_agent_role_bypass_disabled_no_auth_still_401(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Env var unset, no Authorization/Cookie, but demo header present => still 401."""
+    monkeypatch.delenv("AGENT_DEMO_BYPASS", raising=False)
+
+    req = MagicMock()
+    req.headers.get = lambda _name, default=None: default
+
+    with pytest.raises(HTTPException) as exc_info:
+        await resolve_agent_role(
+            req,
+            authorization=None,
+            cookie=None,
+            x_agent_demo_role="PHYSICIAN",
+        )
+    assert exc_info.value.status_code == 401

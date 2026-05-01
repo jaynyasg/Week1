@@ -134,6 +134,41 @@ def test_chat_scaffold_returns_messages(app) -> None:
     assert msgs[-1]["role"] == "assistant"
 
 
+def test_chat_demo_bypass_allows_chat_without_auth_headers(
+    app, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``AGENT_DEMO_BYPASS=1`` + ``X-Agent-Demo-Role: PHYSICIAN`` must reach the
+    chat handler with no Authorization / Cookie and skip the OpenEMR /api/user
+    call entirely. Failure here means the demo path is broken or the OpenEMR
+    validator was invoked despite the bypass."""
+    monkeypatch.setenv("AGENT_DEMO_BYPASS", "1")
+
+    async def _must_not_call(*_args, **_kwargs):  # pragma: no cover - asserted not-called
+        raise AssertionError(
+            "validate_session_and_resolve_role must NOT run when demo bypass is active"
+        )
+
+    monkeypatch.setattr(
+        "agent.http.deps.validate_session_and_resolve_role",
+        _must_not_call,
+    )
+
+    with TestClient(app) as client:
+        r = client.post(
+            "/agent/chat",
+            json={
+                "patient_id": "pat-demo",
+                "user_message": "Hello from demo bypass.",
+                "messages": [],
+            },
+            headers={"X-Agent-Demo-Role": "PHYSICIAN"},
+        )
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert "assistant_message" in data
+    assert data["messages"][-1]["role"] == "assistant"
+
+
 def test_chat_multiturn_carries_history(app) -> None:
     app.dependency_overrides[resolve_agent_role] = _fake_physician
     with TestClient(app) as client:

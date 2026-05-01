@@ -21,5 +21,10 @@ RGV_DEGRADED_UNVERIFIED = "rgv_degraded_unverified"
 # Configuration / upstream
 OPENEMR_MISCONFIGURATION = "openemr_misconfiguration"
 
+# Demo / non-production auth bypass — only emitted when AGENT_DEMO_BYPASS=1 AND a
+# valid X-Agent-Demo-Role header short-circuits OpenEMR /api/user validation.
+# Operators MUST treat occurrences in production as a misconfiguration (PHI risk).
+DEMO_BYPASS_ACTIVE = "auth_demo_bypass"
+
 # Clinical safety review signal (labs vs vitals boundary, etc.)
 CATEGORY_BOUNDARY_REVIEW = "category_boundary_review"
