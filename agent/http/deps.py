@@ -66,20 +66,32 @@ def get_openemr_base_url(request: Request | None = None) -> str:
 async def resolve_agent_role(
     request: Request,
     authorization: Annotated[str | None, Header(alias="Authorization")] = None,
+    cookie: Annotated[str | None, Header(alias="Cookie")] = None,
 ) -> str:
     """
     Validate OpenEMR session via GET /api/user and map to PHYSICIAN|NURSE|ADMIN.
 
+    Accepts EITHER an ``Authorization`` header (Bearer/OAuth2) OR a ``Cookie``
+    header copied from a logged-in OpenEMR browser session (``OpenEMR=...;
+    PHPSESSID=...``). At least one must be non-blank; both may be sent together
+    and OpenEMR decides which to honor.
+
     Override this dependency in tests to exercise RBAC without a live OpenEMR.
     """
-    if not authorization or not authorization.strip():
-        raise HTTPException(status_code=401, detail="Missing Authorization header")
+    auth_value = authorization.strip() if authorization and authorization.strip() else None
+    cookie_value = cookie.strip() if cookie and cookie.strip() else None
+    if auth_value is None and cookie_value is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Missing Authorization or Cookie header",
+        )
     base = get_openemr_base_url(request)
     client = get_http_client(request)
     try:
         return await validate_session_and_resolve_role(
             base,
-            authorization_header_value=authorization.strip(),
+            authorization_header_value=auth_value,
+            cookie_header_value=cookie_value,
             client=client,
         )
     except OpenEMRAuthError as exc:

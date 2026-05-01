@@ -50,17 +50,34 @@ def map_openemr_payload_to_agent_role(payload: dict[str, Any]) -> str | None:
 async def fetch_openemr_user_json(
     openemr_base_url: str,
     *,
-    authorization_header_value: str,
+    authorization_header_value: str | None = None,
+    cookie_header_value: str | None = None,
     client: httpx.AsyncClient,
 ) -> dict[str, Any]:
     """
-    GET {base}/api/user with Authorization header (Bearer or session scheme as provided).
+    GET {base}/api/user with ``Authorization`` and/or ``Cookie`` forwarded.
 
-    Raises OpenEMRAuthError on non-200 or invalid JSON.
+    Either ``authorization_header_value`` (Bearer or session scheme) **or**
+    ``cookie_header_value`` (raw ``Cookie`` header from a logged-in OpenEMR
+    browser session) must be a non-blank string. If both are provided, both
+    are sent and OpenEMR decides which to honor.
+
+    Raises ``OpenEMRAuthError`` on missing credentials, non-200, or invalid JSON.
     """
+    auth_value = (authorization_header_value or "").strip()
+    cookie_value = (cookie_header_value or "").strip()
+    if not auth_value and not cookie_value:
+        raise OpenEMRAuthError(
+            "OpenEMR /api/user call requires Authorization or Cookie header",
+        )
+
     base = openemr_base_url.rstrip("/")
     url = f"{base}/api/user"
-    headers = {"Authorization": authorization_header_value}
+    headers: dict[str, str] = {}
+    if auth_value:
+        headers["Authorization"] = auth_value
+    if cookie_value:
+        headers["Cookie"] = cookie_value
     try:
         response = await client.get(url, headers=headers, timeout=30.0)
     except httpx.RequestError as exc:  # pragma: no cover - network
@@ -82,13 +99,19 @@ async def fetch_openemr_user_json(
 async def validate_session_and_resolve_role(
     openemr_base_url: str,
     *,
-    authorization_header_value: str,
+    authorization_header_value: str | None = None,
+    cookie_header_value: str | None = None,
     client: httpx.AsyncClient,
 ) -> str:
-    """Fetch /api/user and map to agent role; raises OpenEMRAuthError if denied."""
+    """Fetch /api/user and map to agent role; raises ``OpenEMRAuthError`` if denied.
+
+    Accepts ``Authorization`` only, ``Cookie`` only, or both. At least one must
+    be non-blank or ``OpenEMRAuthError`` is raised before any HTTP call.
+    """
     payload = await fetch_openemr_user_json(
         openemr_base_url,
         authorization_header_value=authorization_header_value,
+        cookie_header_value=cookie_header_value,
         client=client,
     )
     role = map_openemr_payload_to_agent_role(payload)

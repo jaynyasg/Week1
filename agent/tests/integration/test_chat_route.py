@@ -5,6 +5,7 @@ from __future__ import annotations
 import functools
 from typing import Annotated
 
+import pytest
 from fastapi import Header, Request
 from fastapi.testclient import TestClient
 
@@ -16,6 +17,7 @@ from agent.services.chat_turn import run_scaffold_chat_turn
 def _fake_physician(
     _request: Request,
     _authorization: Annotated[str | None, Header(alias="Authorization")] = None,
+    _cookie: Annotated[str | None, Header(alias="Cookie")] = None,
 ) -> str:
     return "PHYSICIAN"
 
@@ -31,6 +33,54 @@ def test_chat_missing_authorization_returns_401(app) -> None:
             },
         )
     assert r.status_code == 401
+    detail = str(r.json().get("detail", ""))
+    assert "Authorization" in detail and "Cookie" in detail
+
+
+def test_chat_cookie_only_auth_reaches_chat_path(
+    app, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A request with ONLY a Cookie header (no Authorization) flows through the real
+    ``resolve_agent_role`` guard and reaches the chat handler.
+
+    We monkeypatch ``validate_session_and_resolve_role`` (the upstream OpenEMR call) so
+    the guard's own header-presence check + Cookie forwarding is what actually runs."""
+    monkeypatch.setenv("OPENEMR_BASE_URL", "https://openemr.example.test")
+
+    captured: dict[str, object] = {}
+
+    async def _fake_validate(
+        _base: str,
+        *,
+        authorization_header_value: str | None = None,
+        cookie_header_value: str | None = None,
+        client,  # noqa: ARG001 - matches real signature
+    ) -> str:
+        captured["authorization"] = authorization_header_value
+        captured["cookie"] = cookie_header_value
+        return "PHYSICIAN"
+
+    monkeypatch.setattr(
+        "agent.http.deps.validate_session_and_resolve_role",
+        _fake_validate,
+    )
+
+    with TestClient(app) as client:
+        r = client.post(
+            "/agent/chat",
+            json={
+                "patient_id": "pat-1",
+                "user_message": "Cookie-only auth path.",
+                "messages": [],
+            },
+            headers={"Cookie": "OpenEMR=abc; PHPSESSID=xyz; token_main=tok"},
+        )
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert "assistant_message" in data
+    assert data["messages"][-1]["role"] == "assistant"
+    assert captured["authorization"] is None
+    assert captured["cookie"] == "OpenEMR=abc; PHPSESSID=xyz; token_main=tok"
 
 
 def _verify_always_fail(_state, _text):

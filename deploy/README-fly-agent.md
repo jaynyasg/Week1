@@ -98,7 +98,9 @@ curl -fsS https://clinical-agent-scaffold.fly.dev/agent/health
 # Expect JSON: {"status":"ok"}
 ```
 
-**Optional** — `POST /agent/chat` against a **real** OpenEMR session (copy `Authorization` from your browser’s network tab while logged into OpenEMR, same as local dev):
+**Optional** — `POST /agent/chat` against a **real** OpenEMR session. The agent accepts **either** an `Authorization` header **or** a `Cookie` header (or both) and forwards them to `{OPENEMR_BASE_URL}/api/user` to validate the session and resolve an RBAC role. At least one of the two must be present and non-blank, otherwise the request is rejected with **`401 Missing Authorization or Cookie header`**.
+
+OAuth2 / Bearer (copy `Authorization` from your browser’s network tab while logged into OpenEMR, same as local dev):
 
 ```bash
 curl -fsS -X POST "https://clinical-agent-scaffold.fly.dev/agent/chat" \
@@ -106,6 +108,26 @@ curl -fsS -X POST "https://clinical-agent-scaffold.fly.dev/agent/chat" \
   -H "Authorization: Bearer <paste-from-browser-openemr-request>" \
   -d "{\"patient_id\":\"1\",\"messages\":[],\"user_message\":\"Hello\"}"
 ```
+
+Cookie-based session (when your OpenEMR install only authenticates the UI with PHP session cookies — e.g. `OpenEMR=...; PHPSESSID=...; token_main=...`). Open DevTools → **Network** on a page in your logged-in OpenEMR, pick any request to your OpenEMR origin, and copy the **entire** `Cookie:` request header value into the curl below:
+
+```bash
+curl -fsS -X POST "https://clinical-agent-scaffold.fly.dev/agent/chat" \
+  -H "Content-Type: application/json" \
+  -H "Cookie: <paste-full-cookie-string-from-logged-in-openemr-request>" \
+  -d "{\"patient_id\":\"1\",\"messages\":[],\"user_message\":\"Hello\"}"
+```
+
+PowerShell variant (note the escaped quotes in `-d` and the single-line `-H "Cookie: ..."`):
+
+```powershell
+curl.exe -fsS -X POST "https://clinical-agent-scaffold.fly.dev/agent/chat" `
+  -H "Content-Type: application/json" `
+  -H "Cookie: <paste-full-cookie-string-from-logged-in-openemr-request>" `
+  -d '{\"patient_id\":\"1\",\"messages\":[],\"user_message\":\"Hello\"}'
+```
+
+> The cookie value never reaches Fly secrets and is **not logged** by the agent — it is forwarded **only** to `{OPENEMR_BASE_URL}/api/user` for the lifetime of the request.
 
 ### PowerShell (`scripts/smoke_agent_service.ps1`)
 
