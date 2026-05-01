@@ -1,6 +1,24 @@
 # Week1
 
+## Agent tests
 
+```bash
+python -m pytest agent/tests -q
+```
+
+### Optional: gated live OpenEMR E2E
+
+These checks call the real deployed OpenEMR (and optionally your deployed agent). They are **skipped by default**. Do not commit tokens; copy variables from [`.env.example`](.env.example) into a local `.env` (gitignored).
+
+| Variable | Purpose |
+| --- | --- |
+| `RUN_LIVE_OPENEMR_E2E=1` | Enable the gate (`RUN_LIVE_OPENEMR_TESTS=1` is an alias). |
+| `OPENEMR_BASE_URL` | Deployed OpenEMR base URL. |
+| `OPENEMR_AUTHORIZATION` | Full `Authorization` header value (e.g. `Bearer …`). |
+| `OPENEMR_BEARER_TOKEN` | Raw token; tests add `Bearer` if missing. |
+| `AGENT_BASE_URL` | Optional; if set, smoke `POST …/agent/chat` against a deployed agent. |
+
+Implementation: `agent/tests/integration/test_live_openemr_optional.py`.
 
 ## Getting started
 
