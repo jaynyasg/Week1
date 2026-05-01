@@ -24,6 +24,9 @@ OPENEMR_MISCONFIGURATION = "openemr_misconfiguration"
 # OpenEMR /api/user rejected the session, returned non-200, or role mapping failed.
 OPENEMR_AUTH_FAILURE = "openemr_auth_failure"
 
+# No Authorization header and no Cookie on a route that requires OpenEMR session context.
+CLIENT_MISSING_CREDENTIALS = "client_missing_credentials"
+
 # Demo / non-production auth bypass — only emitted when AGENT_DEMO_BYPASS=1 AND a
 # valid X-Agent-Demo-Role header short-circuits OpenEMR /api/user validation.
 # Operators MUST treat occurrences in production as a misconfiguration (PHI risk).

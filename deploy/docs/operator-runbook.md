@@ -41,7 +41,7 @@ Quick triage when something looks wrong. All commands assume Fly CLI and access 
 |------|---------|
 | `GET /agent/health` | Liveness |
 | `GET /agent/health/ready` | Config snapshot (`openemr_base_url_configured`) |
-| `GET /agent/metrics` | `clinical_agent_up` plus counters (`chat_turns_total`, `tool_refusals_total`, `verify_failures_total`, `rgv_degraded_total`, `category_boundary_flags_total`, `openemr_auth_failures_total`, `openemr_misconfiguration_total`) |
+| `GET /agent/metrics` | `clinical_agent_up` plus counters (`chat_turns_total`, `tool_refusals_total`, `verify_failures_total`, `rgv_degraded_total`, `category_boundary_flags_total`, `openemr_auth_failures_total`, `openemr_misconfiguration_total`, `client_missing_credentials_total`) |
 
 Optional smoke: `scripts/smoke_agent_optional.ps1` / `.sh` (see repo `Makefile` `smoke-help`).
 
@@ -56,6 +56,7 @@ Filter on **`agent_event`** lines and stable **`event`** / **`event_type`** valu
 | `verify_failure` / `rgv_verify_retry` / `rgv_degraded_unverified` | RGV path (check `why`, `fallback`, `duration_ms`). |
 | `openemr_auth_failure` | Session validation failed against `/api/user`. |
 | `openemr_misconfiguration` | e.g. missing `OPENEMR_BASE_URL` at dependency resolution. |
+| `client_missing_credentials` | Chat/tool request with neither `Authorization` nor `Cookie`. |
 | `category_boundary_review` | Synthetic dual-category signal in scaffold — treat as **review** in prod-like environments. |
 | `auth_demo_bypass` | Demo bypass path — should not appear on PHI hosts. |
 
@@ -66,3 +67,7 @@ fly logs --app <agent-app> 2>&1 | rg "openemr_auth_failure|X-Request-ID|agent_ev
 ```
 
 Adjust `rg` pattern to your triage; prefer log platform query syntax in production.
+
+### Metrics cardinality (Prometheus)
+
+Exported counters on **`/agent/metrics`** are **low-cardinality** integers (no per-patient or per-session labels). Do **not** add labels such as `patient_id`, raw URLs, or free-text error messages to Prometheus series — keep those dimensions in **structured logs** only. If you extend metrics later, prefer bounded labels (e.g. `reason_code` from a small enum) and document new series in this runbook.

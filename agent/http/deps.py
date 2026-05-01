@@ -14,12 +14,16 @@ from agent.access.openemr_auth import (
     validate_session_and_resolve_role,
 )
 from agent.observability.events import log_agent_event
+from agent.observability.metrics_counters import (
+    inc_client_missing_credentials,
+    inc_openemr_misconfiguration,
+)
 from agent.observability.taxonomy import (
+    CLIENT_MISSING_CREDENTIALS,
     DEMO_BYPASS_ACTIVE,
     OPENEMR_AUTH_FAILURE,
     OPENEMR_MISCONFIGURATION,
 )
-from agent.observability.metrics_counters import inc_openemr_misconfiguration
 from agent.services.chat_turn import run_scaffold_chat_turn
 
 _LOG = logging.getLogger(__name__)
@@ -134,6 +138,18 @@ async def resolve_agent_role(
     )
     cookie_value = cookie.strip() if cookie and cookie.strip() else None
     if auth_value is None and cookie_value is None:
+        cid = _client_request_id(request) or "none"
+        log_agent_event(
+            _LOG,
+            CLIENT_MISSING_CREDENTIALS,
+            what="http_request_missing_credentials",
+            why="no_authorization_and_no_cookie",
+            duration_ms=0.0,
+            fallback="none",
+            cost_envelope="unknown",
+            client_request_id=cid,
+        )
+        inc_client_missing_credentials()
         raise HTTPException(
             status_code=401,
             detail="Missing Authorization or Cookie header",

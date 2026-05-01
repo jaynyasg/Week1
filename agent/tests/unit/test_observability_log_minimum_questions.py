@@ -8,8 +8,9 @@ import pytest
 
 from agent.access.rbac import log_tool_refusal
 from agent.observability.events import LOG_EXTRA_EVENT_TYPE
-from agent.observability.taxonomy import VERIFY_FAILURE
+from agent.observability.taxonomy import CATEGORY_BOUNDARY_REVIEW, VERIFY_FAILURE
 from agent.runtime.rgv_pipeline import ClinicalTurnState, run_retrieve_generate_verify
+from agent.services.chat_turn import run_scaffold_chat_turn
 
 
 @pytest.fixture
@@ -72,3 +73,27 @@ def test_rgv_verify_failure_log_includes_minimum_operator_fields(
     assert getattr(r, "fallback") in ("retry_generate", "return_unverified")
     assert getattr(r, "cost_envelope") == "unknown"
     assert isinstance(getattr(r, "duration_ms", None), float)
+
+
+def test_category_boundary_review_log_includes_minimum_operator_fields(
+    caplog_structured: pytest.LogCaptureFixture,
+) -> None:
+    caplog_structured.set_level(logging.INFO)
+    _, _assistant = run_scaffold_chat_turn(
+        patient_id="p1",
+        user_role="PHYSICIAN",
+        session_id="s1",
+        messages=[],
+        user_message="dual_category_demo review signal",
+    )
+    hits = [
+        r
+        for r in caplog_structured.records
+        if getattr(r, LOG_EXTRA_EVENT_TYPE, None) == CATEGORY_BOUNDARY_REVIEW
+    ]
+    assert hits
+    r = hits[0]
+    assert getattr(r, "what") == "labs_and_vitals_context_same_turn"
+    assert getattr(r, "fallback") == "human_review_recommended"
+    assert getattr(r, "cost_envelope") == "unknown"
+    assert isinstance(getattr(r, "duration_ms", None), (int, float))

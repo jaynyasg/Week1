@@ -7,6 +7,7 @@ import pytest
 from agent.observability.metrics_counters import (
     inc_category_boundary,
     inc_chat_turn,
+    inc_client_missing_credentials,
     inc_openemr_auth_failure,
     inc_openemr_misconfiguration,
     inc_rgv_degraded,
@@ -35,6 +36,7 @@ def test_increment_and_snapshot() -> None:
     inc_category_boundary()
     inc_openemr_auth_failure()
     inc_openemr_misconfiguration()
+    inc_client_missing_credentials()
     s = snapshot()
     assert s["chat_turns_total"] == 2
     assert s["tool_refusals_total"] == 1
@@ -43,6 +45,7 @@ def test_increment_and_snapshot() -> None:
     assert s["category_boundary_flags_total"] == 1
     assert s["openemr_auth_failures_total"] == 1
     assert s["openemr_misconfiguration_total"] == 1
+    assert s["client_missing_credentials_total"] == 1
 
 
 def test_render_prometheus_includes_help_type_and_values() -> None:
@@ -58,6 +61,7 @@ def test_render_prometheus_includes_help_type_and_values() -> None:
         "category_boundary_flags_total",
         "openemr_auth_failures_total",
         "openemr_misconfiguration_total",
+        "client_missing_credentials_total",
     ):
         assert f"# TYPE {name} counter" in text
         assert f"{name} 0" in text

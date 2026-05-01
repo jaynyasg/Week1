@@ -12,6 +12,7 @@ ENV/
 
 # Test / lint caches
 .pytest_cache/
+junit.xml
 .ruff_cache/
 .mypy_cache/
 .coverage

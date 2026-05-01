@@ -18,6 +18,7 @@ _rgv_degraded_total: int = 0
 _category_boundary_flags_total: int = 0
 _openemr_auth_failures_total: int = 0
 _openemr_misconfiguration_total: int = 0
+_client_missing_credentials_total: int = 0
 
 
 def inc_chat_turn() -> None:
@@ -62,6 +63,12 @@ def inc_openemr_misconfiguration() -> None:
         _openemr_misconfiguration_total += 1
 
 
+def inc_client_missing_credentials() -> None:
+    global _client_missing_credentials_total
+    with _lock:
+        _client_missing_credentials_total += 1
+
+
 def snapshot() -> dict[str, int]:
     with _lock:
         return {
@@ -72,6 +79,7 @@ def snapshot() -> dict[str, int]:
             "category_boundary_flags_total": _category_boundary_flags_total,
             "openemr_auth_failures_total": _openemr_auth_failures_total,
             "openemr_misconfiguration_total": _openemr_misconfiguration_total,
+            "client_missing_credentials_total": _client_missing_credentials_total,
         }
 
 
@@ -88,6 +96,10 @@ _METRIC_META: Final[list[tuple[str, str]]] = [
     (
         "openemr_misconfiguration_total",
         "OpenEMR base URL / config misconfiguration signals.",
+    ),
+    (
+        "client_missing_credentials_total",
+        "Chat/tool requests with neither Authorization nor Cookie header.",
     ),
 ]
 
@@ -107,6 +119,7 @@ def reset_counters_for_testing() -> None:
     global _chat_turns_total, _tool_refusals_total, _verify_failures_total
     global _rgv_degraded_total, _category_boundary_flags_total
     global _openemr_auth_failures_total, _openemr_misconfiguration_total
+    global _client_missing_credentials_total
     with _lock:
         _chat_turns_total = 0
         _tool_refusals_total = 0
@@ -115,3 +128,4 @@ def reset_counters_for_testing() -> None:
         _category_boundary_flags_total = 0
         _openemr_auth_failures_total = 0
         _openemr_misconfiguration_total = 0
+        _client_missing_credentials_total = 0

@@ -27,4 +27,10 @@ npm audit
 | Agent image Python | `pip_audit -r deploy/requirements-agent.txt` | No known vulnerabilities reported | 2026-05-01 |
 | `chat-ui` | `npm audit` | 2 **moderate**: `esbuild` (via `vite`) — dev-server request issue ([GHSA-67mh-4wv8-2f99](https://github.com/advisories/GHSA-67mh-4wv8-2f99)). Fix path suggested by npm is a **breaking** Vite major upgrade. | 2026-05-01 |
 
+## CI (non-blocking)
+
+GitHub Actions **Agent tests** workflow includes **`pip-audit`** and **`npm audit`** jobs with **`continue-on-error: true`** so default merges are not blocked; review logs when those jobs warn.
+
+GitLab **dependency-audit** and **npm-audit-chat-ui** jobs use **`allow_failure: true`** for the same reason.
+
 **Note on the npm findings:** Production ships static assets built with `vite build`; the vulnerable code path is the **development** server. Treat as lower risk for deployed OpenEMR embeds that never expose `vite dev` to untrusted networks. Still plan a controlled Vite upgrade when feasible.

@@ -22,6 +22,8 @@ python -m ruff check agent
 
 Optional Git hooks: install with `pip install pre-commit && pre-commit install` to run `.pre-commit-config.yaml` (e.g. Ruff on `agent/`) before commit.
 
+Makefile shortcuts: `make pytest-fast` (excludes `@pytest.mark.eval`), `make openapi-check` (OpenAPI contract test). Maintainer placeholders: [`MAINTAINERS.md`](MAINTAINERS.md).
+
 Do not commit secrets. Keep credentials and environment-specific values in a local `.env` file (ignored by git), following `.env.example` where provided.
 
 When you edit planning documents, preserve existing requirement and ADR-style identifiers (for example `REQ-*`, `NFR-*`, `SAFE-*`). Do not silently rewrite or remove text that records a locked decision; note conflicts explicitly and update through the project’s governance path instead.

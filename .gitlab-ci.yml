@@ -16,7 +16,51 @@ test:
   script:
     - python -m ruff check agent
     - python -m ruff format --check agent
-    - python -m pytest agent/tests deploy/tests -q
+    - python -m pytest agent/tests deploy/tests -q --junitxml=junit.xml
+  artifacts:
+    when: always
+    reports:
+      junit: junit.xml
+    paths:
+      - junit.xml
+
+dependency-audit:
+  stage: test
+  image: python:3.12
+  allow_failure: true
+  timeout: 15m
+  before_script:
+    - pip install --upgrade pip
+    - pip install pip-audit
+  script:
+    - pip-audit -r requirements.txt
+    - pip-audit -r deploy/requirements-agent.txt
+
+npm-audit-chat-ui:
+  stage: test
+  image: node:20
+  allow_failure: true
+  timeout: 20m
+  script:
+    - cd chat-ui && npm ci && npm audit
+
+latency-gate:
+  stage: test
+  image: python:3.12
+  allow_failure: true
+  timeout: 15m
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - when: manual
+  variables:
+    RUN_LATENCY_GATE: "1"
+    OPENEMR_BASE_URL: "https://openemr.example.invalid"
+    AGENT_LATENCY_GATE_MS: "5000"
+  before_script:
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+  script:
+    - python -m pytest agent/tests/integration/test_latency_gate_optional.py -v --tb=short
 
 # -----------------------------------------------------------------------------
 # Optional: live OpenEMR E2E (real network; requires CI/CD variables — not default)
