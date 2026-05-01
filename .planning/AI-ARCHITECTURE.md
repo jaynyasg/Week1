@@ -81,7 +81,7 @@ Deployment and safety rows below reflect **completed** baseline linkage. The age
 ## Appendix Pre-Search Checklist Integration
 Each checklist area is treated as a design gate with explicit status tracking:
 
-1. **Domain Selection**: in-scope use cases and verification requirements defined in `USER.md` (persona + use cases) and the RBAC/tool matrix in `USERS.md`.
+1. **Domain Selection**: in-scope use cases, workflow grounding, and “why conversational agent” per use case in **`USERS.md` Part 1** (single source of truth); RBAC/tool matrix in **`USERS.md` Part 2**.
 2. **Scale and Performance**: latency targets, concurrency expectations, and cost limits tracked in roadmap phases 1 and 5.
 3. **Reliability Requirements**: wrong-answer impact and non-negotiable verification constraints documented in `AUDIT.md` and this file.
 4. **Team and Skill Constraints**: framework and operational choices constrained to delivery-safe complexity.

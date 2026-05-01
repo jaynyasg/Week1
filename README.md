@@ -24,7 +24,7 @@ Planning and contribution norms: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 | Deliverable | Location |
 | --- | --- |
-| User + use cases | [`USER.md`](USER.md) |
+| **Users / workflows / use cases (Stage 4, source of truth)** | [`USERS.md`](USERS.md) Part 1 ([`USER.md`](USER.md) is an alias) |
 | Architecture (+ executive summary) | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
 | Audit | [`AUDIT.md`](AUDIT.md) |
 | AI cost analysis (fill TBD spend) | [`AI-COST-ANALYSIS.md`](AI-COST-ANALYSIS.md) |
@@ -37,11 +37,11 @@ Planning and contribution norms: [CONTRIBUTING.md](CONTRIBUTING.md).
 curl -fsS https://clinical-agent-scaffold.fly.dev/agent/health
 ```
 
-Configure OpenEMR origin via `fly secrets` per [`deploy/README-fly-agent.md`](deploy/README-fly-agent.md). **Demo (3–5 min):** show OpenEMR session → chat panel → multi-turn follow-up → point to `verified` / `verification_notes` in JSON; mention fork vs scaffold boundaries from [`USER.md`](USER.md).
+Configure OpenEMR origin via `fly secrets` per [`deploy/README-fly-agent.md`](deploy/README-fly-agent.md). **Demo (3–5 min):** show OpenEMR session → chat panel → multi-turn follow-up → point to `verified` / `verification_notes` in JSON; tie narrative to use cases in [`USERS.md`](USERS.md) Part 1 and fork vs scaffold boundaries from [`.planning/ROADMAP.md`](.planning/ROADMAP.md).
 
 ### Documentation index
 
-- [`USER.md`](USER.md) — primary user + use cases (submission)
+- [`USERS.md`](USERS.md) — Stage 4: primary user, workflow, use cases + why conversational agent; Part 2 = RBAC
 - [`AI-COST-ANALYSIS.md`](AI-COST-ANALYSIS.md) — cost template (fill TBD)
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [.planning/ROADMAP.md](.planning/ROADMAP.md)
