@@ -12,8 +12,11 @@ test:
   before_script:
     - pip install --upgrade pip
     - pip install -r requirements.txt
+    - pip install ruff
   script:
-    - python -m pytest agent/tests -q
+    - python -m ruff check agent
+    - python -m ruff format --check agent
+    - python -m pytest agent/tests deploy/tests -q
 
 # -----------------------------------------------------------------------------
 # Optional: live OpenEMR E2E (real network; requires CI/CD variables — not default)
