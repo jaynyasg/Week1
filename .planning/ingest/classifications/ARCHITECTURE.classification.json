@@ -1,0 +1,20 @@
+{
+  "doc_path": "C:\\Users\\jayny\\OneDrive\\Documents\\GitLab\\Week1\\ARCHITECTURE.md",
+  "doc_type": "SPEC",
+  "title": "Clinical Co-Pilot — System Architecture",
+  "scope_summary": "This document defines the end-to-end technical architecture for the Clinical Co-Pilot system across browser, OpenEMR, agent microservice, external LLM, and testing infrastructure. It specifies runtime boundaries, service interactions, API routes, state flow, and verification/observability layers used in production. It also records concrete implementation decisions such as auth validation, RBAC-driven tool separation, session scoping, and graceful degradation behavior. Overall, it acts as a technical system specification rather than a product requirements or tutorial document.",
+  "cross_references": [
+    "PRD v1.1"
+  ],
+  "precedence_default": 3,
+  "key_decisions_or_requirements": [
+    "Deploy the AI agent as a separate FastAPI microservice in the same Docker network as OpenEMR.",
+    "Use FHIR R4 as primary clinical data access with REST fallback for unsupported resources.",
+    "Validate OpenEMR session tokens via /api/user instead of introducing a separate auth system.",
+    "Run a LangGraph retrieve-generate-verify loop with bounded retry for unverified responses.",
+    "Enforce role-based tool permissions, including distinct vitals and labs tool identities.",
+    "Bind AgentState to a single patient_id and reset on chart navigation to prevent context bleed.",
+    "Record incorrect-response feedback through POST /flag into Langfuse for auditability.",
+    "Degrade gracefully by showing an unavailable banner if the agent service is unreachable."
+  ]
+}

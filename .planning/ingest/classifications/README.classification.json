@@ -1,0 +1,16 @@
+{
+  "doc_path": "C:\\Users\\jayny\\OneDrive\\Documents\\GitLab\\Week1\\README.md",
+  "doc_type": "DOC",
+  "title": "Week1",
+  "scope_summary": "This document is a default GitLab project README template with starter onboarding guidance. It covers repository setup, adding files, collaboration workflows, integrations, and CI/CD deployment pointers. The latter half provides generic instructions for customizing a project README rather than defining product requirements or architecture decisions.",
+  "cross_references": [
+    "#editing-this-readme"
+  ],
+  "precedence_default": 1,
+  "key_decisions_or_requirements": [
+    "Initialize and push project files to the configured GitLab remote repository.",
+    "Set up project integrations, team collaboration settings, and merge request workflow.",
+    "Adopt GitLab CI/CD and related deployment/security features as part of project setup.",
+    "Replace template content with project-specific README documentation."
+  ]
+}

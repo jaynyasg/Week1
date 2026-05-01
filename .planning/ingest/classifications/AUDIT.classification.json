@@ -1,0 +1,25 @@
+{
+  "doc_path": "C:\\Users\\jayny\\OneDrive\\Documents\\GitLab\\Week1\\AUDIT.md",
+  "doc_type": "DOC",
+  "title": "Clinical Co-Pilot — System Audit (AUDIT.md)",
+  "scope_summary": "This document is a static system audit of the Clinical Co-Pilot planning artifacts, focused on consistency, risk, and readiness before implementation. It compares authoritative markdown sources with older Word exports, identifies contradictions, and assigns severities with remediation actions. The audit emphasizes security/RBAC alignment, tool-count consistency, performance/data-quality unknowns, and governance around source-of-truth documents.",
+  "cross_references": [
+    "AF/architecture.md",
+    "AF/PRD.md",
+    "AF/Tasks.md",
+    "users.md",
+    "Projects/AgentForge/Clinical_CoPilot_PRD.docx",
+    "Projects/AgentForge/Clinical_CoPilot_TaskList_v2.docx",
+    "docs/observability.md",
+    "ARCHITECTURE.md",
+    "USERS.md"
+  ],
+  "precedence_default": 1,
+  "key_decisions_or_requirements": [
+    "Treat AF/PRD.md v1.1 and AF/Tasks.md v2.1 as authoritative; treat Word PRD v1.0 and TaskList v2.0 as historical reference only.",
+    "Maintain an eight-tool patient context model with vitals/labs split, and avoid implementing seven-tool assumptions from older artifacts.",
+    "Enforce PRD Feature 8 RBAC matrix: PHYSICIAN has eight tools, NURSE has allowed subset including vitals but excluding labs/visit notes, ADMIN restricted to demographics/schedule.",
+    "Keep incorrect-response flagging as explicit POST /flag behavior with auditability and no regeneration side effects.",
+    "Resolve open risks before merge gates: FHIR latency vs 5-second target, Observation.category tagging reliability, and verify-node partial-failure policy."
+  ]
+}

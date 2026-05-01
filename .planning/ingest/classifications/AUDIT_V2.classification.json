@@ -1,0 +1,21 @@
+{
+  "doc_path": "C:\\Users\\jayny\\OneDrive\\Documents\\GitLab\\Week1\\AUDIT_V2.md",
+  "doc_type": "DOC",
+  "title": "Clinical Co-Pilot — Consolidated Audit Summary (AUDIT_V2.md)",
+  "scope_summary": "This document consolidates audit findings, RBAC user-role constraints, and architecture decisions for the Clinical Co-Pilot effort. It summarizes resolved and open risks, especially around RBAC enforcement, FHIR data tagging, latency validation, and source-document drift. It also traces PRD features to architectural anchors and task PRs to keep implementation aligned with audit outcomes.",
+  "cross_references": [
+    "AUDIT.md",
+    "USERS.md",
+    "ARCHITECTURE.md",
+    "users.md"
+  ],
+  "precedence_default": 1,
+  "key_decisions_or_requirements": [
+    "RBAC must be enforced at the agent retrieve layer, not only in the UI.",
+    "NURSE role remains a read-only subset and must be blocked from labs, visit notes, and problem list.",
+    "Refusals must explicitly name role and tool, log policy-safe metadata, and avoid side-channel leakage.",
+    "Agent design requires single-patient session scoping with reset on patient navigation changes.",
+    "Verification must be programmatic (grounding plus domain rules), not LLM-as-judge.",
+    "Critical open items include Observation category-tagging correctness, pre-visit summary latency proof, and Word/markdown source drift reconciliation."
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "doc_path": "C:\\Users\\jayny\\OneDrive\\Documents\\GitLab\\Week1\\deploy\\docs\\deployment.md",
+  "doc_type": "ADR",
+  "title": "Deployment — Clinical Co-Pilot on Fly.io",
+  "scope_summary": "This document records the deployment platform decision for the Clinical Co-Pilot MVP and serves as the operational runbook. It compares Fly.io against Railway and AWS EC2, then selects Fly.io primarily for private internal networking and avoiding cold starts for persistent services. It defines the two-app architecture, secret handling, deploy and verification workflow, and troubleshooting procedures. It also documents explicit operational limits and compliance boundaries for demo-only data.",
+  "cross_references": [
+    "tests/integration/test_deployment.py",
+    "scripts/deploy_fly.sh",
+    "ARCHITECTURE.md",
+    "fly.db.toml"
+  ],
+  "precedence_default": 4,
+  "key_decisions_or_requirements": [
+    "Use Fly.io as the deployment platform over Railway, AWS EC2, Render, and Heroku.",
+    "Deploy OpenEMR and MariaDB as two separate Fly apps connected only via private .internal networking.",
+    "Keep MariaDB off the public internet; no public service block is allowed for the DB app.",
+    "Store deployment secrets in Fly secret storage and avoid committing secrets to repository files.",
+    "Run integration tests in tests/integration/test_deployment.py and require all seven checks to pass after deployment.",
+    "Treat the environment as demo-only and prohibit real PHI due to missing HIPAA BAA."
+  ]
+}

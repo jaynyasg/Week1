@@ -1,0 +1,28 @@
+{
+  "doc_path": "C:\\Users\\jayny\\OneDrive\\Documents\\GitLab\\Week1\\deploy\\INSTALL.md",
+  "doc_type": "DOC",
+  "title": "Fly.io Deployment Pack — Clinical Co-Pilot (PR-02)",
+  "scope_summary": "This document is an operational deployment guide for shipping Clinical Co-Pilot (OpenEMR) to Fly.io using a two-app topology. It maps packaged files into target repository locations and provides one-shot setup, deploy, verification, and teardown commands. It also explains key architecture and security rationale, including private-only MariaDB exposure and app separation. The guide records post-deploy checks and known limitations for MVP operations.",
+  "cross_references": [
+    "docker-compose.prod.yml",
+    "fly.toml",
+    "fly.db.toml",
+    "Dockerfile.fly",
+    ".env.example",
+    "scripts/deploy_fly.sh",
+    "docs/deployment.md",
+    "tests/integration/test_deployment.py",
+    "README_section.md",
+    "README.md",
+    "ARCHITECTURE.md",
+    "scripts/seed_demo_data.sh"
+  ],
+  "precedence_default": 1,
+  "key_decisions_or_requirements": [
+    "Deploy with two Fly apps: `clinical-copilot` for OpenEMR and `clinical-copilot-db` for MariaDB.",
+    "Keep MariaDB private by omitting a public service block and using `clinical-copilot-db.internal:3306` over Fly private networking.",
+    "Create and attach persistent volumes separately for app data (`openemr_sites`) and database data (`mariadb_data`).",
+    "Provision database app first, then application app, and inject DB credentials into the OpenEMR app via Fly secrets.",
+    "Run post-deploy smoke tests with `tests/integration/test_deployment.py` and update `README.md` with the live deployed URL."
+  ]
+}

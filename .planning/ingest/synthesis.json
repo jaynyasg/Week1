@@ -1,0 +1,217 @@
+{
+  "generated_at": "2026-04-30",
+  "mode": "merge",
+  "precedence_order": [
+    "ADR",
+    "SPEC",
+    "PRD",
+    "DOC"
+  ],
+  "doc_counts": {
+    "ADR": 1,
+    "SPEC": 2,
+    "PRD": 1,
+    "DOC": 5,
+    "UNKNOWN": 0,
+    "total": 9
+  },
+  "cross_reference_analysis": {
+    "max_traversal_depth": 50,
+    "cycles_detected": 0,
+    "cycle_blockers": [],
+    "notes": [
+      "Cross-reference edges were created only for references that resolve to ingested documents.",
+      "No ingest-set reference cycles were detected."
+    ]
+  },
+  "decisions": [
+    {
+      "id": "DEC-deploy-fly-io",
+      "type": "ADR",
+      "locked": false,
+      "scope": "deployment-platform",
+      "statement": "Use Fly.io as the deployment platform for Clinical Co-Pilot.",
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/deploy/docs/deployment.md"
+    },
+    {
+      "id": "DEC-two-app-private-topology",
+      "type": "ADR",
+      "locked": false,
+      "scope": "deployment-topology",
+      "statement": "Deploy OpenEMR and MariaDB as two separate Fly apps connected over private .internal networking.",
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/deploy/docs/deployment.md"
+    },
+    {
+      "id": "DEC-no-public-db-service",
+      "type": "ADR",
+      "locked": false,
+      "scope": "security-networking",
+      "statement": "MariaDB must not expose a public service block and must remain private to Fly 6PN.",
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/deploy/docs/deployment.md"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-rbac-boundaries",
+      "scope": "authorization-and-access-control",
+      "description": "Enforce role-based access boundaries for all agent access in multi-user healthcare environments.",
+      "acceptance_criteria": [
+        "Requesting role is identified before agent tool access.",
+        "Role constraints are enforced at runtime for every request.",
+        "Multi-user operation is treated as baseline behavior, not an edge case."
+      ],
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/PRD-AgentForge-Clinical-CoPilot-Requirements.md"
+    },
+    {
+      "id": "REQ-verifiable-outputs",
+      "scope": "verification-and-trust",
+      "description": "Agent responses must be traceable to patient-record evidence and validated by explicit domain constraints before display.",
+      "acceptance_criteria": [
+        "Factual claims include source attribution to patient data.",
+        "Domain constraints run before output is returned.",
+        "Verification limits are documented for review."
+      ],
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/PRD-AgentForge-Clinical-CoPilot-Requirements.md"
+    },
+    {
+      "id": "REQ-clinical-time-responses",
+      "scope": "speed-vs-completeness",
+      "description": "Deliver clinically useful responses in seconds and explicitly document latency/completeness tradeoffs.",
+      "acceptance_criteria": [
+        "Response behavior is optimized for clinical-time use.",
+        "Tradeoffs between latency, tool breadth, and completeness are documented."
+      ],
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/PRD-AgentForge-Clinical-CoPilot-Requirements.md"
+    },
+    {
+      "id": "REQ-phi-hipaa-posture",
+      "scope": "security-compliance",
+      "description": "PHI/HIPAA constraints must govern storage, transmission, logging, and access control; demo-only restrictions remain until production controls are in place.",
+      "acceptance_criteria": [
+        "PHI handling requirements are explicitly reflected in architecture and operations.",
+        "Demo-data-only constraint is maintained unless production agreements and controls are established."
+      ],
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/PRD-AgentForge-Clinical-CoPilot-Requirements.md"
+    },
+    {
+      "id": "REQ-graceful-degradation",
+      "scope": "failure-handling",
+      "description": "Tool failures, incomplete records, and model anomalies must degrade explicitly and safely; silent failure is disallowed.",
+      "acceptance_criteria": [
+        "Failure classes have predictable handling behavior.",
+        "User-visible fallback behavior is explicit and safe.",
+        "Silent failure paths are not allowed."
+      ],
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/PRD-AgentForge-Clinical-CoPilot-Requirements.md"
+    },
+    {
+      "id": "REQ-mvp-foundation-gates",
+      "scope": "delivery-gates",
+      "description": "MVP foundation requires local OpenEMR runtime, public deployment, and canonical AUDIT/USERS/ARCHITECTURE artifacts.",
+      "acceptance_criteria": [
+        "Local OpenEMR runtime with sample data is available.",
+        "Public deployment is completed.",
+        "AUDIT.md, USERS.md, and ARCHITECTURE.md are present and complete."
+      ],
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/PRD-AgentForge-Clinical-CoPilot-Requirements.md"
+    },
+    {
+      "id": "REQ-observability-and-eval",
+      "scope": "observability-and-evaluation",
+      "description": "Observability and evaluation must cover happy paths, failures, regressions, and unauthorized-access attempts.",
+      "acceptance_criteria": [
+        "Telemetry supports timing, failure, and cost/root-cause analysis.",
+        "Evaluation suite includes positive and failure-mode coverage.",
+        "Unauthorized-access attempts are included in evaluation coverage."
+      ],
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/PRD-AgentForge-Clinical-CoPilot-Requirements.md"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "CONSTRAINT-agent-microservice-boundary",
+      "type": "protocol",
+      "content": "Deploy the AI agent as an independent FastAPI microservice in the same network as OpenEMR, not embedded in PHP runtime.",
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/ARCHITECTURE.md"
+    },
+    {
+      "id": "CONSTRAINT-auth-validation",
+      "type": "api-contract",
+      "content": "Agent auth must validate incoming OpenEMR token against OpenEMR /api/user endpoint.",
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/ARCHITECTURE.md"
+    },
+    {
+      "id": "CONSTRAINT-rag-workflow",
+      "type": "nfr",
+      "content": "LangGraph flow must perform retrieve -> generate -> verify with bounded retry and graceful degradation.",
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/ARCHITECTURE.md"
+    },
+    {
+      "id": "CONSTRAINT-rbac-enforcement-layer",
+      "type": "protocol",
+      "content": "Role boundaries are enforced in agent tool dispatch (rbac.py), not by UI gating alone.",
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/USERS.md"
+    },
+    {
+      "id": "CONSTRAINT-rbac-tool-matrix",
+      "type": "api-contract",
+      "content": "PHYSICIAN has eight tools; NURSE has demographics, medications, vitals, allergies, schedule; ADMIN has demographics and schedule only.",
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/USERS.md"
+    },
+    {
+      "id": "CONSTRAINT-refusal-behavior",
+      "type": "nfr",
+      "content": "Denied tool usage must return explicit role + tool refusal and policy-safe denial logs, without side-channel data leakage.",
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/USERS.md"
+    }
+  ],
+  "context_topics": [
+    {
+      "topic": "Audit authority and governance",
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/AUDIT.md"
+    },
+    {
+      "topic": "RBAC risk posture",
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/AUDIT.md"
+    },
+    {
+      "topic": "Consolidated audit snapshot",
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/AUDIT_V2.md"
+    },
+    {
+      "topic": "Deployment runbook summary",
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/deploy/INSTALL.md"
+    },
+    {
+      "topic": "README deployment excerpt",
+      "source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/deploy/README_section.md"
+    }
+  ],
+  "conflicts": {
+    "auto_resolved": [
+      {
+        "id": "AUTO-adr-over-spec-deploy-target",
+        "winner_source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/deploy/docs/deployment.md",
+        "superseded_source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/ARCHITECTURE.md",
+        "reason": "ADR > SPEC precedence for concrete deployment platform selection."
+      },
+      {
+        "id": "AUTO-adr-over-doc-deploy-guidance",
+        "winner_source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/deploy/docs/deployment.md",
+        "superseded_source": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/README.md",
+        "reason": "ADR > DOC precedence for deployment guidance."
+      }
+    ],
+    "competing_variants": [],
+    "unresolved_blockers": []
+  },
+  "blocker_present": false,
+  "status": "READY",
+  "outputs": {
+    "decisions": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/.planning/intel/decisions.md",
+    "requirements": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/.planning/intel/requirements.md",
+    "constraints": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/.planning/intel/constraints.md",
+    "context": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/.planning/intel/context.md",
+    "conflicts_report": "C:/Users/jayny/OneDrive/Documents/GitLab/Week1/.planning/INGEST-CONFLICTS.md"
+  }
+}

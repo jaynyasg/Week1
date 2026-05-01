@@ -1,0 +1,18 @@
+{
+  "doc_path": "C:\\Users\\jayny\\OneDrive\\Documents\\GitLab\\Week1\\deploy\\README_section.md",
+  "doc_type": "DOC",
+  "title": "Deployment",
+  "scope_summary": "This document provides a README deployment section for running the project on Fly.io with separate OpenEMR and MariaDB apps. It explains how to deploy using the scripted workflow, what setup is performed automatically, and expected provisioning timing. It also defines the verification command and requires all deployment smoke tests to pass before checkpoint submission. For deeper architecture and troubleshooting guidance, it points readers to the full deployment reference.",
+  "cross_references": [
+    "scripts/deploy_fly.sh",
+    "tests/integration/test_deployment.py",
+    "docs/deployment.md"
+  ],
+  "precedence_default": 1,
+  "key_decisions_or_requirements": [
+    "Deploy as two Fly.io apps: a public OpenEMR app and a private MariaDB app on Fly 6PN.",
+    "Use bash scripts/deploy_fly.sh as the idempotent deployment workflow.",
+    "Replace {{DEPLOYED_URL}} with the actual deployed Fly URL.",
+    "Run tests/integration/test_deployment.py and ensure all seven smoke tests pass before any checkpoint is submitted."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "doc_path": "C:\\Users\\jayny\\OneDrive\\Documents\\GitLab\\Week1\\USERS.md",
+  "doc_type": "SPEC",
+  "title": "RBAC — Agent tool access (`rbac.py`)",
+  "scope_summary": "This document specifies role-based access control behavior for the agent-layer patient-context tools, aligned to PRD Feature 8. It defines the eight tools, a role-to-tool permission matrix for PHYSICIAN, NURSE, and ADMIN, and mandatory refusal behavior when access is denied. It also establishes the ADMIN boundary as non-physician clinical access and requires deny-path observability logging without data leakage.",
+  "cross_references": [
+    "AF/PRD.md",
+    "AF/architecture.md",
+    "rbac.py"
+  ],
+  "precedence_default": 3,
+  "key_decisions_or_requirements": [
+    "Enforce RBAC at the agent layer; role boundaries must not rely on UI controls.",
+    "Treat ADMIN access narrowly for the agent: allow only demographics and schedule, deny clinical tools.",
+    "Allow NURSE access only to demographics, medications, vitals, allergies, and schedule.",
+    "Deny NURSE access to problem_list, labs, and visit_notes, including equivalent composite flows.",
+    "On deny, return an explicit refusal naming role and blocked tool, and log the denial per observability policy.",
+    "Unknown or unmapped roles must be denied by default."
+  ]
+}

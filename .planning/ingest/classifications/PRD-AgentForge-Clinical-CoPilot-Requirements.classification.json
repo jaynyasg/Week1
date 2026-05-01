@@ -1,0 +1,22 @@
+{
+  "doc_path": "C:\\Users\\jayny\\OneDrive\\Documents\\GitLab\\Week1\\PRD-AgentForge-Clinical-CoPilot-Requirements.md",
+  "doc_type": "PRD",
+  "title": "AgentForge Clinical Co-Pilot Requirements (Ingested from PDF)",
+  "scope_summary": "Defines product requirements and delivery gates for a production-ready OpenEMR Clinical Co-Pilot with role-safe access, verifiable outputs, security compliance, and clinical-speed responses.",
+  "cross_references": [
+    "Week 1 - AgentForge.pdf",
+    "AUDIT.md",
+    "USERS.md",
+    "ARCHITECTURE.md"
+  ],
+  "precedence_default": 2,
+  "key_decisions_or_requirements": [
+    "Enforce role-based access boundaries in multi-user healthcare environments.",
+    "Require traceable source attribution and domain constraint checks before responses are shown.",
+    "Optimize architecture for clinical-time responses while explicitly documenting speed/completeness tradeoffs.",
+    "Apply PHI/HIPAA constraints across storage, transmission, logging, and access control.",
+    "Implement explicit, safe degradation for tool failures and incomplete records.",
+    "Complete MVP foundation gates: local and public OpenEMR deployment plus AUDIT.md, USERS.md, and ARCHITECTURE.md artifacts.",
+    "Provide observability and evaluation coverage for happy paths, failures, regressions, and unauthorized-access attempts."
+  ]
+}
