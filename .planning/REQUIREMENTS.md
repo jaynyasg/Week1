@@ -72,13 +72,13 @@ V1 requirements are derived from `.planning/ingest/synthesis.json` with ADR/SPEC
 | REQ-delivery-foundation-gates | Phase 1 | Completed (evidence-based) |
 | REQ-ai-integration-plan | Phase 1 | Completed (evidence-based) |
 | REQ-ai-architecture-file | Phase 1 | Completed (evidence-based) |
-| REQ-openemr-session-validation | Phase 2 | Pending |
-| REQ-rbac-agent-layer | Phase 2 | Pending |
-| REQ-rbac-tool-matrix | Phase 2 | Pending |
-| REQ-rbac-deny-path | Phase 2 | Pending |
-| REQ-retrieve-generate-verify-loop | Phase 3 | Pending |
-| REQ-multi-turn-usecase-behavior | Phase 3 | Pending |
-| REQ-verification-layer-contracts | Phase 3 | Pending |
+| REQ-openemr-session-validation | Phase 2 | Completed (evidence-based) |
+| REQ-rbac-agent-layer | Phase 2 | Completed (evidence-based) |
+| REQ-rbac-tool-matrix | Phase 2 | Completed (evidence-based) |
+| REQ-rbac-deny-path | Phase 2 | Completed (evidence-based) |
+| REQ-retrieve-generate-verify-loop | Phase 3 | Completed (scaffold + unit tests) |
+| REQ-multi-turn-usecase-behavior | Phase 3 | Completed (scaffold + unit tests) |
+| REQ-verification-layer-contracts | Phase 3 | Completed (injectable verify + notes; scaffold) |
 | REQ-agent-requirements-coverage | Phase 3 | Pending |
 | REQ-presearch-checklist-coverage | Phase 5 | Pending |
 | NFR-private-network-topology | Phase 1 | Completed (evidence-based) |

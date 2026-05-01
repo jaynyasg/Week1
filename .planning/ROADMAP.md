@@ -2,7 +2,7 @@
 
 ## Phases
 - [x] **Phase 1: Deployment Baseline Hardening** - Lock topology, delivery gates, and private DB posture with smoke validation.
-- [ ] **Phase 2: RBAC Enforcement and Test Matrix** - Enforce role-safe tool access at agent runtime.
+- [x] **Phase 2: RBAC Enforcement and Test Matrix** - Enforce role-safe tool access at agent runtime.
 - [ ] **Phase 3: Retrieve-Generate-Verify Runtime Flow** - Ship bounded retry, multi-turn behavior, and explicit verification contracts.
 - [ ] **Phase 4: Observability and Clinical Safety Flagging** - Make denials/failures/quality risks visible and actionable.
 - [ ] **Phase 5: Evaluation and Performance Validation** - Prove latency, unauthorized-access resilience, and cost gates.
@@ -21,7 +21,7 @@
   4. MVP delivery gates are met: local OpenEMR runtime with sample data, public deployment readiness, and canonical `AUDIT.md`/`USERS.md`/`ARCHITECTURE.md` availability.
   5. `.planning/AI-ARCHITECTURE.md` exists and defines implementation intent, trust boundaries, and deployment constraints for the AI layer.
   6. Deployment documentation and runtime warnings clearly indicate demo-only data boundaries.
-**Plans**: TBD
+**Plans**: `.planning/plans/phase-1-ai-integration-plan.md`
 
 ### Phase 2: RBAC Enforcement and Test Matrix
 **Goal**: Access control is enforced at agent execution time for every tool call.
@@ -45,7 +45,7 @@
   4. AI architecture explicitly maps Agentic Chatbot, Verification System, Observability, and Evaluation into executable runtime contracts.
   5. Retry behavior is bounded and terminates deterministically without infinite loops.
   6. Verification failures trigger graceful degradation paths instead of unsafe silent success.
-**Plans**: TBD
+**Plans**: `.planning/plans/phase-3-retrieve-generate-verify-plan.md`
 
 ### Phase 4: Observability and Clinical Safety Flagging
 **Goal**: Operational and safety-critical events are observable, queryable, and alertable.
@@ -86,8 +86,8 @@
 | Phase | Plans Complete | Status | Completed |
 |---|---|---|---|
 | 1. Deployment Baseline Hardening | 1/1 | Completed | 2026-04-30 (EMR evidence + AI integration plan finalized) |
-| 2. RBAC Enforcement and Test Matrix | 1/1 | In progress | Planned 2026-04-30 |
-| 3. Retrieve-Generate-Verify Runtime Flow | 0/1 | Not started | - |
+| 2. RBAC Enforcement and Test Matrix | 1/1 | Completed | 2026-04-30 (pytest + optional live OpenEMR) |
+| 3. Retrieve-Generate-Verify Runtime Flow | 1/1 | In progress | RGV scaffold + tests in repo |
 | 4. Observability and Clinical Safety Flagging | 0/1 | Not started | - |
 | 5. Evaluation and Performance Validation | 0/1 | Not started | - |
 | 6. Documentation Governance Cleanup | 0/1 | Not started | - |
