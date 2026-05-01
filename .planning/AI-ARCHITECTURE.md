@@ -66,7 +66,9 @@ This file is the AI integration plan and implementation-intent architecture for 
 | `REQ-agent-requirements-coverage` | PRD Agent Requirements Coverage (sections 1–4): PRD **design and contract** mapping; in-repo **scaffold + tests** only for RGV/chat | **Partial** — **not met (runtime)** for full PRD tool+LLM+verify path and record-backed attribution; remainder **OpenEMR fork** (Phase 3 gap table, 2026-04-30) |
 | `REQ-presearch-checklist-coverage` | Appendix Pre-Search Checklist Integration (items 1-16) | Satisfied (explicit checklist gates in this doc); item-level **execution** (eval harness, telemetry, production verification) is phased in roadmap Phases 4–5 |
 
-## Evidence Linkage (Previously Completed Deployment/Safety Controls)
+## Evidence Linkage (Deployment, Safety, and Agent Evidence)
+
+Deployment and safety rows below reflect **completed** baseline linkage. The agent row reflects **Partial** in-repo **scaffold + doc** evidence and **fork** ownership for full PRD runtime (Phase 3 gap review, 2026-04-30).
 
 | Requirement ID | Evidence Source(s) | Status |
 |---|---|---|
