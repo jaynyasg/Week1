@@ -17,6 +17,9 @@ Eliminate **markdown-vs-Word drift** by making **`.planning/` markdown** the sin
 4. **Traceability IDs** — Require stable IDs on ADR/SPEC/decision blocks; define how merges and edits preserve IDs and change history (no silent overwrite of locked decisions).
 5. **Review checkpoint** — Lightweight checklist: canonical statement present, inventory closed or explicitly deferred with rationale, traceability spot-check on recent edits.
 
+## Governance — Fly.io deployables
+- **Two Fly deployables** (OpenEMR stack vs. agent service) must stay **clearly named in documentation** so operators never conflate apps: use **`fly.toml`** for the primary OpenEMR deployable and **`fly.agent.toml`** for the agent deployable. When documenting deploy flows, paths, or CI, **cross-link** the global note in **`.planning/ROADMAP.md`** and **`deploy/README-fly-agent.md`** so readers always land on the correct manifest and runbook.
+
 ## Exit Criteria (requirement IDs)
 | ID | Done when |
 |----|-------------|

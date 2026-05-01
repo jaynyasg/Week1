@@ -37,7 +37,7 @@ Bootstrap executable planning artifacts from synthesized ingest for immediate ph
 - CI: `.github/workflows/agent-tests.yml`, `.gitlab-ci.yml`
 
 ## Agent deploy (Fly)
-- Manual deploy: `.github/workflows/fly-agent-manual.yml` (`workflow_dispatch`), config `fly.agent.toml`, runbook `deploy/README-fly-agent.md`.
+- Manual deploy: `.github/workflows/fly-agent-manual.yml` (`workflow_dispatch`; repo secret `FLY_API_TOKEN`), config `fly.agent.toml`, runbook `deploy/README-fly-agent.md`.
 
 ## Fork / workable deployment checklist
 

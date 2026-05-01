@@ -14,6 +14,7 @@ V1 requirements are derived from `.planning/ingest/synthesis.json` with ADR/SPEC
 - **Docs**: `README.md` — section **Agent tests** (command + optional live OpenEMR notes).
 - **Recorded run (2026-04-30, local)**: `python -m pytest agent/tests -q` → **71 passed, 4 skipped** in ~2.4s.
 - **Fly.io scaffold agent** smoke — `GET /agent/health`; optional `POST /agent/chat` with a real OpenEMR `Authorization` header when exercising live paths. Repo: `Dockerfile.agent`, `fly.agent.toml`, `deploy/README-fly-agent.md`, `scripts/smoke_agent_service.ps1`; deploy with `fly deploy --config fly.agent.toml`. **No secrets** in verification notes, docs, or command examples.
+- **Optional CI/manual deploy (Fly agent)**: `.github/workflows/fly-agent-manual.yml` — `workflow_dispatch`, GitHub Actions secret `FLY_API_TOKEN`, and `fly deploy --config fly.agent.toml`. This path is **optional** convenience only and **does not replace** local `fly deploy` plus smoke checks.
 
 ## Functional Requirements (V1)
 - `REQ-deployment-smoke-suite`: All seven deployment smoke tests pass after each deploy before checkpoint submission.

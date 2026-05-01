@@ -39,6 +39,7 @@ Prove **latency**, **unauthorized-access resilience**, **cost envelopes**, **Pre
 - **Live OpenEMR (gated, optional):** `agent/tests/integration/test_live_openemr_optional.py` — enabled when `RUN_LIVE_OPENEMR_E2E` or `RUN_LIVE_OPENEMR_TESTS` is set (and related auth env); not required for default CI runs.
 - **CI — GitHub Actions:** `.github/workflows/agent-tests.yml` runs `python -m pytest agent/tests -q` (see workflow `pytest` job).
 - **CI — GitLab:** `.gitlab-ci.yml` runs `python -m pytest agent/tests -q` in the test job (live OpenEMR job commented with pointer to the optional test file).
+- **Post-deploy smoke (minimal release gate):** In the evaluation story, treat post-deploy smoke—`/agent/health` plus optional `/agent/chat` exercised with real auth—as a minimal release gate after ship; scripts `scripts/smoke_agent_service.ps1` and `scripts/smoke_agent_service.sh`, with operator notes in `deploy/README-fly-agent.md`.
 
 ### Pytest snapshot (repo state, not Phase 5 completion)
 - Command: `python -m pytest agent/tests -q`

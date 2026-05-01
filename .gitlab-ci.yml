@@ -6,6 +6,8 @@ variables:
 
 test:
   stage: test
+  # Cap job duration so stuck pytest cannot run unbounded on shared runners.
+  timeout: 20m
   image: python:3.12
   before_script:
     - pip install --upgrade pip

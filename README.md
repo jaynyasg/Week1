@@ -28,6 +28,10 @@ Implementation: [`agent/tests/integration/test_live_openemr_optional.py`](agent/
 
 Full steps and context: [`deploy/README-fly-agent.md`](deploy/README-fly-agent.md). This app uses [`fly.agent.toml`](fly.agent.toml) and [`Dockerfile.agent`](Dockerfile.agent).
 
+For **502/500** responses or **auth** problems, see [Troubleshooting](deploy/README-fly-agent.md#troubleshooting) in that guide.
+
+Optional `workflow_dispatch` deploy: [`.github/workflows/fly-agent-manual.yml`](.github/workflows/fly-agent-manual.yml) (repo secret `FLY_API_TOKEN`); concurrency queues overlapping runs.
+
 ```bash
 fly deploy --config fly.agent.toml
 fly secrets set OPENEMR_BASE_URL=https://your-openemr.example/

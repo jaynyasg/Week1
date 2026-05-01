@@ -38,5 +38,6 @@ Make **RBAC denials**, **verification failures**, **fallbacks**, and **category-
 - `agent/access/rbac.py` — `log_tool_refusal()`; `agent/http/app.py` invokes it on `ToolRefusal`. Integration coverage in `agent/tests/integration/test_http_logging_observability.py` asserts RBAC-denied tool posts log `tool_refusal` with the same structured `event` / `event_type` extras used for `log_agent_event` on chat (parity with chat-turn logging checks in that file).
 - `agent/tests/unit/test_events.py` — unit tests for `AgentEvent` and `log_agent_event`.
 - `agent/tests/integration/test_http_logging_observability.py` — HTTP-level checks for chat `agent_event` fields and RBAC `tool_refusal` fields.
+- `.github/workflows/fly-agent-manual.yml` — GitHub **fly-agent-manual** workflow provides an **audit trail** in Actions logs (who/when a deploy ran); Phase 4 should later correlate deploy events with app logs (fork).
 
 **Test run (repo state only; not a claim Phase 4 is executed):** `python -m pytest agent/tests -q` → **71 passed, 4 skipped** (local run).

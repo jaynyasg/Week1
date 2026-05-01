@@ -27,6 +27,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 45 # Cap job runtime so a stuck flyctl deploy cannot burn Actions minutes indefinitely.
     steps:
       - uses: actions/checkout@v4
 

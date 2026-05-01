@@ -56,6 +56,14 @@ fly deploy --config fly.agent.toml --app clinical-agent-scaffold
 
 Ensure `fly.agent.toml` has the same `app = "clinical-agent-scaffold"` or always pass `--app`.
 
+## GitHub Actions
+
+A manual deploy workflow lives at [`.github/workflows/fly-agent-manual.yml`](../.github/workflows/fly-agent-manual.yml). It is triggered only by [`workflow_dispatch`](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#workflow_dispatch) (GitHub **Actions** → **Fly agent (manual deploy)** → **Run workflow**).
+
+Add a repository secret named **`FLY_API_TOKEN`** (repository **Settings** → **Secrets and variables** → **Actions**). Create a deploy-scoped token with Fly’s CLI or dashboard; see Fly’s **[Access tokens / deploy tokens](https://fly.io/docs/reference/deploy-tokens/)** and the [`fly tokens create deploy`](https://fly.io/docs/flyctl/tokens-create-deploy/) reference. Do not commit token values or paste them into the workflow file.
+
+The workflow uses **`concurrency`** with a single group so overlapping manual runs **queue** instead of canceling each other (`cancel-in-progress: false`), which avoids interrupting an in-flight deploy when another run is started.
+
 ## Secrets
 
 ```bash

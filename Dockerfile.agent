@@ -6,6 +6,11 @@
 
 FROM python:3.12-slim
 
+# Replace org.opencontainers.image.source when you know the canonical repo URL.
+LABEL org.opencontainers.image.title="Clinical Co-Pilot FastAPI agent" \
+    org.opencontainers.image.description="Minimal production image for the Clinical Co-Pilot FastAPI agent (scaffold); Uvicorn loads create_app() with PYTHONPATH=/app." \
+    org.opencontainers.image.source="unknown"
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*

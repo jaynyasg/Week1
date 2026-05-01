@@ -15,9 +15,14 @@ one of:
 
 ``RUN_LIVE_OPENEMR_TESTS=1`` is still accepted as an alias for the gate flag.
 
-Optional deployed agent smoke (``POST /agent/chat`` via httpx, not TestClient):
+Optional **``AGENT_BASE_URL``** remote chat smoke (``POST /agent/chat`` via httpx, not
+TestClient):
   AGENT_BASE_URL=https://your-agent-host.example   # trailing slash optional
   (same OpenEMR auth header as above — chat depends on ``resolve_agent_role``)
+
+For CI-triggered deploys of the agent image, see **``.github/workflows/fly-agent-manual.yml``**
+(workflow_dispatch). You still need Fly.io and GitHub secrets configured (e.g. deploy tokens,
+``FLY_API_TOKEN``, app-specific vars) before those runs can push and smoke the remote URL.
 """
 
 from __future__ import annotations
