@@ -39,6 +39,6 @@
 - None currently; ingest conflict gate reports 0 unresolved blockers.
 
 ## Session Continuity
-- **Last completed milestone**: Bootstrap ingest synthesis and planning initialization.
-- **Next command target**: `/gsd-execute-phase 2`
-- **Resume note**: Phase 2 plan is complete; execute RBAC enforcement, matrix validation tests, and deny-path logging checks.
+- **Last completed milestone**: Phase 2 core implementation started — `agent/access/rbac.py`, `agent/access/openemr_auth.py`, and unit tests (`pytest agent/tests`, 39 passed).
+- **Next command target**: `/gsd-execute-phase 2` (continue wiring RBAC into FastAPI retrieve/dispatch + integration tests).
+- **Resume note**: Import `assert_tool_allowed` / `validate_session_and_resolve_role` from the agent package into the live graph; add integration tests against the real app when the OpenEMR fork + agent service land in-repo.
