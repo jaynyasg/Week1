@@ -14,6 +14,7 @@ Before `fly deploy`, confirm each item:
 | **Auth** | Run `fly auth login`, then `fly auth whoami` — you must see the intended account/org. |
 | **App name** | The `app = "..."` value in `fly.agent.toml` must be **globally unique** on Fly.io. If `fly apps create <name>` fails, pick another name and pass `--app <name>` on deploy or update `fly.agent.toml`. |
 | **`OPENEMR_BASE_URL` secret** | Required for `/agent/chat` (and tool routes that call OpenEMR). Set before relying on chat: `fly secrets set OPENEMR_BASE_URL=https://your-openemr-host.example.com --app <your-app>`. **`/agent/health` does not need this secret.** |
+| **OCI source label (`IMAGE_SOURCE_URL`)** | `Dockerfile.agent` sets `org.opencontainers.image.source` from build-arg **`IMAGE_SOURCE_URL`**. Defaults live in **`fly.agent.toml`** under **`[build.args]`** (placeholder `https://gitlab.com/CHANGE_ME/Week1` — replace **`CHANGE_ME`**). Override without editing the file: `fly deploy --config fly.agent.toml --build-arg IMAGE_SOURCE_URL=https://gitlab.com/your-group/Week1`. |
 
 **Org:** If you belong to multiple orgs, use `--org <slug>` on `fly apps create` / deploy or set the org in the Fly dashboard. Personal accounts default to your user org.
 
@@ -51,10 +52,19 @@ From the **repository root**, you can run `fly launch` and point it at this repo
 cd /path/to/Week1
 fly apps create clinical-agent-scaffold
 fly secrets set OPENEMR_BASE_URL=https://your-openemr.fly.dev --app clinical-agent-scaffold
-fly deploy --config fly.agent.toml --app clinical-agent-scaffold
+fly deploy --config fly.agent.toml --app clinical-agent-scaffold \
+  --build-arg IMAGE_SOURCE_URL=https://gitlab.com/your-group/Week1
 ```
 
-Ensure `fly.agent.toml` has the same `app = "clinical-agent-scaffold"` or always pass `--app`.
+Ensure `fly.agent.toml` has the same `app = "clinical-agent-scaffold"` or always pass `--app`. Omit **`--build-arg`** if you already set **`[build.args].IMAGE_SOURCE_URL`** in **`fly.agent.toml`** to your canonical HTTPS git URL.
+
+### OCI image source
+
+Build-arg **`IMAGE_SOURCE_URL`** (see **`fly.agent.toml`** **`[build.args]`** and **`Dockerfile.agent`**):
+
+- **`fly.agent.toml`** declares **`[build.args].IMAGE_SOURCE_URL`** so remote builds embed **`org.opencontainers.image.source`** in the image (see **`Dockerfile.agent`**).
+- **CLI override:** `fly deploy --config fly.agent.toml --build-arg IMAGE_SOURCE_URL=https://your-host/owner/repo` wins over the TOML default for that deploy.
+- **GitHub Actions:** [`.github/workflows/fly-agent-manual.yml`](../.github/workflows/fly-agent-manual.yml) passes **`--build-arg IMAGE_SOURCE_URL=https://github.com/${{ github.repository }}`** so mirrors on GitHub get a correct **`github.com/owner/repo`** label. If **GitLab** (or another host) is canonical, change **`[build.args]`** in **`fly.agent.toml`** or deploy from the CLI with **`--build-arg`** as above.
 
 ## GitHub Actions
 
@@ -65,6 +75,8 @@ Add a repository secret named **`FLY_API_TOKEN`** (repository **Settings** → *
 The workflow uses **`concurrency`** with a single group so overlapping manual runs **queue** instead of canceling each other (`cancel-in-progress: false`), which avoids interrupting an in-flight deploy when another run is started.
 
 The workflow pins **`superfly/flyctl-actions/setup-flyctl@1.5`** (not a moving `@master` ref) and includes a **fail-fast** step if the **`FLY_API_TOKEN`** secret is missing, so the job errors immediately instead of running `flyctl` with an empty token.
+
+On deploy it adds **`--build-arg IMAGE_SOURCE_URL=https://github.com/${{ github.repository }}`** so the image OCI label points at this GitHub repo. Repos whose **canonical** remote is GitLab (or elsewhere) should rely on **`[build.args]`** in **`fly.agent.toml`** or a manual **`fly deploy --build-arg IMAGE_SOURCE_URL=...`** instead (see [OCI image source](#oci-image-source)).
 
 ## Secrets
 
@@ -141,7 +153,7 @@ Production logs use JSON-friendly **`event` / `event_type`** fields on `agent_ev
 
 | `event_type` | What it means | What to check |
 |----------------|----------------|----------------|
-| `openemr_misconfiguration` | `OPENEMR_BASE_URL` unset or empty at runtime. | `fly secrets list`; set `OPENEMR_BASE_URL` to the OpenEMR HTTPS origin; redeploy if needed. |
+| `openemr_misconfiguration` | `OPENEMR_BASE_URL` unset or empty at runtime. | `fly secrets list`; set `OPENEMR_BASE_URL` to the OpenEMR HTTPS origin; redeploy if needed. Logs include **`client_request_id`** when the caller sent **`X-Request-ID`**, **`X-Correlation-ID`**, or **`X-Trace-ID`** (first non-empty wins), else `none`. |
 | `tool_refusal` | RBAC denied a tool for the session role. | `role`, `tool`, `what`/`why` in log extras; confirm USERS.md matrix vs caller. |
 | `verify_failure` / `rgv_verify_retry` / `rgv_degraded_unverified` | RGV verify path: failed check, bounded retry, or returned **unverified** assistant text. | `why`, `verify_retry_count`, `duration_ms`, `fallback`; inspect upstream verify rules / model output. |
 | `category_boundary_review` | Scaffold/lab signal: labs + vitals context in one turn (demo hook until fork validates FHIR `Observation.category`). | Treat as **review queue**, not a clinical assertion; correlate with real FHIR tagging in fork. |
@@ -166,8 +178,8 @@ fly ssh console --app clinical-agent-scaffold
 
 | File | Role |
 |------|------|
-| `Dockerfile.agent` | Production image: Python 3.12, Uvicorn on `0.0.0.0:8080`, non-root `appuser` |
-| `fly.agent.toml` | Fly app name, build `dockerfile = "Dockerfile.agent"`, `ignorefile = ".dockerignore.agent"`, `http_service.internal_port = 8080`, health check `GET /agent/health` |
+| `Dockerfile.agent` | Production image: Python 3.12, Uvicorn on `0.0.0.0:8080`, non-root `appuser`. Optional **`IMAGE_SOURCE_URL`** build-arg sets `org.opencontainers.image.source` (defaults to a placeholder URL until you pass your canonical git remote). |
+| `fly.agent.toml` | Fly app name, build `dockerfile` / `ignorefile`, **`[build.args].IMAGE_SOURCE_URL`** for OCI source label, `http_service.internal_port = 8080`, health check `GET /agent/health` |
 | `deploy/requirements-agent.txt` | Runtime pip deps (`httpx`, `fastapi`, `python-dotenv`, `uvicorn[standard]`) |
 | `.dockerignore.agent` | Smaller/faster agent image builds |
 | `scripts/smoke_agent_service.ps1` | Local or remote smoke: health + optional chat with `-AuthHeader` (**use `pwsh` / PS 7+** for chat) |

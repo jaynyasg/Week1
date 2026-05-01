@@ -33,7 +33,7 @@ Bootstrap executable planning artifacts from synthesized ingest for immediate ph
 
 ## Agent tests (snapshot)
 - Command: `python -m pytest agent/tests -q`
-- Last verified (local): 78 passed, 4 skipped
+- Last verified (local): 80 passed, 4 skipped
 - CI: `.github/workflows/agent-tests.yml`, `.gitlab-ci.yml`
 
 ## Agent deploy (Fly)

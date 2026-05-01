@@ -12,6 +12,11 @@ primary_region = "iad"
   dockerfile = "Dockerfile.agent"
   ignorefile = ".dockerignore.agent"
 
+# OCI label org.opencontainers.image.source (Dockerfile.agent ARG IMAGE_SOURCE_URL).
+# Replace CHANGE_ME with your GitLab group/user (or pass --build-arg on deploy).
+[build.args]
+  IMAGE_SOURCE_URL = "https://gitlab.com/CHANGE_ME/Week1"
+
 [env]
   PORT = "8080"
 

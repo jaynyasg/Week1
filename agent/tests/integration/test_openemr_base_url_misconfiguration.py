@@ -32,7 +32,10 @@ def test_tools_demographics_returns_500_when_openemr_base_url_misconfigured(
             monkeypatch.setenv("OPENEMR_BASE_URL", "")
         r = client.post(
             "/agent/tools/demographics",
-            headers={"Authorization": "Bearer x"},
+            headers={
+                "Authorization": "Bearer x",
+                "X-Request-ID": "integration-req-tools",
+            },
         )
     assert r.status_code == 500
     detail = r.json().get("detail", "")
@@ -43,6 +46,7 @@ def test_tools_demographics_returns_500_when_openemr_base_url_misconfigured(
         if r.name == "agent.http.deps" and getattr(r, LOG_EXTRA_EVENT, None) == OPENEMR_MISCONFIGURATION
     ]
     assert mis, "expected openemr_misconfiguration structured log"
+    assert getattr(mis[0], "client_request_id") == "integration-req-tools"
 
 
 @pytest.mark.parametrize(
@@ -71,7 +75,10 @@ def test_chat_returns_500_when_openemr_base_url_misconfigured(
                 "user_message": "hello",
                 "messages": [],
             },
-            headers={"Authorization": "Bearer x"},
+            headers={
+                "Authorization": "Bearer x",
+                "X-Request-ID": "integration-req-chat",
+            },
         )
     assert r.status_code == 500
     detail = r.json().get("detail", "")
@@ -82,3 +89,4 @@ def test_chat_returns_500_when_openemr_base_url_misconfigured(
         if r.name == "agent.http.deps" and getattr(r, LOG_EXTRA_EVENT, None) == OPENEMR_MISCONFIGURATION
     ]
     assert mis, "expected openemr_misconfiguration structured log"
+    assert getattr(mis[0], "client_request_id") == "integration-req-chat"

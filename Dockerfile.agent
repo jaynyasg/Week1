@@ -6,10 +6,11 @@
 
 FROM python:3.12-slim
 
-# Replace org.opencontainers.image.source when you know the canonical repo URL.
+# Override at build: docker build -f Dockerfile.agent --build-arg IMAGE_SOURCE_URL=https://your.git/host/repo .
+ARG IMAGE_SOURCE_URL=https://example.com/replace-with-canonical-repo-url
 LABEL org.opencontainers.image.title="Clinical Co-Pilot FastAPI agent" \
     org.opencontainers.image.description="Minimal production image for the Clinical Co-Pilot FastAPI agent (scaffold); Uvicorn loads create_app() with PYTHONPATH=/app." \
-    org.opencontainers.image.source="unknown"
+    org.opencontainers.image.source="${IMAGE_SOURCE_URL}"
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \

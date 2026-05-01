@@ -43,7 +43,10 @@ jobs:
       # Pinned release (not @master) for reproducible CI — bump when upgrading flyctl setup.
       - uses: superfly/flyctl-actions/setup-flyctl@1.5
 
+      # Sets Dockerfile OCI source label to this GitHub repo. If GitLab is canonical,
+      # override per deploy: `fly deploy --config fly.agent.toml --build-arg IMAGE_SOURCE_URL=...`
+      # or edit `[build.args]` in `fly.agent.toml`.
       - name: Deploy agent app to Fly.io
-        run: flyctl deploy --config fly.agent.toml
+        run: flyctl deploy --config fly.agent.toml --build-arg IMAGE_SOURCE_URL=https://github.com/${{ github.repository }}
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

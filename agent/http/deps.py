@@ -17,6 +17,17 @@ from agent.services.chat_turn import run_scaffold_chat_turn
 _LOG = logging.getLogger(__name__)
 
 
+def _client_request_id(request: Request | None) -> str | None:
+    """Prefer inbound correlation headers for operator log joins (no secrets)."""
+    if request is None:
+        return None
+    for header_name in ("X-Request-ID", "X-Correlation-ID", "X-Trace-ID"):
+        raw = request.headers.get(header_name)
+        if raw and raw.strip():
+            return raw.strip()[:128]
+    return None
+
+
 def get_http_client(request: Request) -> httpx.AsyncClient:
     return request.app.state.http_client
 
@@ -31,9 +42,10 @@ def get_chat_turn_runner():
     return run_scaffold_chat_turn
 
 
-def get_openemr_base_url() -> str:
+def get_openemr_base_url(request: Request | None = None) -> str:
     base = os.environ.get("OPENEMR_BASE_URL", "").strip().rstrip("/")
     if not base:
+        cid = _client_request_id(request)
         log_agent_event(
             _LOG,
             OPENEMR_MISCONFIGURATION,
@@ -42,6 +54,7 @@ def get_openemr_base_url() -> str:
             duration_ms=0.0,
             fallback="none",
             cost_envelope="unknown",
+            client_request_id=cid or "none",
         )
         raise HTTPException(
             status_code=500,
@@ -61,7 +74,7 @@ async def resolve_agent_role(
     """
     if not authorization or not authorization.strip():
         raise HTTPException(status_code=401, detail="Missing Authorization header")
-    base = get_openemr_base_url()
+    base = get_openemr_base_url(request)
     client = get_http_client(request)
     try:
         return await validate_session_and_resolve_role(

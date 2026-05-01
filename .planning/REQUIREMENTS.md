@@ -13,7 +13,7 @@ V1 requirements are derived from `.planning/ingest/synthesis.json` with ADR/SPEC
 - **Local**: `python -m pytest agent/tests -q` (aligns with CI and the **Agent tests** section in `README.md`).
 - **Key test modules**: `agent/tests/unit/test_rbac_matrix.py`, `agent/tests/integration/test_http_logging_observability.py`, `agent/tests/integration/test_live_openemr_optional.py`, `agent/tests/unit/test_http_deps.py`.
 - **Docs**: `README.md` — section **Agent tests** (command + optional live OpenEMR notes).
-- **Recorded run (2026-04-30, local)**: `python -m pytest agent/tests -q` → **78 passed, 4 skipped**.
+- **Recorded run (2026-04-30, local)**: `python -m pytest agent/tests -q` → **80 passed, 4 skipped**.
 - **Fly.io scaffold agent** smoke — `GET /agent/health`; optional `POST /agent/chat` with a real OpenEMR `Authorization` header when exercising live paths. Repo: `Dockerfile.agent`, `fly.agent.toml`, `deploy/README-fly-agent.md`, `scripts/smoke_agent_service.ps1`; deploy with `fly deploy --config fly.agent.toml`. **No secrets** in verification notes, docs, or command examples.
 - **Optional CI/manual deploy (Fly agent)**: `.github/workflows/fly-agent-manual.yml` — `workflow_dispatch`, GitHub Actions secret `FLY_API_TOKEN`, and `fly deploy --config fly.agent.toml`. This path is **optional** convenience only and **does not replace** local `fly deploy` plus smoke checks.
 
