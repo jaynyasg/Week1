@@ -14,6 +14,7 @@ from agent.access.openemr_auth import (
     OpenEMRAuthError,
     fetch_openemr_user_json,
     map_openemr_payload_to_agent_role,
+    validate_session_and_resolve_role,
 )
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "OpenEMRAuthError",
     "fetch_openemr_user_json",
     "map_openemr_payload_to_agent_role",
+    "validate_session_and_resolve_role",
 ]

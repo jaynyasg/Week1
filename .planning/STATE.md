@@ -28,6 +28,7 @@
 ### Active Constraints
 - Demo-only data boundary until HIPAA BAA controls exist (`ASM-demo-only-data`).
 - Observation category quality must preserve RBAC boundaries (`ASM-observation-category-integrity`).
+- Deployed OpenEMR base URL for agent session checks: `https://clinical-copilot-v2.fly.dev` (see root `.env.example` and `deploy/.env.example` for `OPENEMR_BASE_URL` / `DEPLOYED_URL`).
 
 ### Current TODOs
 - Execute `.planning/plans/phase-2-rbac-enforcement-plan.md` task groups 1-4.
@@ -39,6 +40,6 @@
 - None currently; ingest conflict gate reports 0 unresolved blockers.
 
 ## Session Continuity
-- **Last completed milestone**: Phase 2 core implementation started — `agent/access/rbac.py`, `agent/access/openemr_auth.py`, and unit tests (`pytest agent/tests`, 39 passed).
+- **Last completed milestone**: Phase 2 core implementation — RBAC module, OpenEMR session helper, minimal FastAPI `/agent/tools/{tool}` gate + HTTP integration tests (`pytest agent/tests`, 44 passed).
 - **Next command target**: `/gsd-execute-phase 2` (continue wiring RBAC into FastAPI retrieve/dispatch + integration tests).
 - **Resume note**: Import `assert_tool_allowed` / `validate_session_and_resolve_role` from the agent package into the live graph; add integration tests against the real app when the OpenEMR fork + agent service land in-repo.
