@@ -18,6 +18,7 @@ Make **RBAC denials**, **verification failures**, **fallbacks**, and **category-
 4. **Category-boundary flagging** — Log and surface anomalies where cross-category context risks clinical misuse; align with roadmap “flagged for review” expectation.
 5. **Operator triage path** — Document how logs/metrics (or a single query pattern) map event types to triage—no requirement to ship a dashboard in this stub’s scope.
 6. **RBAC boundary evidence** — Correlate denial telemetry with role+tool identity without leaking PHI in log payloads (`SAFE-rbac-boundary-integrity`).
+7. **OpenEMR base URL misconfiguration** — Today a bad `OPENEMR_BASE_URL` yields **HTTP 500** from FastAPI; Phase 4 should add **structured operator-facing telemetry** with a distinct `event_type`, duration, and request id—**without** logging secrets. Current contract: `agent/tests/integration/test_openemr_base_url_misconfiguration.py`.
 
 ## Exit Criteria (requirement IDs)
 | ID | Done when |

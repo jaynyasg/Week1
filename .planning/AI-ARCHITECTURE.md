@@ -16,6 +16,8 @@ This file is the AI integration plan and implementation-intent architecture for 
 
 ## PRD Agent Requirements Coverage
 
+**Phase 3 scope (gap review 2026-04-30, aligned with `.planning/ROADMAP.md`)**: This repository documents **PRD-aligned design intent** and ships **scaffold + HTTP/contracts + automated tests** for retrieve–generate–verify and chat (e.g. ordering, multi-turn session headers, structured verification fields, bounded retry, degradation paths). It does **not** close the full **executable** PRD agent path (production LLM, FHIR-backed retrieve, record-backed source attribution in response artifacts, domain-grounded verify module). That **runtime** work is **OpenEMR fork / deployed-stack** ownership—treat in-repo behavior as **scaffold and contract proof**, not full PRD runtime parity.
+
 ### 1) Agentic Chatbot
 - Multi-turn conversational behavior is required and must be justified by concrete clinical use cases.
 - Turn state must preserve role/session context and user intent continuity.
@@ -59,10 +61,10 @@ This file is the AI integration plan and implementation-intent architecture for 
 | Requirement ID | Implementation Section(s) | Status |
 |---|---|---|
 | `REQ-delivery-foundation-gates` (AI portion) | Purpose, Scope and Inputs, Deployment Intent for AI Layer, Phase 1 Delivery-Gate Alignment | Satisfied |
-| `REQ-ai-integration-plan` | Purpose, AI System Overview, PRD Agent Requirements Coverage, Appendix Pre-Search Checklist Integration | Satisfied |
+| `REQ-ai-integration-plan` | Purpose, AI System Overview, PRD Agent Requirements Coverage, Appendix Pre-Search Checklist Integration | Satisfied (planning artifact); executable AI/runtime parity follows Phase 3 scaffold → **fork** per roadmap |
 | `REQ-ai-architecture-file` | Entire document (`.planning/AI-ARCHITECTURE.md`) | Satisfied |
-| `REQ-agent-requirements-coverage` | PRD Agent Requirements Coverage (sections 1-4) | Satisfied |
-| `REQ-presearch-checklist-coverage` | Appendix Pre-Search Checklist Integration (items 1-16) | Satisfied |
+| `REQ-agent-requirements-coverage` | PRD Agent Requirements Coverage (sections 1–4): PRD **design and contract** mapping; in-repo **scaffold + tests** only for RGV/chat | **Partial** — **not met (runtime)** for full PRD tool+LLM+verify path and record-backed attribution; remainder **OpenEMR fork** (Phase 3 gap table, 2026-04-30) |
+| `REQ-presearch-checklist-coverage` | Appendix Pre-Search Checklist Integration (items 1-16) | Satisfied (explicit checklist gates in this doc); item-level **execution** (eval harness, telemetry, production verification) is phased in roadmap Phases 4–5 |
 
 ## Evidence Linkage (Previously Completed Deployment/Safety Controls)
 
@@ -72,6 +74,7 @@ This file is the AI integration plan and implementation-intent architecture for 
 | `NFR-private-network-topology` | `deploy/docs/deployment.md`, `ARCHITECTURE.md` | Linked (already completed) |
 | `NFR-no-public-db-surface` | `deploy/docs/deployment.md`, `ARCHITECTURE.md` | Linked (already completed) |
 | `SAFE-demo-only-phi-boundary` | `AUDIT.md`, `deploy/docs/deployment.md`, Scope and Inputs section in this file | Linked (already completed) |
+| `REQ-agent-requirements-coverage` | This file (PRD Agent Requirements Coverage + Phase 3 scope note); Phase 3 plan `.planning/plans/phase-3-retrieve-generate-verify-plan.md`; in-repo **scaffold/tests** (e.g. `agent/runtime/rgv_pipeline.py`, `agent/tests/` per roadmap SC1–SC3 / REQ-* rows) | **Partial (scaffold + doc)** — **fork** for full runtime PRD path and record-backed verification in live responses |
 
 ## Appendix Pre-Search Checklist Integration
 Each checklist area is treated as a design gate with explicit status tracking:
@@ -95,7 +98,7 @@ Each checklist area is treated as a design gate with explicit status tracking:
 
 ## Exit Criteria
 This architecture file is considered complete for V1 planning only when:
-- PRD agent requirements are all mapped to runtime/eval controls.
+- PRD agent requirements are mapped to **design, contracts, and in-repo scaffold/tests** where this repository delivers them, with **fork/deployed-stack** called out for **full runtime** PRD parity (not overstated as fully executable here).
 - Pre-Search checklist coverage is explicit and phase-aligned.
 - Deployment, observability, verification, and evaluation gates are represented in roadmap requirements.
 - Phase 1 delivery-gate AI requirements have explicit traceability and evidence linkage without requiring EMR redeploy.
