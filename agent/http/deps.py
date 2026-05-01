@@ -9,10 +9,20 @@ import httpx
 from fastapi import Header, HTTPException, Request
 
 from agent.access.openemr_auth import OpenEMRAuthError, validate_session_and_resolve_role
+from agent.services.chat_turn import run_scaffold_chat_turn
 
 
 def get_http_client(request: Request) -> httpx.AsyncClient:
     return request.app.state.http_client
+
+
+def get_chat_turn_runner():
+    """
+    Callable that runs one scaffold RGV chat turn (override in tests).
+
+    Returns ``run_scaffold_chat_turn``; inject a partial or wrapper to swap verify/retrieve.
+    """
+    return run_scaffold_chat_turn
 
 
 def get_openemr_base_url() -> str:

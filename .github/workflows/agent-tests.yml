@@ -1,0 +1,27 @@
+# Offline agent test suite (no OpenEMR or LLM secrets).
+# Live OpenEMR + optional remote agent smoke stays manual/local per README
+# (`RUN_LIVE_OPENEMR_E2E`, `OPENEMR_BASE_URL`, …).
+#
+# Optional CI E2E: add a separate workflow with `workflow_dispatch` only, set
+# repository secrets to match `.env.example`, then run:
+#   RUN_LIVE_OPENEMR_E2E=1 python -m pytest agent/tests/integration/test_live_openemr_optional.py -q
+
+name: Agent tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run agent tests
+        run: python -m pytest agent/tests -q

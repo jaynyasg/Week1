@@ -10,7 +10,7 @@ import logging
 import uuid
 
 from agent.observability.events import log_agent_event
-from agent.runtime.rgv_pipeline import ClinicalTurnState, run_retrieve_generate_verify
+from agent.runtime.rgv_pipeline import ClinicalTurnState, VerifyFn, run_retrieve_generate_verify
 
 _LOG = logging.getLogger(__name__)
 
@@ -63,6 +63,7 @@ def run_scaffold_chat_turn(
     session_id: str,
     messages: list[dict[str, object]],
     user_message: str,
+    verify: VerifyFn | None = None,
 ) -> tuple[ClinicalTurnState, str]:
     state = ClinicalTurnState(
         patient_id=patient_id,
@@ -75,7 +76,7 @@ def run_scaffold_chat_turn(
         state,
         retrieve=scaffold_retrieve,
         generate=scaffold_generate,
-        verify=scaffold_verify,
+        verify=verify or scaffold_verify,
     )
     st.messages.append({"role": "assistant", "content": assistant})
     log_agent_event(

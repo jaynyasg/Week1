@@ -1,0 +1,39 @@
+stages:
+  - test
+
+variables:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+test:
+  stage: test
+  image: python:3.12
+  before_script:
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+  script:
+    - python -m pytest agent/tests -q
+
+# -----------------------------------------------------------------------------
+# Optional: live OpenEMR E2E (real network; requires CI/CD variables — not default)
+# -----------------------------------------------------------------------------
+# Do not put tokens in the repo. In GitLab: Settings → CI/CD → Variables (masked,
+# protected). Typical vars: RUN_LIVE_OPENEMR_E2E=1, OPENEMR_BASE_URL, and either
+# OPENEMR_BEARER_TOKEN or OPENEMR_AUTHORIZATION. Optional: AGENT_BASE_URL for
+# deployed agent smoke (see agent/tests/integration/test_live_openemr_optional.py).
+#
+# Uncomment the job below and use a scheduled pipeline and/or manual trigger:
+#
+# live-openemr-e2e:
+#   stage: test
+#   image: python:3.12
+#   rules:
+#     - if: $CI_PIPELINE_SOURCE == "schedule"
+#     - when: manual
+#       allow_failure: true
+#   variables:
+#     RUN_LIVE_OPENEMR_E2E: "1"
+#   before_script:
+#     - pip install --upgrade pip
+#     - pip install -r requirements.txt
+#   script:
+#     - python -m pytest agent/tests/integration/test_live_openemr_optional.py -q

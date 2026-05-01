@@ -7,6 +7,7 @@ Mount this app at /agent behind Nginx in the full stack (see ARCHITECTURE.md).
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from typing import Annotated
 
@@ -15,10 +16,10 @@ from fastapi import Depends, FastAPI, Header, Request
 from fastapi.responses import JSONResponse
 
 from agent.access.rbac import ToolRefusal, assert_tool_allowed, log_tool_refusal
-from agent.http.deps import resolve_agent_role
+from agent.http.deps import get_chat_turn_runner, resolve_agent_role
 from agent.http.env import load_dotenv_if_present
 from agent.http.schemas import ChatRequest, ChatResponse
-from agent.services.chat_turn import new_session_id, run_scaffold_chat_turn
+from agent.services.chat_turn import new_session_id
 
 _LOG = logging.getLogger(__name__)
 
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
     async def chat(
         body: ChatRequest,
         role: Annotated[str, Depends(resolve_agent_role)],
+        run_turn: Annotated[Callable[..., object], Depends(get_chat_turn_runner)],
         x_session: Annotated[str | None, Header(alias="X-Clinical-Session-Id")] = None,
     ) -> ChatResponse:
         """
@@ -67,7 +69,7 @@ def create_app() -> FastAPI:
         Full stack replaces scaffold retrieve/generate/verify with LangGraph + LLM + rules.
         """
         session_id = (x_session or "").strip() or new_session_id()
-        st, assistant = run_scaffold_chat_turn(
+        st, assistant = run_turn(
             patient_id=body.patient_id,
             user_role=role,
             session_id=session_id,

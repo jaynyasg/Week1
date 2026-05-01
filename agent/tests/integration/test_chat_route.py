@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 from typing import Annotated
 
 import pytest
@@ -9,7 +10,9 @@ from fastapi import Header, Request
 from fastapi.testclient import TestClient
 
 from agent.http.app import create_app
-from agent.http.deps import resolve_agent_role
+from agent.http.deps import get_chat_turn_runner, resolve_agent_role
+from agent.runtime.rgv_pipeline import MAX_VERIFY_RETRIES
+from agent.services.chat_turn import run_scaffold_chat_turn
 
 
 @pytest.fixture
@@ -37,6 +40,35 @@ def test_chat_missing_authorization_returns_401(app) -> None:
             },
         )
     assert r.status_code == 401
+
+
+def _verify_always_fail(_state, _text):
+    return False, "forced verify failure (graceful degradation)"
+
+
+def test_chat_graceful_degradation_verified_false_after_retries(app) -> None:
+    """HTTP stack returns explicit ``verified: false`` when verify never passes (bounded retries)."""
+    app.dependency_overrides[resolve_agent_role] = _fake_physician
+    app.dependency_overrides[get_chat_turn_runner] = lambda: functools.partial(
+        run_scaffold_chat_turn,
+        verify=_verify_always_fail,
+    )
+    with TestClient(app) as client:
+        r = client.post(
+            "/agent/chat",
+            json={
+                "patient_id": "pat-1",
+                "user_message": "Needs grounding but verify will fail.",
+                "messages": [],
+            },
+            headers={"Authorization": "Bearer test"},
+        )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["verified"] is False
+    assert data["verify_retry_count"] == MAX_VERIFY_RETRIES
+    notes = " ".join(data["verification_notes"])
+    assert "forced verify failure" in notes
 
 
 def test_chat_scaffold_returns_messages(app) -> None:
