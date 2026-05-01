@@ -1,10 +1,9 @@
-# FastAPI agent (scaffold) — separate Fly app from OpenEMR in root fly.toml.
-#
-# App name is a placeholder; change `app` before first deploy or use:
-#   fly apps create <name> && fly deploy --config fly.agent.toml --app <name>
+# Separate FastAPI agent Fly app — not the OpenEMR stack (see root fly.toml).
 #
 # Deploy from repo root:
 #   fly deploy --config fly.agent.toml
+#
+# Operations, secrets, and troubleshooting: deploy/README-fly-agent.md
 
 app = "clinical-agent-scaffold"
 primary_region = "iad"

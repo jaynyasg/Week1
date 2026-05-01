@@ -10,6 +10,7 @@ import logging
 import uuid
 
 from agent.observability.events import log_agent_event
+from agent.observability.taxonomy import CATEGORY_BOUNDARY_REVIEW, CHAT_TURN_COMPLETE
 from agent.runtime.rgv_pipeline import ClinicalTurnState, VerifyFn, run_retrieve_generate_verify
 
 _LOG = logging.getLogger(__name__)
@@ -17,11 +18,21 @@ _LOG = logging.getLogger(__name__)
 
 def scaffold_retrieve(state: ClinicalTurnState) -> dict[str, object]:
     """Placeholder tool aggregation (no live FHIR in this repo)."""
-    return {
+    out: dict[str, object] = {
         "patient_id": state.patient_id,
         "user_role": state.user_role,
         "message_count": len(state.messages),
     }
+    # Synthetic dual-category context for observability tests (labs vs vitals boundary flag).
+    last_user = ""
+    for m in reversed(state.messages):
+        if m.get("role") == "user":
+            last_user = str(m.get("content", ""))
+            break
+    if "dual_category_demo" in last_user:
+        out["labs_context"] = "synthetic"
+        out["vitals_context"] = "synthetic"
+    return out
 
 
 def scaffold_generate(state: ClinicalTurnState) -> str:
@@ -79,13 +90,26 @@ def run_scaffold_chat_turn(
         verify=verify or scaffold_verify,
     )
     st.messages.append({"role": "assistant", "content": assistant})
+    if st.tool_results.get("labs_context") and st.tool_results.get("vitals_context"):
+        log_agent_event(
+            _LOG,
+            CATEGORY_BOUNDARY_REVIEW,
+            what="labs_and_vitals_context_same_turn",
+            why="synthetic_scaffold_signal",
+            duration_ms=st.rgv_duration_ms,
+            fallback="human_review_recommended",
+            cost_envelope="unknown",
+        )
     log_agent_event(
         _LOG,
-        "chat_turn_complete",
+        CHAT_TURN_COMPLETE,
         verified=st.verified,
         verify_retry_count=st.verify_retry_count,
         patient_id=st.patient_id,
         session_id=st.session_id,
+        rgv_duration_ms=st.rgv_duration_ms,
+        fallback="none" if st.verified else "unverified_response",
+        cost_envelope="unknown",
     )
     return st, assistant
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from typing import Annotated
 
@@ -9,7 +10,11 @@ import httpx
 from fastapi import Header, HTTPException, Request
 
 from agent.access.openemr_auth import OpenEMRAuthError, validate_session_and_resolve_role
+from agent.observability.events import log_agent_event
+from agent.observability.taxonomy import OPENEMR_MISCONFIGURATION
 from agent.services.chat_turn import run_scaffold_chat_turn
+
+_LOG = logging.getLogger(__name__)
 
 
 def get_http_client(request: Request) -> httpx.AsyncClient:
@@ -29,6 +34,15 @@ def get_chat_turn_runner():
 def get_openemr_base_url() -> str:
     base = os.environ.get("OPENEMR_BASE_URL", "").strip().rstrip("/")
     if not base:
+        log_agent_event(
+            _LOG,
+            OPENEMR_MISCONFIGURATION,
+            what="openemr_unreachable_config",
+            why="OPENEMR_BASE_URL missing_or_empty",
+            duration_ms=0.0,
+            fallback="none",
+            cost_envelope="unknown",
+        )
         raise HTTPException(
             status_code=500,
             detail="OPENEMR_BASE_URL is not configured",

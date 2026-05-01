@@ -102,5 +102,10 @@ def log_tool_refusal(
             "tool": tool,
             "patient_id_hash": patient_id_hash,
             "session_id_hash": session_id_hash,
+            "what": "rbac_tool_denied",
+            "why": "role_tool_matrix",
+            "duration_ms": 0.0,
+            "fallback": "none",
+            "cost_envelope": "unknown",
         },
     )

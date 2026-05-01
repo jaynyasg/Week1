@@ -40,4 +40,4 @@ Make **RBAC denials**, **verification failures**, **fallbacks**, and **category-
 - `agent/tests/integration/test_http_logging_observability.py` — HTTP-level checks for chat `agent_event` fields and RBAC `tool_refusal` fields.
 - `.github/workflows/fly-agent-manual.yml` — GitHub **fly-agent-manual** workflow provides an **audit trail** in Actions logs (who/when a deploy ran); Phase 4 should later correlate deploy events with app logs (fork).
 
-**Test run (repo state only; not a claim Phase 4 is executed):** `python -m pytest agent/tests -q` → **71 passed, 4 skipped** (local run).
+**Test run (repo state):** `python -m pytest agent/tests -q` → **78 passed, 4 skipped** (local run). Instrumentation for verify/retry/degrade, misconfig, category scaffold, and RBAC minimum-question fields is in-tree; operator triage doc and fork-only metrics remain.

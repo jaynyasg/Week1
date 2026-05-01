@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 
 from agent.http.deps import resolve_agent_role
 from agent.observability.events import LOG_EXTRA_EVENT, LOG_EXTRA_EVENT_TYPE
+from agent.observability.taxonomy import CATEGORY_BOUNDARY_REVIEW, CHAT_TURN_COMPLETE
 
 
 def _fake_physician(
@@ -49,8 +50,29 @@ def test_post_agent_chat_logs_chat_turn_complete_with_event_fields(app, caplog: 
     assert r.status_code == 200
     rec = _find_record(caplog, logger_name="agent.services.chat_turn", msg_substr="agent_event")
     assert rec is not None, f"expected agent_event log; got: {[r.getMessage() for r in caplog.records]}"
-    assert getattr(rec, LOG_EXTRA_EVENT) == "chat_turn_complete"
-    assert getattr(rec, LOG_EXTRA_EVENT_TYPE) == "chat_turn_complete"
+    assert getattr(rec, LOG_EXTRA_EVENT) == CHAT_TURN_COMPLETE
+    assert getattr(rec, LOG_EXTRA_EVENT_TYPE) == CHAT_TURN_COMPLETE
+    assert getattr(rec, "rgv_duration_ms", 0) >= 0
+    assert getattr(rec, "fallback") in ("none", "unverified_response")
+
+
+def test_post_agent_chat_dual_category_logs_boundary_review(app, caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.INFO)
+    app.dependency_overrides[resolve_agent_role] = _fake_physician
+    with TestClient(app) as client:
+        r = client.post(
+            "/agent/chat",
+            json={
+                "patient_id": "pat-cat-1",
+                "user_message": "dual_category_demo trigger",
+                "messages": [],
+            },
+            headers={"Authorization": "Bearer test"},
+        )
+    assert r.status_code == 200
+    boundary = _find_record(caplog, logger_name="agent.services.chat_turn", msg_substr=CATEGORY_BOUNDARY_REVIEW)
+    assert boundary is not None
+    assert getattr(boundary, LOG_EXTRA_EVENT) == CATEGORY_BOUNDARY_REVIEW
 
 
 def test_post_agent_tools_rbac_403_logs_tool_refusal_with_event_field(app, caplog: pytest.LogCaptureFixture) -> None:
@@ -74,3 +96,5 @@ def test_post_agent_tools_rbac_403_logs_tool_refusal_with_event_field(app, caplo
     assert rec is not None, f"expected tool_refusal log; got: {[r.getMessage() for r in caplog.records]}"
     assert getattr(rec, LOG_EXTRA_EVENT) == "tool_refusal"
     assert getattr(rec, LOG_EXTRA_EVENT_TYPE) == "tool_refusal"
+    assert getattr(rec, "what") == "rbac_tool_denied"
+    assert getattr(rec, "cost_envelope") == "unknown"

@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 from fastapi.testclient import TestClient
+
+from agent.observability.events import LOG_EXTRA_EVENT
+from agent.observability.taxonomy import OPENEMR_MISCONFIGURATION
 
 
 @pytest.mark.parametrize(
@@ -17,7 +22,9 @@ def test_tools_demographics_returns_500_when_openemr_base_url_misconfigured(
     app,
     monkeypatch: pytest.MonkeyPatch,
     patch_openemr_base_url: str,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
+    caplog.set_level(logging.INFO)
     with TestClient(app) as client:
         if patch_openemr_base_url == "delenv":
             monkeypatch.delenv("OPENEMR_BASE_URL", raising=False)
@@ -30,6 +37,12 @@ def test_tools_demographics_returns_500_when_openemr_base_url_misconfigured(
     assert r.status_code == 500
     detail = r.json().get("detail", "")
     assert "OPENEMR_BASE_URL" in str(detail) and "not configured" in str(detail)
+    mis = [
+        r
+        for r in caplog.records
+        if r.name == "agent.http.deps" and getattr(r, LOG_EXTRA_EVENT, None) == OPENEMR_MISCONFIGURATION
+    ]
+    assert mis, "expected openemr_misconfiguration structured log"
 
 
 @pytest.mark.parametrize(
@@ -43,7 +56,9 @@ def test_chat_returns_500_when_openemr_base_url_misconfigured(
     app,
     monkeypatch: pytest.MonkeyPatch,
     patch_openemr_base_url: str,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
+    caplog.set_level(logging.INFO)
     with TestClient(app) as client:
         if patch_openemr_base_url == "delenv":
             monkeypatch.delenv("OPENEMR_BASE_URL", raising=False)
@@ -61,3 +76,9 @@ def test_chat_returns_500_when_openemr_base_url_misconfigured(
     assert r.status_code == 500
     detail = r.json().get("detail", "")
     assert "OPENEMR_BASE_URL" in str(detail) and "not configured" in str(detail)
+    mis = [
+        r
+        for r in caplog.records
+        if r.name == "agent.http.deps" and getattr(r, LOG_EXTRA_EVENT, None) == OPENEMR_MISCONFIGURATION
+    ]
+    assert mis, "expected openemr_misconfiguration structured log"

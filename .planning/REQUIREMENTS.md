@@ -9,10 +9,11 @@ V1 requirements are derived from `.planning/ingest/synthesis.json` with ADR/SPEC
 
 ## Verification / evidence (repo)
 - **CI**: GitHub Actions `.github/workflows/agent-tests.yml` (`pytest` job: `python -m pytest agent/tests -q`); GitLab `.gitlab-ci.yml` (`test` stage / `test` job, same command).
+- **GitLab CI**: `.gitlab-ci.yml` `test` job sets **`timeout: 20m`** to cap stuck pytest on shared runners.
 - **Local**: `python -m pytest agent/tests -q` (aligns with CI and the **Agent tests** section in `README.md`).
 - **Key test modules**: `agent/tests/unit/test_rbac_matrix.py`, `agent/tests/integration/test_http_logging_observability.py`, `agent/tests/integration/test_live_openemr_optional.py`, `agent/tests/unit/test_http_deps.py`.
 - **Docs**: `README.md` — section **Agent tests** (command + optional live OpenEMR notes).
-- **Recorded run (2026-04-30, local)**: `python -m pytest agent/tests -q` → **71 passed, 4 skipped** in ~2.4s.
+- **Recorded run (2026-04-30, local)**: `python -m pytest agent/tests -q` → **78 passed, 4 skipped**.
 - **Fly.io scaffold agent** smoke — `GET /agent/health`; optional `POST /agent/chat` with a real OpenEMR `Authorization` header when exercising live paths. Repo: `Dockerfile.agent`, `fly.agent.toml`, `deploy/README-fly-agent.md`, `scripts/smoke_agent_service.ps1`; deploy with `fly deploy --config fly.agent.toml`. **No secrets** in verification notes, docs, or command examples.
 - **Optional CI/manual deploy (Fly agent)**: `.github/workflows/fly-agent-manual.yml` — `workflow_dispatch`, GitHub Actions secret `FLY_API_TOKEN`, and `fly deploy --config fly.agent.toml`. This path is **optional** convenience only and **does not replace** local `fly deploy` plus smoke checks.
 
@@ -92,8 +93,8 @@ V1 requirements are derived from `.planning/ingest/synthesis.json` with ADR/SPEC
 | REQ-presearch-checklist-coverage | Phase 5 | Pending |
 | NFR-private-network-topology | Phase 1 | Completed (evidence-based) |
 | NFR-no-public-db-surface | Phase 1 | Completed (evidence-based) |
-| NFR-observability-coverage | Phase 4 | Pending |
-| NFR-observability-minimum-questions | Phase 4 | Pending |
+| NFR-observability-coverage | Phase 4 | Partial (scaffold: structured deny/verify/fallback/misconfig/category + tests) |
+| NFR-observability-minimum-questions | Phase 4 | Partial (checklist fields on hot-path events; cost envelope placeholder) |
 | NFR-eval-suite-unauthorized-access | Phase 5 | Pending |
 | NFR-latency-validation-gate | Phase 5 | Pending |
 | NFR-cost-analysis-requirement | Phase 5 | Pending |

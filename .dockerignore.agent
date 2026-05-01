@@ -1,8 +1,9 @@
 # Build context trims for Dockerfile.agent (Fly: fly.agent.toml [build] ignorefile).
 .git
 .github
+.cursor
 .pytest_cache
-__pycache__
+**/__pycache__
 *.pyc
 .venv
 venv
