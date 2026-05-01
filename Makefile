@@ -1,7 +1,7 @@
 # Clinical Co-Pilot — local developer tasks (no Fly deploy).
 # Usage: make test | make pytest | make chat-ui-build | make smoke-help
 
-.PHONY: test pytest pytest-fast openapi-check chat-ui-build chat-ui-install lint-ruff fmt-ruff smoke-help
+.PHONY: test pytest pytest-fast openapi-check chat-ui-build chat-ui-install lint-ruff fmt-ruff smoke-help doctor
 
 test: pytest chat-ui-build
 
@@ -29,3 +29,6 @@ fmt-ruff:
 smoke-help:
 	@echo PowerShell: pwsh -File scripts/smoke_agent_optional.ps1 -BaseUrl https://YOUR-agent.fly.dev
 	@echo Bash:       bash scripts/smoke_agent_optional.sh --base-url https://YOUR-agent.fly.dev
+
+doctor:
+	bash scripts/doctor.sh

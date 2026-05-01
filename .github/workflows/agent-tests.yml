@@ -6,7 +6,7 @@
 # repository secrets to match `.env.example`, then run:
 #   RUN_LIVE_OPENEMR_E2E=1 python -m pytest agent/tests/integration/test_live_openemr_optional.py -q
 #
-# Path gating (chat-ui-build): GitHub Actions does not support per-job `paths:` on
+# Path gating (chat-ui-build, npm-audit-chat-ui): GitHub Actions does not support per-job `paths:` on
 # `push`/`pull_request`. Options: (1) this workflow uses `dorny/paths-filter` so the
 # heavy `chat-ui-build` job skips unless `chat-ui/**` or this workflow file changes;
 # (2) alternatively split into a second workflow with workflow-level `paths:` / `paths-ignore`
@@ -86,7 +86,10 @@ jobs:
       - name: pip-audit (agent image)
         run: pip-audit -r deploy/requirements-agent.txt
 
+  # Same path gate as chat-ui-build: skip npm ci / audit when chat-ui did not change.
   npm-audit-chat-ui:
+    needs: chat_ui_paths
+    if: needs.chat_ui_paths.outputs.chat_ui == 'true'
     runs-on: ubuntu-latest
     continue-on-error: true
     timeout-minutes: 15

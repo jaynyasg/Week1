@@ -14,7 +14,7 @@ Lint (matches CI):
 python -m ruff check agent
 ```
 
-A typical local run is about **152 passed**, **15 skipped**; skips include optional live OpenEMR, `RUN_LATENCY_GATE`, and other gated tests (counts vary—run pytest to confirm). HTTP-focused coverage includes [`test_http_deps.py`](agent/tests/unit/test_http_deps.py), [`test_http_logging_observability.py`](agent/tests/integration/test_http_logging_observability.py), and [`test_openemr_base_url_misconfiguration.py`](agent/tests/integration/test_openemr_base_url_misconfiguration.py) (OpenEMR base URL wiring regressions).
+A typical local run is about **160 passed**, **15 skipped**; skips include optional live OpenEMR, `RUN_LATENCY_GATE`, and other gated tests (counts vary—run pytest to confirm). HTTP-focused coverage includes [`test_http_deps.py`](agent/tests/unit/test_http_deps.py), [`test_http_logging_observability.py`](agent/tests/integration/test_http_logging_observability.py), and [`test_openemr_base_url_misconfiguration.py`](agent/tests/integration/test_openemr_base_url_misconfiguration.py) (OpenEMR base URL wiring regressions).
 
 CI runs **ruff** and **pytest** on `agent/tests` and `deploy/tests` on **GitLab** (`.gitlab-ci.yml`) and **GitHub Actions** (`.github/workflows/agent-tests.yml`).
 
@@ -30,6 +30,16 @@ Planning and contribution norms: [CONTRIBUTING.md](CONTRIBUTING.md).
 - [MAINTAINERS.md](MAINTAINERS.md)
 - [.planning/eval-artifacts/README.md](.planning/eval-artifacts/README.md)
 - [deploy/docs/operator-runbook.md](deploy/docs/operator-runbook.md) (operator triage)
+
+### Troubleshooting
+
+| Symptom | Where to look |
+| --- | --- |
+| **401** / auth failures | [deploy/docs/operator-runbook.md](deploy/docs/operator-runbook.md) (structured `detail` from `/agent/chat`), [deploy/README-fly-agent.md](deploy/README-fly-agent.md#troubleshooting) |
+| **502** / upstream errors | [deploy/README-fly-agent.md](deploy/README-fly-agent.md#troubleshooting), Fly logs (`fly logs`) |
+| **413** payload too large | [deploy/docs/operator-runbook.md](deploy/docs/operator-runbook.md) (`413 payload_too_large`) |
+
+Local onboarding: `make doctor` (or `pwsh scripts/doctor.ps1` / `bash scripts/doctor.sh`) prints Python and pytest versions plus whether live OpenEMR E2E env flags are set.
 
 ### Optional: gated live OpenEMR E2E
 

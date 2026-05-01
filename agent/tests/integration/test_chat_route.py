@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 
 from agent.access.openemr_auth import OpenEMRAuthError
 from agent.http.deps import get_chat_turn_runner, resolve_agent_role
+from agent.http.schemas import ChatResponse
 from agent.runtime.rgv_pipeline import MAX_VERIFY_RETRIES
 from agent.services.chat_turn import run_scaffold_chat_turn
 
@@ -176,6 +177,24 @@ def test_chat_graceful_degradation_verified_false_after_retries(app) -> None:
     assert data["verify_retry_count"] == MAX_VERIFY_RETRIES
     notes = " ".join(data["verification_notes"])
     assert "forced verify failure" in notes
+
+
+def test_chat_success_response_keys_match_chat_response_model(app) -> None:
+    """Guards wire JSON for ``POST /agent/chat`` against accidental schema drift."""
+    app.dependency_overrides[resolve_agent_role] = _fake_physician
+    expected = set(ChatResponse.model_fields.keys())
+    with TestClient(app) as client:
+        r = client.post(
+            "/agent/chat",
+            json={
+                "patient_id": "pat-1",
+                "user_message": "contract check",
+                "messages": [],
+            },
+            headers={"Authorization": "Bearer test"},
+        )
+    assert r.status_code == 200
+    assert set(r.json().keys()) == expected
 
 
 def test_chat_scaffold_returns_messages(app) -> None:
