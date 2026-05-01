@@ -280,7 +280,12 @@ export default function App() {
           {authMode === "bearer" ? (
             <label className="field" style={{ marginTop: "0.85rem" }}>
               {strings.authBearerLabel}
-              <textarea value={bearerToken} onChange={(e) => setBearerToken(e.target.value)} rows={3} />
+              <textarea
+                value={bearerToken}
+                onChange={(e) => setBearerToken(e.target.value)}
+                rows={3}
+                aria-label={strings.authBearerLabel}
+              />
             </label>
           ) : authMode === "demo" ? (
             <p className="meta" style={{ marginTop: "0.65rem", marginBottom: 0 }}>

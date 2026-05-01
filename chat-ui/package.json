@@ -1,5 +1,6 @@
 {
   "name": "clinical-chat-ui",
+  "description": "React + Vite UI for the clinical agent chat endpoint.",
   "private": true,
   "version": "0.1.0",
   "type": "module",

@@ -34,7 +34,7 @@ Bootstrap executable planning artifacts from synthesized ingest for immediate ph
 ## Agent tests (snapshot)
 - Command: `python -m pytest agent/tests deploy/tests -q`
 - Lint: `python -m ruff check agent` (also in CI)
-- Typical local run (approximate): ~147 passed, ~15 skipped—counts vary; run pytest to confirm
+- Typical local run (approximate): ~152 passed, ~15 skipped—counts vary; run pytest to confirm
 - CI: `.github/workflows/agent-tests.yml`, `.gitlab-ci.yml` — ruff + pytest on `agent/tests` and `deploy/tests`
 
 ## Agent deploy (Fly)

@@ -2,6 +2,8 @@
 
 This document is the decision record and runbook for PR-02. It captures *why* Fly.io was chosen, *how* the deploy is structured, and *what* to do when something breaks.
 
+**See also:** [Agent tests](../../README.md#agent-tests) (repo root) · [Operator runbook](operator-runbook.md)
+
 ## Decision: Fly.io
 
 **Chosen over:** Railway, AWS EC2, Render, Heroku.

@@ -2,6 +2,16 @@
 
 Treat markdown under `.planning/` as the authoritative source for requirements, decisions, and roadmap state. Exported Word copies or external documents are supplementary; if they disagree with `.planning/`, prefer the markdown and reconcile deliberately.
 
+## Where to look
+
+- [.planning/ROADMAP.md](.planning/ROADMAP.md)
+- [.planning/STATE.md](.planning/STATE.md)
+- [.planning/REQ-TEST-TRACEABILITY.md](.planning/REQ-TEST-TRACEABILITY.md)
+- [.planning/FORK-CHECKLIST.md](.planning/FORK-CHECKLIST.md)
+- [MAINTAINERS.md](MAINTAINERS.md)
+- [.planning/eval-artifacts/README.md](.planning/eval-artifacts/README.md)
+- [deploy/docs/operator-runbook.md](deploy/docs/operator-runbook.md) (operator triage)
+
 Run the automated test suites from the repository root:
 
 ```text
