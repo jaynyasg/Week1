@@ -2,6 +2,9 @@
 .SYNOPSIS
   Smoke-test the local agent HTTP service (health, optional authenticated chat).
 
+.NOTES
+  For -AuthHeader (chat): use PowerShell 7+ (pwsh). PS 5.1 lacks SkipHttpErrorCheck on Invoke-WebRequest, so errors may throw before status checks.
+
 .DESCRIPTION
   GET {BaseUrl}/agent/health always runs.
   When -AuthHeader is set, POST {BaseUrl}/agent/chat with a JSON body matching ChatRequest

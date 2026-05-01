@@ -16,7 +16,7 @@ Make **RBAC denials**, **verification failures**, **fallbacks**, and **category-
 2. **Instrumentation pass** — Call `log_agent_event` (or thin wrappers) at RBAC deny paths, verification outcomes, and RGV fallback exits consistent with Phase 3 contracts.
 3. **Minimum-questions fields** — Ensure each safety-critical event can answer: what, why, duration, fallback, and cost envelope (or explicit “unknown”) per operator checklist.
 4. **Category-boundary flagging** — Log and surface anomalies where cross-category context risks clinical misuse; align with roadmap “flagged for review” expectation.
-5. **Operator triage path** — Document how logs/metrics (or a single query pattern) map event types to triage—no requirement to ship a dashboard in this stub’s scope.
+5. **Operator triage path** — Document how logs/metrics (or a single query pattern) map event types to triage—no requirement to ship a dashboard in this stub’s scope. **Done (repo):** `deploy/README-fly-agent.md` section *Operator triage (structured logs)*.
 6. **RBAC boundary evidence** — Correlate denial telemetry with role+tool identity without leaking PHI in log payloads (`SAFE-rbac-boundary-integrity`).
 7. **OpenEMR base URL misconfiguration** — Today a bad `OPENEMR_BASE_URL` yields **HTTP 500** from FastAPI; Phase 4 should add **structured operator-facing telemetry** with a distinct `event_type`, duration, and request id—**without** logging secrets. Current contract: `agent/tests/integration/test_openemr_base_url_misconfiguration.py`.
 

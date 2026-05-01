@@ -64,6 +64,8 @@ Add a repository secret named **`FLY_API_TOKEN`** (repository **Settings** → *
 
 The workflow uses **`concurrency`** with a single group so overlapping manual runs **queue** instead of canceling each other (`cancel-in-progress: false`), which avoids interrupting an in-flight deploy when another run is started.
 
+The workflow pins **`superfly/flyctl-actions/setup-flyctl@1.5`** (not a moving `@master` ref) and includes a **fail-fast** step if the **`FLY_API_TOKEN`** secret is missing, so the job errors immediately instead of running `flyctl` with an empty token.
+
 ## Secrets
 
 ```bash
@@ -94,6 +96,8 @@ curl -fsS -X POST "https://clinical-agent-scaffold.fly.dev/agent/chat" \
 ```
 
 ### PowerShell (`scripts/smoke_agent_service.ps1`)
+
+Use **PowerShell 7+** (`pwsh`) when you pass **`-AuthHeader`** (chat smoke). The script relies on `Invoke-WebRequest -SkipHttpErrorCheck`, which exists only in PS 7+; on **Windows PowerShell 5.1**, non-2xx chat responses may **throw** before status checks, so behavior differs from PS 7. Health-only (`-BaseUrl` only) is usually fine on 5.1.
 
 From the **repository root** (so `scripts\` resolves). Health only:
 
@@ -131,6 +135,20 @@ The script always runs `GET {base}/agent/health`. When `--auth-header` is set, i
 
 **JSON for chat:** If you use `--auth-header`, you need **`jq` or `python3`** on your `PATH` — the script uses one of them to build the JSON body for `POST /agent/chat` (see `scripts/smoke_agent_service.sh`).
 
+## Operator triage (structured logs)
+
+Production logs use JSON-friendly **`event` / `event_type`** fields on `agent_event` lines (and matching extras on RBAC `tool_refusal` lines). Use **`fly logs --app <app>`** (or your log stack) and filter on these values.
+
+| `event_type` | What it means | What to check |
+|----------------|----------------|----------------|
+| `openemr_misconfiguration` | `OPENEMR_BASE_URL` unset or empty at runtime. | `fly secrets list`; set `OPENEMR_BASE_URL` to the OpenEMR HTTPS origin; redeploy if needed. |
+| `tool_refusal` | RBAC denied a tool for the session role. | `role`, `tool`, `what`/`why` in log extras; confirm USERS.md matrix vs caller. |
+| `verify_failure` / `rgv_verify_retry` / `rgv_degraded_unverified` | RGV verify path: failed check, bounded retry, or returned **unverified** assistant text. | `why`, `verify_retry_count`, `duration_ms`, `fallback`; inspect upstream verify rules / model output. |
+| `category_boundary_review` | Scaffold/lab signal: labs + vitals context in one turn (demo hook until fork validates FHIR `Observation.category`). | Treat as **review queue**, not a clinical assertion; correlate with real FHIR tagging in fork. |
+| `chat_turn_complete` | Turn finished (happy or unverified). | `verified`, `rgv_duration_ms`, `fallback` (`none` vs `unverified_response`); `cost_envelope` is placeholder until billing hooks exist. |
+
+**GitHub Actions:** Manual deploy runs appear under **Actions** → **Fly agent (manual deploy)**; use the run timestamp and actor to correlate with `fly releases` / app logs after a deploy.
+
 ## Troubleshooting
 
 | Symptom | Likely cause | What to do |
@@ -152,7 +170,7 @@ fly ssh console --app clinical-agent-scaffold
 | `fly.agent.toml` | Fly app name, build `dockerfile = "Dockerfile.agent"`, `ignorefile = ".dockerignore.agent"`, `http_service.internal_port = 8080`, health check `GET /agent/health` |
 | `deploy/requirements-agent.txt` | Runtime pip deps (`httpx`, `fastapi`, `python-dotenv`, `uvicorn[standard]`) |
 | `.dockerignore.agent` | Smaller/faster agent image builds |
-| `scripts/smoke_agent_service.ps1` | Local or remote smoke: health + optional chat with `-AuthHeader` |
+| `scripts/smoke_agent_service.ps1` | Local or remote smoke: health + optional chat with `-AuthHeader` (**use `pwsh` / PS 7+** for chat) |
 | `scripts/smoke_agent_service.sh` | Same for Bash/macOS/Linux/Git Bash: `--base-url`, optional `--auth-header` (`jq` or `python3` when chat runs) |
 
 ## Local sanity (no server)
