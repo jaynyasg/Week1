@@ -7,6 +7,13 @@ V1 requirements are derived from `.planning/ingest/synthesis.json` with ADR/SPEC
 - Markdown artifacts in-repo are canonical.
 - Word exports are reference-only and non-authoritative when divergent.
 
+## Verification / evidence (repo)
+- **CI**: GitHub Actions `.github/workflows/agent-tests.yml` (`pytest` job: `python -m pytest agent/tests -q`); GitLab `.gitlab-ci.yml` (`test` stage / `test` job, same command).
+- **Local**: `python -m pytest agent/tests -q` (aligns with CI and the **Agent tests** section in `README.md`).
+- **Key test modules**: `agent/tests/unit/test_rbac_matrix.py`, `agent/tests/integration/test_http_logging_observability.py`, `agent/tests/integration/test_live_openemr_optional.py`, `agent/tests/unit/test_http_deps.py`.
+- **Docs**: `README.md` — section **Agent tests** (command + optional live OpenEMR notes).
+- **Recorded run (2026-04-30, local)**: `python -m pytest agent/tests -q` → **71 passed, 4 skipped** in ~2.4s.
+
 ## Functional Requirements (V1)
 - `REQ-deployment-smoke-suite`: All seven deployment smoke tests pass after each deploy before checkpoint submission.
 - `REQ-delivery-foundation-gates`: MVP delivery gates require local OpenEMR runtime with sample data, public deployment readiness, and canonical `AUDIT.md`/`USERS.md`/`ARCHITECTURE.md` artifacts.
