@@ -6,6 +6,8 @@
 python -m pytest agent/tests -q
 ```
 
+A stock run reports **71 passed**, **4 skipped**; the skips are the four live OpenEMR tests in [`test_live_openemr_optional.py`](agent/tests/integration/test_live_openemr_optional.py). HTTP-focused coverage includes [`test_http_deps.py`](agent/tests/unit/test_http_deps.py) and [`test_http_logging_observability.py`](agent/tests/integration/test_http_logging_observability.py).
+
 CI runs the same suite on **GitLab** (`.gitlab-ci.yml`) and **GitHub Actions** (`.github/workflows/agent-tests.yml`).
 
 ### Optional: gated live OpenEMR E2E
@@ -20,7 +22,7 @@ These checks call the real deployed OpenEMR (and optionally your deployed agent)
 | `OPENEMR_BEARER_TOKEN` | Raw token; tests add `Bearer` if missing. |
 | `AGENT_BASE_URL` | Optional; if set, smoke `POST …/agent/chat` against a deployed agent. |
 
-Implementation: `agent/tests/integration/test_live_openemr_optional.py`.
+Implementation: [`agent/tests/integration/test_live_openemr_optional.py`](agent/tests/integration/test_live_openemr_optional.py) (four tests; skipped unless the env vars above are set).
 
 ## Getting started
 

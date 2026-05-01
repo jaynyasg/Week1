@@ -30,3 +30,12 @@ Make **RBAC denials**, **verification failures**, **fallbacks**, and **category-
 1. Taxonomy + field checklist (minimum questions).
 2. Instrument hot paths using `events.py`.
 3. Safety flag + triage documentation pass.
+
+## Repo evidence (scaffold)
+- `agent/observability/events.py` — `AgentEvent`, `log_agent_event()`.
+- `agent/observability/__init__.py` — exports `AgentEvent`, `log_agent_event`.
+- `agent/access/rbac.py` — `log_tool_refusal()`; `agent/http/app.py` invokes it on `ToolRefusal`. Integration coverage in `agent/tests/integration/test_http_logging_observability.py` asserts RBAC-denied tool posts log `tool_refusal` with the same structured `event` / `event_type` extras used for `log_agent_event` on chat (parity with chat-turn logging checks in that file).
+- `agent/tests/unit/test_events.py` — unit tests for `AgentEvent` and `log_agent_event`.
+- `agent/tests/integration/test_http_logging_observability.py` — HTTP-level checks for chat `agent_event` fields and RBAC `tool_refusal` fields.
+
+**Test run (repo state only; not a claim Phase 4 is executed):** `python -m pytest agent/tests -q` → **71 passed, 4 skipped** (local run).
