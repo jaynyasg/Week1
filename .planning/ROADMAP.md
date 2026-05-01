@@ -66,6 +66,7 @@
 ### Phase 5: Evaluation and Performance Validation
 **Goal**: Latency and reliability targets are validated with repeatable evaluation evidence.
 **Depends on**: Phase 4
+**Notes**: Plan stub links exit criteria to latency, RBAC eval breadth, cost artifacts, checklist coverage, and stored evaluation evidence.
 **Requirements**: NFR-latency-validation-gate, NFR-eval-suite-unauthorized-access, NFR-cost-analysis-requirement, REQ-presearch-checklist-coverage
 **Success Criteria** (what must be TRUE):
   1. Pre-visit summary latency is measured against defined thresholds in a repeatable test harness.
@@ -74,7 +75,7 @@
   4. Cost analysis artifacts identify primary runtime cost drivers and mitigation options before release checkpoints.
   5. Appendix Pre-Search Checklist items are captured in architecture/eval evidence with explicit pass/fail or rationale status.
   6. Evaluation outputs are stored as artifact evidence for checkpoint review.
-**Plans**: TBD
+**Plans**: `.planning/plans/phase-5-evaluation-plan.md`
 
 ### Phase 6: Documentation Governance Cleanup
 **Goal**: Governance prevents requirement/decision drift by treating markdown planning artifacts as authoritative.
@@ -94,5 +95,5 @@
 | 2. RBAC Enforcement and Test Matrix | 1/1 | Completed | 2026-04-30 (pytest + optional live OpenEMR) |
 | 3. Retrieve-Generate-Verify Runtime Flow | 1/1 | In progress | RGV scaffold + tests in repo |
 | 4. Observability and Clinical Safety Flagging | 1/1 | Not started | - |
-| 5. Evaluation and Performance Validation | 0/1 | Not started | - |
+| 5. Evaluation and Performance Validation | 1/1 | Not started | - |
 | 6. Documentation Governance Cleanup | 0/1 | Not started | - |
