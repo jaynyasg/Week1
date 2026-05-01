@@ -20,6 +20,10 @@ CI runs **ruff** and **pytest** on `agent/tests` and `deploy/tests` on **GitLab*
 
 Planning and contribution norms: [CONTRIBUTING.md](CONTRIBUTING.md).
 
+### Project narrative (reviewer-friendly)
+
+Single overview of decisions, users, eval, cost, observability: [`PROJECT-SHOWCASE.md`](PROJECT-SHOWCASE.md) (**living document**—update as milestones land).
+
 ### Gauntlet / course submission (quick links)
 
 | Deliverable | Location |
@@ -41,6 +45,7 @@ Configure OpenEMR origin via `fly secrets` per [`deploy/README-fly-agent.md`](de
 
 ### Documentation index
 
+- [`PROJECT-SHOWCASE.md`](PROJECT-SHOWCASE.md) — end-to-end project story + key decisions (update as work completes)
 - [`USERS.md`](USERS.md) — Stage 4: primary user, workflow, use cases + why conversational agent; Part 2 = RBAC
 - [`AI-COST-ANALYSIS.md`](AI-COST-ANALYSIS.md) — cost template (fill TBD)
 - [CONTRIBUTING.md](CONTRIBUTING.md)
