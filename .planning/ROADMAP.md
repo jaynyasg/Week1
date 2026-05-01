@@ -54,13 +54,14 @@
 ### Phase 4: Observability and Clinical Safety Flagging
 **Goal**: Operational and safety-critical events are observable, queryable, and alertable.
 **Depends on**: Phase 3
+**Notes**: Execution stub links baseline `agent/observability/events.py` and maps exit criteria in the plan.
 **Requirements**: NFR-observability-coverage, NFR-observability-minimum-questions, SAFE-rbac-boundary-integrity
 **Success Criteria** (what must be TRUE):
   1. RBAC denials, verification failures, and fallback events emit structured telemetry with consistent fields.
   2. Telemetry answers minimum operator questions: what happened, why it happened, how long it took, what fallback triggered, and what cost envelope was incurred.
   3. Safety-relevant category-boundary anomalies (labs/vitals separation risk) are logged and flagged for review.
   4. Operators can identify and triage risk events from logs/metrics without inspecting raw app internals.
-**Plans**: TBD
+**Plans**: `.planning/plans/phase-4-observability-plan.md`
 
 ### Phase 5: Evaluation and Performance Validation
 **Goal**: Latency and reliability targets are validated with repeatable evaluation evidence.
@@ -92,6 +93,6 @@
 | 1. Deployment Baseline Hardening | 1/1 | Completed | 2026-04-30 (EMR evidence + AI integration plan finalized) |
 | 2. RBAC Enforcement and Test Matrix | 1/1 | Completed | 2026-04-30 (pytest + optional live OpenEMR) |
 | 3. Retrieve-Generate-Verify Runtime Flow | 1/1 | In progress | RGV scaffold + tests in repo |
-| 4. Observability and Clinical Safety Flagging | 0/1 | Not started | - |
+| 4. Observability and Clinical Safety Flagging | 1/1 | Not started | - |
 | 5. Evaluation and Performance Validation | 0/1 | Not started | - |
 | 6. Documentation Governance Cleanup | 0/1 | Not started | - |
