@@ -30,3 +30,8 @@ Clinical Co-Pilot provides role-safe, session-validated clinical assistance on t
 
 ## Current Focus
 Bootstrap executable planning artifacts from synthesized ingest for immediate phase planning and execution.
+
+## Agent tests (snapshot)
+- Command: `python -m pytest agent/tests -q`
+- Last verified (local): 71 passed, 4 skipped
+- CI: `.github/workflows/agent-tests.yml`, `.gitlab-ci.yml`
