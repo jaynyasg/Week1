@@ -9,7 +9,6 @@ primary_region = "iad"
 
 [build]
   dockerfile = "Dockerfile"
-  build_context = "chat-ui"
   ignorefile = ".dockerignore"
 
 [build.args]
