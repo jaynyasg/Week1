@@ -259,7 +259,7 @@ def import_vitals(cur: Any, obs_csv: Path, pid_map: dict[str, int]) -> int:
 
 
 def import_labs(cur: Any, obs_csv: Path, pid_map: dict[str, int]) -> int:
-    """Import laboratory observations into form_observation / forms."""
+    """Import laboratory observations into procedure_report / procedure_result."""
     from collections import defaultdict
 
     enc: dict[tuple[str, str, str], list[dict[str, str]]] = defaultdict(list)
@@ -273,10 +273,10 @@ def import_labs(cur: Any, obs_csv: Path, pid_map: dict[str, int]) -> int:
             key = (pid_str, row.get("ENCOUNTER", ""), row.get("DATE", "")[:10])
             enc[key].append(row)
 
+    total_encounters = len(enc)
     count = 0
-    for (pid_str, encounter, obs_date), rows in enc.items():
+    for i, ((pid_str, encounter, obs_date), rows) in enumerate(enc.items(), 1):
         pid = pid_map[pid_str]
-        # Create a procedure_report row to anchor results
         cur.execute(
             """
             INSERT INTO procedure_report
@@ -287,25 +287,34 @@ def import_labs(cur: Any, obs_csv: Path, pid_map: dict[str, int]) -> int:
             (obs_date, obs_date),
         )
         report_id = cur.lastrowid
-        for row in rows:
-            cur.execute(
-                """
-                INSERT INTO procedure_result
-                    (procedure_report_id, result_code, result_text,
-                     result_data_type, result, units,
-                     `range`, abnormal, result_status, date)
-                VALUES (%s,%s,%s,'NM',%s,%s,'','','final',%s)
-                """,
-                (
-                    report_id,
-                    row.get("CODE", "")[:31],
-                    row.get("DESCRIPTION", "")[:255],
-                    row.get("VALUE", "")[:255],
-                    row.get("UNITS", "")[:31],
-                    obs_date,
-                ),
+
+        # Batch all result rows for this encounter in one round-trip
+        result_rows = [
+            (
+                report_id,
+                row.get("CODE", "")[:31],
+                row.get("DESCRIPTION", "")[:255],
+                row.get("VALUE", "")[:255],
+                row.get("UNITS", "")[:31],
+                obs_date,
             )
-            count += 1
+            for row in rows
+        ]
+        cur.executemany(
+            """
+            INSERT INTO procedure_result
+                (procedure_report_id, result_code, result_text,
+                 result_data_type, result, units,
+                 `range`, abnormal, result_status, date)
+            VALUES (%s,%s,%s,'NM',%s,%s,'','','final',%s)
+            """,
+            result_rows,
+        )
+        count += len(rows)
+
+        if i % 50 == 0 or i == total_encounters:
+            print(f"  labs: {i}/{total_encounters} encounters, {count} results…")
+
     return count
 
 
@@ -349,44 +358,47 @@ def main() -> None:
 
         print("\n[1/5] Importing patients...")
         if args.skip_patients:
-            # Rebuild pid_map from existing data
             cur.execute("SELECT pubpid, pid FROM patient_data WHERE pubpid != '' AND pubpid IS NOT NULL")
             pid_map = {row[0]: row[1] for row in cur.fetchall()}
             print(f"  → skipped ({len(pid_map)} already in DB)")
         else:
             pid_map = import_patients(cur, fixtures / "patients.csv")
-            print(f"  → {len(pid_map)} patients processed")
+            conn.commit()
+            print(f"  → {len(pid_map)} patients committed")
 
         print("\n[2/5] Importing medications...")
         if args.skip_medications:
             print("  → skipped")
         else:
             n = import_medications(cur, fixtures / "medications.csv", pid_map)
-            print(f"  → {n} medication rows")
+            conn.commit()
+            print(f"  → {n} medication rows committed")
 
         print("\n[3/5] Importing allergies...")
         if args.skip_allergies:
             print("  → skipped")
         else:
             n = import_allergies(cur, fixtures / "allergies.csv", pid_map)
-            print(f"  → {n} allergy rows")
+            conn.commit()
+            print(f"  → {n} allergy rows committed")
 
         print("\n[4/5] Importing vitals...")
         if args.skip_vitals:
             print("  → skipped")
         else:
             n = import_vitals(cur, fixtures / "observations.csv", pid_map)
-            print(f"  → {n} vitals encounters")
+            conn.commit()
+            print(f"  → {n} vitals encounters committed")
 
         print("\n[5/5] Importing lab observations...")
         if args.skip_labs:
             print("  → skipped")
         else:
             n = import_labs(cur, fixtures / "observations.csv", pid_map)
-            print(f"  → {n} lab observation rows")
+            conn.commit()
+            print(f"  → {n} lab observation rows committed")
 
-        conn.commit()
-        print("\n✓ Import complete. All changes committed.")
+        print("\n✓ Import complete.")
         print(f"\nSeed patient UUID:  f1aa52b9-aded-3188-9386-012244805ebf")
         print(f"OpenEMR patient ID: {pid_map.get('f1aa52b9-aded-3188-9386-012244805ebf', 'not found')}")
 
