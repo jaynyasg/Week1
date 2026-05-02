@@ -127,7 +127,10 @@ def create_app() -> FastAPI:
         app.add_middleware(
             CORSMiddleware,
             allow_origins=["*"] if allow_all else cors,
-            allow_credentials=False,
+            # credentials: "include" (OpenEMR session + Bearer modes) requires
+            # Allow-Credentials: true, which is only valid with explicit origins
+            # (not wildcard). Keep False for wildcard to avoid browser rejection.
+            allow_credentials=not allow_all,
             allow_methods=["*"],
             allow_headers=["*"],
         )
