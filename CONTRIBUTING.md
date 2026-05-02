@@ -32,7 +32,7 @@ python -m ruff check agent
 
 Optional Git hooks: install with `pip install pre-commit && pre-commit install` to run `.pre-commit-config.yaml` (e.g. Ruff on `agent/`) before commit.
 
-Makefile shortcuts: `make doctor` (Python/pytest versions + live-test env flags), `make pytest-fast` (excludes `@pytest.mark.eval`), `make openapi-check` (OpenAPI contract test). On Windows without `make`, use `pwsh scripts/doctor.ps1`. Maintainer placeholders: [`MAINTAINERS.md`](MAINTAINERS.md).
+Makefile shortcuts: `make doctor` (Python/pytest versions + live-test env flags), `make pytest-fast` (excludes `@pytest.mark.eval`), `make openapi-check` (OpenAPI contract test), `make validate-fixtures` (full FK scan on `fixtures/sample-patients/*.csv`). On Windows without `make`, use `pwsh scripts/doctor.ps1`. Maintainer placeholders: [`MAINTAINERS.md`](MAINTAINERS.md).
 
 Do not commit secrets. Keep credentials and environment-specific values in a local `.env` file (ignored by git), following `.env.example` where provided.
 

@@ -1,7 +1,7 @@
 # Clinical Co-Pilot — local developer tasks (no Fly deploy).
 # Usage: make test | make pytest | make chat-ui-build | make smoke-help
 
-.PHONY: test pytest pytest-fast openapi-check chat-ui-build chat-ui-install lint-ruff fmt-ruff smoke-help doctor
+.PHONY: test pytest pytest-fast openapi-check chat-ui-build chat-ui-install lint-ruff fmt-ruff smoke-help doctor validate-fixtures
 
 test: pytest chat-ui-build
 
@@ -32,3 +32,6 @@ smoke-help:
 
 doctor:
 	bash scripts/doctor.sh
+
+validate-fixtures:
+	python scripts/validate_sample_patient_fixtures.py

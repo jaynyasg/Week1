@@ -130,7 +130,7 @@ Everything below is **in-repo or CI-visible** unless marked *intent* (planned on
 
 | Aspect | Status / intent |
 | --- | --- |
-| **Automated suite** | **`pytest`** over `agent/tests` and `deploy/tests`; typical offline run **~162 passed**, **~15 skipped** (live OpenEMR, optional gates)—**re-run to refresh** |
+| **Automated suite** | **`pytest`** over `agent/tests` and `deploy/tests`; typical offline run **~163 passed**, **~15 skipped** (live OpenEMR, optional gates)—**re-run to refresh** |
 | **What it proves** | RGV ordering, multi-turn history, auth/RBAC, OpenAPI contract, OpenEMR fetch edge cases (mocked), HTTP observability fields, deploy manifest checks, chat JSON shape vs `ChatResponse` |
 | **Live / gated** | Optional `RUN_LIVE_OPENEMR_E2E` tests and latency gates documented in [`.env.example`](.env.example) |
 | **Traceability** | [`.planning/REQ-TEST-TRACEABILITY.md`](.planning/REQ-TEST-TRACEABILITY.md) |
@@ -171,6 +171,7 @@ Non-exhaustive list of engineering work that supports the narrative above:
 - **Dependabot:** Weekly pip (root + deploy) and npm (`chat-ui`)  
 - **Operator docs:** [`deploy/docs/operator-runbook.md`](deploy/docs/operator-runbook.md), [`deploy/README-fly-agent.md`](deploy/README-fly-agent.md)  
 - **Onboarding:** `make doctor` / `scripts/doctor.ps1` · **Troubleshooting** table in [`README.md`](README.md)  
+- **Synthetic patient CSVs:** [`fixtures/sample-patients/README.md`](fixtures/sample-patients/README.md) + `scripts/validate_sample_patient_fixtures.py` (optional full FK validation; `--quick` in unit tests)
 
 *(Exact git history: use `git log`; this section stays summary-level.)*
 
@@ -226,7 +227,7 @@ Today’s behavior is **layered**:
 It stress-tests **auth and misuse** (missing / wrong headers, OpenEMR misconfiguration), **RBAC denials** (forbidden tool paths with logging contracts), **RGV ordering and bounded retry**, **verify exhaustion** (`verified: false` after retries), **HTTP validation** (422 on empty chat fields), **OpenEMR JSON edge cases** (non-200, invalid JSON, non-object payloads) via httpx mocks, **deploy/offline** Fly manifest assumptions, and **observability fields** on log records—not just “one successful chat POST.”
 
 **What did you find when you ran it?**  
-On a typical offline run the suite reports on the order of **~162 passed**, **~15 skipped** (live OpenEMR E2E, optional latency/eval gates, etc.—exact counts drift; see [`README.md`](README.md) and [`.planning/eval-artifacts/2026-05-01-submission-prep-snapshot.md`](.planning/eval-artifacts/2026-05-01-submission-prep-snapshot.md)). **Finding:** the **contracts hold** under test, but **skips** are a deliberate reminder of what is **not** continuously proven in CI (real PHI session behavior, real FHIR latency).
+On a typical offline run the suite reports on the order of **~163 passed**, **~15 skipped** (live OpenEMR E2E, optional latency/eval gates, etc.—exact counts drift; see [`README.md`](README.md) and [`.planning/eval-artifacts/2026-05-01-submission-prep-snapshot.md`](.planning/eval-artifacts/2026-05-01-submission-prep-snapshot.md)). **Finding:** the **contracts hold** under test, but **skips** are a deliberate reminder of what is **not** continuously proven in CI (real PHI session behavior, real FHIR latency).
 
 **What would you add to it next?**  
 - **Fixture-backed FHIR** golden files per role (read-only) with expected retrieve snapshots.  
@@ -268,3 +269,4 @@ Ship **record-backed attribution** for factual claims, **clinically reviewed ver
 | 2026-05-02 | Initial `PROJECT-SHOWCASE.md`: architecture, users, eval, cost, observability, hygiene pointers; living-doc process. |
 | 2026-05-02 | Added **§2 Tools, software, and platforms** (stack tables + rationale); renumbered sections; refresh checklist includes stack updates. |
 | 2026-05-02 | Added **§10 Interview-style Q&A** (audit, architecture, evaluation, production thinking); **§11** refresh checklist. |
+| 2026-05-02 | Documented **synthetic CSV fixtures** (`fixtures/sample-patients/`), validation script, gitignored `local/`, README + showcase hygiene links. |

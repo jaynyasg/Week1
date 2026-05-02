@@ -18,6 +18,9 @@ junit.xml
 .coverage
 htmlcov/
 
+# Local-only patient CSV experiments (may contain sensitive or non-synthetic data)
+fixtures/sample-patients/local/
+
 # Secrets (templates like .env.example stay tracked)
 .env
 .env.local

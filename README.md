@@ -14,7 +14,7 @@ Lint (matches CI):
 python -m ruff check agent
 ```
 
-A typical local run is about **162 passed**, **15 skipped**; skips include optional live OpenEMR, `RUN_LATENCY_GATE`, and other gated tests (counts vary—run pytest to confirm). HTTP-focused coverage includes [`test_http_deps.py`](agent/tests/unit/test_http_deps.py), [`test_http_logging_observability.py`](agent/tests/integration/test_http_logging_observability.py), and [`test_openemr_base_url_misconfiguration.py`](agent/tests/integration/test_openemr_base_url_misconfiguration.py) (OpenEMR base URL wiring regressions).
+A typical local run is about **163 passed**, **15 skipped**; skips include optional live OpenEMR, `RUN_LATENCY_GATE`, and other gated tests (counts vary—run pytest to confirm). HTTP-focused coverage includes [`test_http_deps.py`](agent/tests/unit/test_http_deps.py), [`test_http_logging_observability.py`](agent/tests/integration/test_http_logging_observability.py), and [`test_openemr_base_url_misconfiguration.py`](agent/tests/integration/test_openemr_base_url_misconfiguration.py) (OpenEMR base URL wiring regressions).
 
 CI runs **ruff** and **pytest** on `agent/tests` and `deploy/tests` on **GitLab** (`.gitlab-ci.yml`) and **GitHub Actions** (`.github/workflows/agent-tests.yml`).
 
@@ -42,6 +42,11 @@ curl -fsS https://clinical-agent-scaffold.fly.dev/agent/health
 ```
 
 Configure OpenEMR origin via `fly secrets` per [`deploy/README-fly-agent.md`](deploy/README-fly-agent.md). **Demo (3–5 min):** show OpenEMR session → chat panel → multi-turn follow-up → point to `verified` / `verification_notes` in JSON; tie narrative to use cases in [`USERS.md`](USERS.md) Part 1 and fork vs scaffold boundaries from [`.planning/ROADMAP.md`](.planning/ROADMAP.md).
+
+### Sample patient CSV fixtures (synthetic)
+
+- Directory: [`fixtures/sample-patients/`](fixtures/sample-patients/) (Synthea-style exports; **not** loaded by the agent at runtime).
+- Validate: `python scripts/validate_sample_patient_fixtures.py` (full FK scan, ~10s) or `--quick` for CI.
 
 ### Documentation index
 
