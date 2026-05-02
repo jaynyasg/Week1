@@ -8,7 +8,7 @@ app = "clinical-chat-ui"
 primary_region = "iad"
 
 [build]
-  dockerfile = "chat-ui/Dockerfile"
+  dockerfile = "Dockerfile"
   build_context = "chat-ui"
   ignorefile = "chat-ui/.dockerignore"
 
