@@ -2,7 +2,7 @@
 
 **Purpose:** A single, readable narrative of **what this repository delivers**, **why key choices were made**, and **where to find proof** (tests, docs, deploy). Intended for reviewers, demos, and future-you after scope changes.
 
-**Living document:** Update this file when milestones close, tests counts shift materially, or deployment URLs/cost figures change. Append a row to **§ Revision history** at the bottom each time.
+**Living document:** Update this file when milestones close, tests counts shift materially, deployment URLs/cost figures change, the **stack** (§2) shifts, or **interview answers** (§10) need to reflect new audit/architecture/eval evidence. Append a row to **§ Revision history** at the bottom each time.
 
 **Last updated:** 2026-05-02
 
@@ -16,7 +16,88 @@ The **design intent** (users, use cases, verification philosophy, observability 
 
 ---
 
-## 2. Architecture — decisions and evidence
+## 2. Tools, software, and platforms
+
+Everything below is **in-repo or CI-visible** unless marked *intent* (planned on fork / production path). **Why chosen** is engineering rationale for *this* project, not a generic vendor pitch.
+
+### 2.1 Language, runtime, and packaging
+
+| Item | What it does here | Why it was chosen |
+| --- | --- | --- |
+| **Python 3.12** | Agent implementation language; CI pins this version | Strong typing ecosystem, async I/O, team velocity; matches GitHub Actions / GitLab CI images |
+| **`requirements.txt`** | Dev + test dependencies (root) | Single install for contributors and CI before `pytest` / `ruff` |
+| **`deploy/requirements-agent.txt`** | Slimmer **production** agent image deps (+ **uvicorn**) | Smaller Fly image surface; excludes test-only packages |
+
+### 2.2 Agent service (backend)
+
+| Item | What it does here | Why it was chosen |
+| --- | --- | --- |
+| [**FastAPI**](https://fastapi.tiangolo.com/) | HTTP API (`/agent/chat`, `/agent/health`, …), dependency injection for auth and rate limits | OpenAPI-first, async-friendly, Pydantic-native request/response validation—fits contract-heavy clinical API |
+| [**Uvicorn**](https://www.uvicorn.org/) | ASGI server in the Fly container | Standard, lightweight ASGI host for FastAPI; `uvicorn[standard]` for production extras |
+| [**Pydantic**](https://docs.pydantic.dev/) (via FastAPI) | `ChatRequest` / `ChatResponse` schemas, validation errors → **422** | Typed JSON contracts and clear failure modes for UI + eval |
+| [**httpx**](https://www.python-httpx.org/) | Async HTTP to OpenEMR **`/api/user`**, optional live smoke tests | Modern async client; `MockTransport` supports unit tests without the network |
+| [**OpenAI Python SDK**](https://github.com/openai/openai-python) | Optional **LLM-backed** `scaffold_generate` when `OPENAI_API_KEY` is set | Vendor-neutral “real model” path without locking the scaffold to one host pattern; degrades to echo when unset |
+| [**SlowAPI**](https://github.com/laurentS/slowapi) | Optional rate limiting on chat route when env-configured | Rate limits are a clinical-safety / abuse-control primitive for a public HTTP agent |
+| [**python-dotenv**](https://github.com/theskumar/python-dotenv) | Load local `.env` for dev (gitignored) | Keeps secrets out of code while matching Fly secret names conceptually |
+
+### 2.3 Chat UI (frontend)
+
+| Item | What it does here | Why it was chosen |
+| --- | --- | --- |
+| [**React**](https://react.dev/) 18 | Chat panel UI | Small surface area, embeddable in OpenEMR or standalone; wide hiring/tooling familiarity |
+| [**TypeScript**](https://www.typescriptlang.org/) | Typed client code | Safer refactors against evolving agent JSON contracts |
+| [**Vite**](https://vitejs.dev/) 5 | Dev server, production build, `VITE_*` env injection | Fast local feedback; build args support Fly embed (`VITE_AGENT_BASE_URL`, `VITE_EMBEDDED`, base path) |
+| **npm** | Install and CI for `chat-ui/` | Ecosystem default for Vite/React; lockfile for reproducible builds |
+
+### 2.4 Quality, tests, and local workflow
+
+| Item | What it does here | Why it was chosen |
+| --- | --- | --- |
+| [**pytest**](https://pytest.org/) | Unit + integration tests under `agent/tests`, `deploy/tests` | De facto Python standard; fixtures + parametrize fit HTTP and auth matrices |
+| [**pytest-asyncio**](https://pytest-asyncio.readthedocs.io/) | Async tests (`fetch_openemr_user_json`, etc.) | Matches async FastAPI / httpx call paths |
+| [**Ruff**](https://docs.astral.sh/ruff/) | Lint + format check on `agent/` (CI + optional pre-commit) | Single fast tool replacing flake8/isort stacks; matches CI |
+| [**pre-commit**](https://pre-commit.com/) *(optional)* | Local hooks running Ruff on `agent/` | Catches style/issues before push; documented in [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+| **GNU Make** *(optional)* | `Makefile` targets (`pytest`, `doctor`, `chat-ui-build`, …) | Cross-platform enough for devs with Git Bash; shortcuts reduce onboarding friction |
+
+### 2.5 Integration target and data model (*intent / fork*)
+
+| Item | What it does here | Why it was chosen |
+| --- | --- | --- |
+| [**OpenEMR**](https://www.open-emr.org/) | Real-world EHR: session validation, future FHIR/REST tool sources | Assignment and architecture target; **this repo** validates sessions and documents RBAC against OpenEMR roles |
+| **FHIR R4** *(architecture / fork)* | Primary chart read model in [`ARCHITECTURE.md`](ARCHITECTURE.md) | Standardized patient data access; Observation category split supports labs vs vitals RBAC |
+
+### 2.6 Deployment and operations
+
+| Item | What it does here | Why it was chosen |
+| --- | --- | --- |
+| [**Fly.io**](https://fly.io/) | Hosts **agent** app (`fly.agent.toml`) separately from OpenEMR stack | Simple container deploy, health checks, secrets, regional VMs; matches “two app” topology in roadmap |
+| [**Docker**](https://www.docker.com/) | `Dockerfile.agent` builds the agent image | Reproducible runtime parity dev→CI→Fly |
+| **Shell / PowerShell scripts** | Smoke tests, `doctor` onboarding | Lowest friction for operators without installing extra CLIs |
+
+### 2.7 CI/CD and dependency hygiene
+
+| Item | What it does here | Why it was chosen |
+| --- | --- | --- |
+| [**GitHub Actions**](https://github.com/features/actions) | Ruff, pytest, optional path-gated chat-ui jobs (`.github/workflows/`) | Native to GitHub; `dorny/paths-filter` avoids burning minutes when `chat-ui/` unchanged |
+| **GitLab CI** | Parallel pipeline (`.gitlab-ci.yml`) | Matches Gauntlet / org hosting on GitLab |
+| [**Dependabot**](https://docs.github.com/en/code-security/dependabot) | Weekly PRs for pip (root + `deploy/`) and npm (`chat-ui/`) | Keeps supply chain patches flowing without manual polling |
+
+### 2.8 Documentation and planning
+
+| Item | What it does here | Why it was chosen |
+| --- | --- | --- |
+| **Markdown** | `README`, `USERS`, `ARCHITECTURE`, `AUDIT`, `.planning/*` | Diff-friendly, reviewable, **authoritative** over Word per project policy |
+| [**Mermaid**](https://mermaid.js.org/) | Diagrams inside `ARCHITECTURE.md` | Renders in GitHub/GitLab; stays next to prose |
+
+### 2.9 Version control
+
+| Item | What it does here | Why it was chosen |
+| --- | --- | --- |
+| **Git** | Source history | Industry baseline; supports fork workflow toward OpenEMR integration |
+
+---
+
+## 3. Architecture — decisions and evidence
 
 | Decision | What we chose | Why it matters | Where it lives |
 | --- | --- | --- | --- |
@@ -30,7 +111,7 @@ The **design intent** (users, use cases, verification philosophy, observability 
 
 ---
 
-## 3. Users and use cases
+## 4. Users and use cases
 
 **Source of truth:** [`USERS.md`](USERS.md) **Part 1** — Stage 4 hard gate.
 
@@ -45,7 +126,7 @@ The **design intent** (users, use cases, verification philosophy, observability 
 
 ---
 
-## 4. Evaluation
+## 5. Evaluation
 
 | Aspect | Status / intent |
 | --- | --- |
@@ -58,7 +139,7 @@ The **design intent** (users, use cases, verification philosophy, observability 
 
 ---
 
-## 5. AI cost analysis
+## 6. AI cost analysis
 
 | Aspect | Status |
 | --- | --- |
@@ -69,7 +150,7 @@ The **design intent** (users, use cases, verification philosophy, observability 
 
 ---
 
-## 6. Observability
+## 7. Observability
 
 | Minimum question (rubric) | Repo stance |
 | --- | --- |
@@ -82,7 +163,7 @@ The **design intent** (users, use cases, verification philosophy, observability 
 
 ---
 
-## 7. Repository and delivery hygiene (high level)
+## 8. Repository and delivery hygiene (high level)
 
 Non-exhaustive list of engineering work that supports the narrative above:
 
@@ -95,20 +176,88 @@ Non-exhaustive list of engineering work that supports the narrative above:
 
 ---
 
-## 8. Audit and risk posture
+## 9. Audit and risk posture
 
 Design-time audit and Word-vs-markdown caveats: [`AUDIT.md`](AUDIT.md).  
 Scaffold snapshot appendix ties repo reality to audit expectations without overstating runtime parity.
 
 ---
 
-## 9. How to refresh this document
+## 10. Interview-style Q&A (review prep)
+
+Short answers you can expand verbally in a live interview. **Evidence** links point to canonical docs or code; refresh when the fork or production stack closes new gaps.
+
+### Your Audit
+
+**Walk us through your most important finding.**  
+The audit’s highest-leverage finding is **source-of-truth drift**: exported **Word** PRD / task list **v1.0 / v2.0** is **not** the same baseline as **markdown PRD v1.1 + Tasks v2.1**—different feature counts, **no labs/vitals split**, weaker **ADMIN** RBAC story, and different LLM/HIPAA framing (see [`AUDIT.md`](AUDIT.md) executive summary and **AUD-012 / AUD-013**). Building from Word alone would bake the wrong tool surface and the wrong security posture. A close second is **AUD-003**: PRD wording still says “**seven**” patient-context functions while Feature 4 and architecture require **eight** tools—easy to ship an incomplete RBAC/register matrix if nobody reconciles the text.
+
+**What would you have missed if you had skipped the audit and gone straight to building?**  
+You would likely have (1) **under-built RBAC** (especially **ADMIN** and nurse boundaries), (2) **merged labs and vitals** in one tool and lost a permission boundary the PRD treats as safety-relevant, (3) **skipped explicit verification / degradation contracts** because “we’ll add safety later,” and (4) **underestimated operational unknowns** (FHIR latency, `Observation.category` consistency, Langfuse hosting vs HIPAA narrative) that the audit elevates before EHR tool PRs land.
+
+**How did the audit change your AI integration plan?**  
+It **forced markdown authority** over Word exports, aligned **`USERS.md`** / RBAC narrative to **PRD Feature 8**, and made **fork vs in-repo scaffold** scope explicit in [`.planning/AI-ARCHITECTURE.md`](.planning/AI-ARCHITECTURE.md) and [`.planning/ROADMAP.md`](.planning/ROADMAP.md) so the AI layer is not oversold as “fully executable” before OpenEMR integration work exists. Practically: **contracts and tests first**, then fork work carries **record-backed verification** and real tool failure modes.
+
+---
+
+### Your Architecture
+
+**Why did you design the verification layer the way you did?**  
+Verification is **programmatic first** (deterministic, testable) inside a **retrieve → generate → verify** loop with **bounded retry** (`MAX_VERIFY_RETRIES` in [`agent/runtime/rgv_pipeline.py`](agent/runtime/rgv_pipeline.py)): one failed verify pass can trigger a **single** re-generation, then the pipeline **stops** and returns text with **`verified: false`** rather than looping or silently succeeding. That matches the clinical bar “**don’t pretend you proved it**.” The scaffold verifier is intentionally simple (presence of tool bundle, synthetic retry path); the **fork** owns richer **grounding + domain rules** while this repo locks the **HTTP contract** (`verified`, `verification_notes`, `verify_retry_count` on [`ChatResponse`](agent/http/schemas.py)).
+
+**What does your agent do when a tool fails or a record is missing?**  
+Today’s behavior is **layered**:
+- **RBAC / policy “tool not allowed”** → refusal with explicit role + tool naming and structured logs (see [`USERS.md`](USERS.md) Part 2 and tests around tool refusal logging).
+- **OpenEMR session / HTTP failure** on `/api/user` → **`OpenEMRAuthError`** mapped to **401** with structured `detail` (no silent downgrade to “guest”).
+- **Scaffold verify** with missing retrieve payload → verify fails; bounded retry may recover; else **`verified: false`** with notes so the UI and operator logs show **unverified** output.
+- **Real FHIR tool failures** (timeouts, partial pages, empty searches) are **fork responsibilities**—the architecture reserves explicit refusal / “insufficient data” paths rather than hallucination.
+
+**Where are the trust boundaries in your system, and how are they enforced?**  
+1. **OpenEMR session boundary** — every agent turn starts from a validated session (`/api/user`); enforced in [`agent/http/deps.py`](agent/http/deps.py) + [`agent/access/openemr_auth.py`](agent/access/openemr_auth.py).  
+2. **Role → tool boundary (RBAC)** — enforced before clinical retrieval in the agent layer per [`USERS.md`](USERS.md) Part 2 / `rbac.py`.  
+3. **Generation → user boundary** — verification gate + explicit **`verified`** bit; enforced in RGV pipeline + response schema.  
+4. **Logging boundary** — structured `agent_event` lines must not echo raw tokens; refusal and auth paths tested for shape (see observability tests).
+
+---
+
+### Your Evaluation
+
+**What does your eval suite test that a happy-path demo would not reveal?**  
+It stress-tests **auth and misuse** (missing / wrong headers, OpenEMR misconfiguration), **RBAC denials** (forbidden tool paths with logging contracts), **RGV ordering and bounded retry**, **verify exhaustion** (`verified: false` after retries), **HTTP validation** (422 on empty chat fields), **OpenEMR JSON edge cases** (non-200, invalid JSON, non-object payloads) via httpx mocks, **deploy/offline** Fly manifest assumptions, and **observability fields** on log records—not just “one successful chat POST.”
+
+**What did you find when you ran it?**  
+On a typical offline run the suite reports on the order of **~162 passed**, **~15 skipped** (live OpenEMR E2E, optional latency/eval gates, etc.—exact counts drift; see [`README.md`](README.md) and [`.planning/eval-artifacts/2026-05-01-submission-prep-snapshot.md`](.planning/eval-artifacts/2026-05-01-submission-prep-snapshot.md)). **Finding:** the **contracts hold** under test, but **skips** are a deliberate reminder of what is **not** continuously proven in CI (real PHI session behavior, real FHIR latency).
+
+**What would you add to it next?**  
+- **Fixture-backed FHIR** golden files per role (read-only) with expected retrieve snapshots.  
+- **Adversarial prompts** (injection, cross-patient ID attempts) tied to USERS use cases.  
+- **SLO tests** (p95 retrieve + generate) behind a staging gate, not every PR.  
+- **Regression pack** for “partial grounding” once the verify module exists on the fork.
+
+---
+
+### Production Thinking
+
+**How would you scale this to a 500-bed hospital with 300 concurrent clinical users?**  
+Horizontally scale **stateless agent** replicas behind a load balancer; add **per-tenant / per-department rate limits** and **circuit breakers** to OpenEMR FHIR so spikes don’t stampede the EMR; use **read replicas or cached FHIR bundles** for hot chart slices where policy allows; **shard** observability (structured logs + traces) to a queryable backend; separate **interactive** chat from **batch** jobs (summarization queues). Affinity or session stickiness is only needed where server-side conversation state exists—here much state is client-carried `messages`, but OpenEMR and DB still become the bottleneck.
+
+**What would you need to change before you'd be comfortable with a real physician relying on this?**  
+Ship **record-backed attribution** for factual claims, **clinically reviewed verify rules**, **SLO + on-call** playbooks, **malpractice / compliance sign-off**, **human-in-the-loop** default for high-risk classes (orders, new diagnoses), **telemetry on cost and tokens**, and **proven rollback** (feature flag / kill switch for the copilot). The current scaffold is **not** that product.
+
+**What failure mode worries you most, and why?**  
+**Silent wrong medical “fact” presented as trustworthy**—because verification and UI copy can be misread as “the system checked it” even when `verified` is false or when attribution is incomplete. A close second is **privilege escalation through the copilot** (ADMIN or nurse path accidentally surfacing physician-only context)—RBAC mistakes are subtle and high-impact, which is why they are both **documented** and **tested** early.
+
+---
+
+## 11. How to refresh this document
 
 1. Run `python -m pytest agent/tests deploy/tests -q` and note **passed / skipped**.  
 2. Re-read [`.planning/STATE.md`](.planning/STATE.md) and [`.planning/ROADMAP.md`](.planning/ROADMAP.md) for phase completion.  
-3. Update **§4 Evaluation** counts and **§5** if cost tables are filled.  
+3. Update **§5 Evaluation** counts and **§6** if cost tables are filled.  
 4. If **users/use cases** change, edit [`USERS.md`](USERS.md) Part 1 first, then summarize here.  
-5. Append **§ Revision history** with date and one-line summary.
+5. If **dependencies or platforms** change, update **§2** and `requirements.txt` / `deploy/requirements-agent.txt` / `chat-ui/package.json` pointers.  
+6. If **audit findings, architecture behavior, or eval results** change materially, revise **§10** (interview Q&A) so spoken answers match evidence.  
+7. Append **§ Revision history** with date and one-line summary.
 
 ---
 
@@ -117,3 +266,5 @@ Scaffold snapshot appendix ties repo reality to audit expectations without overs
 | Date | Changes |
 | --- | --- |
 | 2026-05-02 | Initial `PROJECT-SHOWCASE.md`: architecture, users, eval, cost, observability, hygiene pointers; living-doc process. |
+| 2026-05-02 | Added **§2 Tools, software, and platforms** (stack tables + rationale); renumbered sections; refresh checklist includes stack updates. |
+| 2026-05-02 | Added **§10 Interview-style Q&A** (audit, architecture, evaluation, production thinking); **§11** refresh checklist. |
