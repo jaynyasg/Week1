@@ -9,6 +9,7 @@ from fastapi import Depends, Header, Request
 
 from agent.http.deps import get_chat_turn_runner, resolve_agent_role
 from agent.http.schemas import ChatRequest, ChatResponse
+from agent.http.tool_trace import build_tool_execution_summary
 from agent.services.chat_turn import new_session_id
 
 
@@ -33,5 +34,6 @@ async def chat_turn(
         verification_notes=list(st.verification_notes),
         verify_retry_count=st.verify_retry_count,
         tool_result_keys=sorted(st.tool_results.keys()),
+        tool_execution_summary=build_tool_execution_summary(st.tool_results),
         messages=st.messages,
     )

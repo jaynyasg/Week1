@@ -23,12 +23,16 @@ RUN pip install --no-cache-dir -r /app/deploy/requirements-agent.txt
 
 COPY agent /app/agent
 
+# Synthea-style CSV cohort for AGENT_LLM_CSV_TOOLS (same paths as local pytest).
+COPY fixtures/sample-patients /app/fixtures/sample-patients
+
 RUN useradd --create-home --system --uid 10001 appuser \
     && chown -R appuser:appuser /app
 USER appuser
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
+ENV FIXTURE_PATIENT_CSV_DIR=/app/fixtures/sample-patients
 
 EXPOSE 8080
 

@@ -1,0 +1,22 @@
+# One-command demo: FastAPI agent + baked Synthea CSV cohort (no OpenEMR required).
+#
+#   docker compose -f docker-compose.agent-demo.yml up --build
+#
+# Then open http://localhost:8080/agent/health — chat via curl or the chat-ui
+# (Vite dev: set VITE_AGENT_BASE_URL=http://localhost:8080, AGENT_DEMO_BYPASS on agent).
+#
+# For model-chosen CSV tools, set OPENAI_API_KEY in your shell or a .env file next to this compose.
+
+services:
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      AGENT_DEMO_BYPASS: "1"
+      AGENT_LLM_CSV_TOOLS: "1"
+      FIXTURE_PATIENT_CSV_DIR: /app/fixtures/sample-patients
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}

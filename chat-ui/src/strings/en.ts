@@ -30,4 +30,9 @@ export const strings = {
   loadingConversation: "Loading response…",
   agentBaseEmbedded: "same origin → Apache /agent → Fly agent (6PN)",
   agentBaseDevProxy: "(same origin — Vite dev proxy)",
+  workflows: "Demo workflows",
+  workflowsHelp:
+    "One-click prompts for the synthetic seed patient (see deploy/CLINICIAN-WORKFLOWS.md). Uses demo role + patient ID; send after reviewing the draft.",
+  workflowApply: "Load prompt",
+  toolSummary: "Tool trace (structured)",
 } as const;

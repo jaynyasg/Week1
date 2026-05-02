@@ -45,6 +45,13 @@ class ChatResponse(BaseModel):
         default_factory=list,
         description="Sorted keys from the retrieve step tool bundle",
     )
+    tool_execution_summary: list[dict[str, Any]] | None = Field(
+        default=None,
+        description=(
+            "When AGENT_LLM_CSV_TOOLS is on, a compact per-function trace "
+            "(status, counts, demographics headline) — not full FHIR rows."
+        ),
+    )
     messages: list[dict[str, Any]] = Field(
         ...,
         description="Full transcript including the new user + assistant turns",

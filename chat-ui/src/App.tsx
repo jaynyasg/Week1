@@ -9,6 +9,7 @@ import {
 } from "react";
 import "./App.css";
 import { strings } from "./strings/en";
+import { CLINICIAN_WORKFLOWS, DEMO_SEED_PATIENT_ID } from "./workflows";
 
 type ChatRow = { role: string; content: string };
 
@@ -18,6 +19,7 @@ type ChatResponse = {
   verification_notes: string[];
   verify_retry_count: number;
   tool_result_keys: string[];
+  tool_execution_summary?: Array<Record<string, unknown>> | null;
   messages: ChatRow[];
 };
 
@@ -64,6 +66,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastMeta, setLastMeta] = useState<string | null>(null);
+  const [toolSummary, setToolSummary] = useState<string | null>(null);
   const [online, setOnline] = useState(() =>
     typeof navigator !== "undefined" ? navigator.onLine : true,
   );
@@ -161,6 +164,11 @@ export default function App() {
       setLastMeta(
         `verified=${String(data.verified)} retries=${String(data.verify_retry_count)} tools=[${data.tool_result_keys.join(", ")}]`,
       );
+      if (data.tool_execution_summary && data.tool_execution_summary.length > 0) {
+        setToolSummary(JSON.stringify(data.tool_execution_summary, null, 2));
+      } else {
+        setToolSummary(null);
+      }
     } catch (e) {
       setRows(prior);
       setDraft(text);
@@ -169,6 +177,17 @@ export default function App() {
       setLoading(false);
     }
   }, [authMode, bearerToken, draft, endpoint, loading, online, patientId, role, rows]);
+
+  const applyWorkflow = useCallback(
+    (preset: (typeof CLINICIAN_WORKFLOWS)[number]) => {
+      setPatientId(DEMO_SEED_PATIENT_ID);
+      setRole(preset.role);
+      setAuthMode(isEmbedded ? "openemr" : "demo");
+      setDraft(preset.prompt);
+      setError(null);
+    },
+    [isEmbedded],
+  );
 
   const onKeyDownMessage = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -299,6 +318,27 @@ export default function App() {
         </div>
       </section>
 
+      <section className="panel" aria-label={strings.workflows}>
+        <h2 className="panel-title">{strings.workflows}</h2>
+        <p className="meta" style={{ marginTop: 0, marginBottom: "0.85rem" }}>
+          {strings.workflowsHelp}
+        </p>
+        <div className="workflow-grid" role="list">
+          {CLINICIAN_WORKFLOWS.map((w) => (
+            <button
+              key={w.id}
+              type="button"
+              className="btn btn-workflow"
+              onClick={() => applyWorkflow(w)}
+              aria-label={`${strings.workflowApply}: ${w.title}`}
+            >
+              <span className="workflow-title">{w.title}</span>
+              <span className="workflow-role">{w.role}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
       <section className="panel" aria-label={strings.conversation}>
         <h2 className="panel-title">{strings.conversation}</h2>
         <div
@@ -331,6 +371,12 @@ export default function App() {
           )}
         </div>
         {lastMeta ? <div className="meta">{lastMeta}</div> : null}
+        {toolSummary ? (
+          <details className="tool-trace">
+            <summary>{strings.toolSummary}</summary>
+            <pre className="tool-trace-pre">{toolSummary}</pre>
+          </details>
+        ) : null}
         <div className="grid" style={{ marginTop: "1rem" }}>
           <label className="field">
             {strings.messageLabel}

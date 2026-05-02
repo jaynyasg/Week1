@@ -2,7 +2,7 @@
 
 This runbook deploys **only** the Python agent service (Uvicorn + FastAPI). It does **not** replace the OpenEMR + MariaDB stack documented in [deployment.md](docs/deployment.md) and the OpenEMR app config in the repository root `fly.toml`.
 
-**Offline synthetic cohort (eval / future import):** CSV fixtures and validation live under [`fixtures/sample-patients/`](../fixtures/sample-patients/README.md). They are **not** loaded by the Fly agent image at runtime; use them for local scripts, pytest, or a later OpenEMR import pipeline.
+**Synthetic CSV cohort (demo + model tools):** [`fixtures/sample-patients/`](../fixtures/sample-patients/README.md) is **copied into the agent image** at `/app/fixtures/sample-patients` with `FIXTURE_PATIENT_CSV_DIR` set (see `Dockerfile.agent`). With **`AGENT_LLM_CSV_TOOLS=1`** and **`OPENAI_API_KEY`**, the model may call five RBAC-scoped functions; `POST /agent/chat` returns **`tool_execution_summary`** (compact trace). Clinician-facing prompts: [`CLINICIAN-WORKFLOWS.md`](CLINICIAN-WORKFLOWS.md).
 
 The agent listens on **8080** inside the container. Fly maps public HTTPS to that port via `http_service.internal_port` in `fly.agent.toml`.
 
@@ -17,6 +17,7 @@ Before `fly deploy`, confirm each item:
 | **App name** | The `app = "..."` value in `fly.agent.toml` must be **globally unique** on Fly.io. If `fly apps create <name>` fails, pick another name and pass `--app <name>` on deploy or update `fly.agent.toml`. |
 | **`OPENEMR_BASE_URL` secret** | Required for `/agent/chat` (and tool routes that call OpenEMR) unless you rely solely on **demo bypass** (see below). Set before relying on chat: `fly secrets set OPENEMR_BASE_URL=https://your-openemr-host.example.com --app <your-app>`. **`/agent/health` does not need this secret.** |
 | **`OPENAI_API_KEY` secret** | When set, `POST /agent/chat` uses **OpenAI** (`gpt-4o-mini` by default; override with `OPENAI_CHAT_MODEL`) for the generate step instead of the offline echo scaffold. Omit in CI or local dev if you want echo-only behavior. |
+| **`AGENT_LLM_CSV_TOOLS`** | Set to `1` / `true` / `yes` so the model **chooses** among five CSV-backed tools (not a fixed retrieve chain). Requires `OPENAI_API_KEY` for real tool loops; combine with **`AGENT_DEMO_BYPASS=1`** for quick demos without OpenEMR. |
 | **`AGENT_CORS_ORIGINS`** | Optional comma-separated list of browser origins allowed to call the API (e.g. `https://clinical-chat-ui.fly.dev`). Use `*` only for throwaway demos (no credentials). Unset = no CORS middleware. |
 | **OCI source label (`IMAGE_SOURCE_URL`)** | `Dockerfile.agent` sets `org.opencontainers.image.source` from build-arg **`IMAGE_SOURCE_URL`**. Defaults live in **`fly.agent.toml`** under **`[build.args]`** (placeholder `https://gitlab.com/CHANGE_ME/Week1` — replace **`CHANGE_ME`**). Override without editing the file: `fly deploy --config fly.agent.toml --build-arg IMAGE_SOURCE_URL=https://gitlab.com/your-group/Week1`. |
 

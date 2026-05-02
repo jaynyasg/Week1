@@ -27,7 +27,7 @@ def test_chat_response_required_keys_roundtrip() -> None:
         "messages": [{"role": "user", "content": "x"}],
     }
     m = ChatResponse.model_validate(payload)
-    dumped = m.model_dump()
+    dumped = m.model_dump(exclude_none=True)
     assert set(dumped.keys()) == {
         "assistant_message",
         "verified",
@@ -36,3 +36,21 @@ def test_chat_response_required_keys_roundtrip() -> None:
         "tool_result_keys",
         "messages",
     }
+    full = m.model_dump()
+    assert full.get("tool_execution_summary") is None
+
+
+def test_chat_response_optional_tool_execution_summary() -> None:
+    m = ChatResponse(
+        assistant_message="a",
+        verified=True,
+        verification_notes=[],
+        verify_retry_count=0,
+        tool_result_keys=["k"],
+        tool_execution_summary=[{"function": "get_patient_demographics", "status": "ok"}],
+        messages=[{"role": "user", "content": "x"}],
+    )
+    d = m.model_dump(exclude_none=True)
+    assert d["tool_execution_summary"] == [
+        {"function": "get_patient_demographics", "status": "ok"}
+    ]

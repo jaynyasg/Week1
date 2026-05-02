@@ -22,8 +22,21 @@ from agent.runtime.rgv_pipeline import (
 _LOG = logging.getLogger(__name__)
 
 
+def _llm_csv_tools_enabled() -> bool:
+    v = (os.environ.get("AGENT_LLM_CSV_TOOLS") or "").strip().lower()
+    return v in {"1", "true", "yes"}
+
+
 def scaffold_retrieve(state: ClinicalTurnState) -> dict[str, object]:
     """Placeholder tool aggregation (no live FHIR in this repo)."""
+    if _llm_csv_tools_enabled():
+        # Model-driven tools populate ``state.tool_results`` inside the generate step.
+        return {
+            "patient_id": state.patient_id,
+            "user_role": state.user_role,
+            "message_count": len(state.messages),
+            "retrieve_mode": "llm_csv_tools",
+        }
     out: dict[str, object] = {
         "patient_id": state.patient_id,
         "user_role": state.user_role,
@@ -56,11 +69,18 @@ def scaffold_generate(state: ClinicalTurnState) -> str:
     """
     LLM-backed reply when ``OPENAI_API_KEY`` is set (e.g. Fly secret); otherwise echo scaffold.
 
+    When ``AGENT_LLM_CSV_TOOLS=1`` and ``OPENAI_API_KEY`` are set, uses **model-chosen**
+    function calls against the CSV cohort (see ``agent.services.openai_tool_loop``).
+
     On transient model errors, returns a short parenthetical so the HTTP layer can still 200;
     operators should watch logs for stack traces.
     """
     if os.environ.get("OPENAI_API_KEY", "").strip():
         try:
+            if _llm_csv_tools_enabled():
+                from agent.services.openai_tool_loop import complete_chat_openai_with_csv_tools
+
+                return complete_chat_openai_with_csv_tools(state)
             from agent.services.openai_generate import complete_chat_openai
 
             return complete_chat_openai(state)

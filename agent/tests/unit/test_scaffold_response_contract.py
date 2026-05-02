@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from agent.http.schemas import ChatResponse
+from agent.http.tool_trace import build_tool_execution_summary
 from agent.runtime.rgv_pipeline import MAX_VERIFY_RETRIES, ClinicalTurnState
 from agent.services.chat_turn import run_scaffold_chat_turn, scaffold_verify
 
@@ -15,6 +16,7 @@ def _as_chat_response(st: ClinicalTurnState, assistant: str) -> ChatResponse:
         verification_notes=list(st.verification_notes),
         verify_retry_count=st.verify_retry_count,
         tool_result_keys=sorted(st.tool_results.keys()),
+        tool_execution_summary=build_tool_execution_summary(st.tool_results),
         messages=st.messages,
     )
 

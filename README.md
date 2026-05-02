@@ -45,7 +45,8 @@ Configure OpenEMR origin via `fly secrets` per [`deploy/README-fly-agent.md`](de
 
 ### Sample patient CSV fixtures (synthetic)
 
-- Directory: [`fixtures/sample-patients/`](fixtures/sample-patients/) (Synthea-style exports; **not** loaded by the agent at runtime).
+- Directory: [`fixtures/sample-patients/`](fixtures/sample-patients/) (Synthea-style exports). The **Docker / Fly agent image** copies this tree for `AGENT_LLM_CSV_TOOLS` demos (`Dockerfile.agent`).
+- **One-command local agent:** `docker compose -f docker-compose.agent-demo.yml up --build` (set `OPENAI_API_KEY` for model-chosen tools). Clinician prompts: [`deploy/CLINICIAN-WORKFLOWS.md`](deploy/CLINICIAN-WORKFLOWS.md).
 - Validate: `python scripts/validate_sample_patient_fixtures.py` (full FK scan, ~10s) or `--quick` for CI.
 - **GitHub:** run [Validate sample patient fixtures](.github/workflows/validate-sample-fixtures.yml) manually (`workflow_dispatch`) for the full scan without waiting on PR CI.
 

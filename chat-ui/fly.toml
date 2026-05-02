@@ -8,8 +8,9 @@ app = "clinical-chat-ui"
 primary_region = "iad"
 
 [build]
-  dockerfile = "Dockerfile"
-  ignorefile = ".dockerignore"
+  dockerfile = "chat-ui/Dockerfile"
+  build_context = "chat-ui"
+  ignorefile = "chat-ui/.dockerignore"
 
 [build.args]
   VITE_AGENT_BASE_URL = "https://clinical-agent-scaffold.fly.dev"
