@@ -27,7 +27,7 @@ python -m ruff check agent
 
 | Metric | Value |
 | --- | --- |
-| **Passed** | ~163 |
+| **Passed** | ~169 |
 | **Skipped** | ~15 |
 | **Notes** | Skips include live OpenEMR, optional eval/latency gates |
 

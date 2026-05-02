@@ -32,8 +32,12 @@ python -m ruff check agent
 
 Optional Git hooks: install with `pip install pre-commit && pre-commit install` to run `.pre-commit-config.yaml` (e.g. Ruff on `agent/`) before commit.
 
-Makefile shortcuts: `make doctor` (Python/pytest versions + live-test env flags), `make pytest-fast` (excludes `@pytest.mark.eval`), `make openapi-check` (OpenAPI contract test), `make validate-fixtures` (full FK scan on `fixtures/sample-patients/*.csv`). On Windows without `make`, use `pwsh scripts/doctor.ps1`. Maintainer placeholders: [`MAINTAINERS.md`](MAINTAINERS.md).
+Makefile shortcuts: `make doctor` (Python/pytest versions + live-test env flags), `make pytest-fast` (excludes `@pytest.mark.eval`), `make openapi-check` (OpenAPI contract test), `make validate-fixtures` (full FK scan on `fixtures/sample-patients/*.csv`). On Windows without `make`, use `pwsh scripts/doctor.ps1`. Maintainer routing: [`MAINTAINERS.md`](MAINTAINERS.md).
 
 Do not commit secrets. Keep credentials and environment-specific values in a local `.env` file (ignored by git), following `.env.example` where provided.
+
+## Synthetic patient data (`fixtures/sample-patients/`)
+
+CSV exports there are intended as **Synthea-style synthetic cohort** data for offline validation and future eval/OpenEMR import experiments. **Do not** commit real PHI into that tree; use `fixtures/sample-patients/local/` (gitignored) if you must iterate on sensitive extracts. Validate shape with `python scripts/validate_sample_patient_fixtures.py` (full scan) or `--quick` / `agent/tests/unit/test_sample_patient_fixtures_*.py` in CI.
 
 When you edit planning documents, preserve existing requirement and ADR-style identifiers (for example `REQ-*`, `NFR-*`, `SAFE-*`). Do not silently rewrite or remove text that records a locked decision; note conflicts explicitly and update through the project’s governance path instead.

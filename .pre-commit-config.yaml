@@ -9,3 +9,11 @@ repos:
         files: ^agent/
       - id: ruff-format
         files: ^agent/
+  - repo: local
+    hooks:
+      - id: validate-sample-patient-fixtures-quick
+        name: validate sample patient fixtures (quick)
+        entry: python scripts/validate_sample_patient_fixtures.py --quick
+        language: system
+        pass_filenames: false
+        always_run: true

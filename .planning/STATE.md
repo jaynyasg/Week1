@@ -13,7 +13,7 @@
 - **Progress bar**: `[###---] 50% active, 33% complete`
 
 ## Performance Metrics
-- **Verification snapshot (pytest hygiene)**: 2026-05-02 — last recorded full suite ~163 passed, ~15 skipped (`python -m pytest agent/tests deploy/tests -q`; counts drift—re-run to refresh).
+- **Verification snapshot (pytest hygiene)**: 2026-05-02 — last recorded full suite ~169 passed, ~15 skipped (`python -m pytest agent/tests deploy/tests -q`; counts drift—re-run to refresh).
 - **Phase completion**: 2/6
 - **Requirements mapped**: 23/23
 - **Coverage health**: 100% mapped, no orphaned requirements

@@ -2,6 +2,8 @@
 
 This runbook deploys **only** the Python agent service (Uvicorn + FastAPI). It does **not** replace the OpenEMR + MariaDB stack documented in [deployment.md](docs/deployment.md) and the OpenEMR app config in the repository root `fly.toml`.
 
+**Offline synthetic cohort (eval / future import):** CSV fixtures and validation live under [`fixtures/sample-patients/`](../fixtures/sample-patients/README.md). They are **not** loaded by the Fly agent image at runtime; use them for local scripts, pytest, or a later OpenEMR import pipeline.
+
 The agent listens on **8080** inside the container. Fly maps public HTTPS to that port via `http_service.internal_port` in `fly.agent.toml`.
 
 ## Preflight checklist

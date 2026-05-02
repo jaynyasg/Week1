@@ -14,7 +14,7 @@ Lint (matches CI):
 python -m ruff check agent
 ```
 
-A typical local run is about **163 passed**, **15 skipped**; skips include optional live OpenEMR, `RUN_LATENCY_GATE`, and other gated tests (counts vary—run pytest to confirm). HTTP-focused coverage includes [`test_http_deps.py`](agent/tests/unit/test_http_deps.py), [`test_http_logging_observability.py`](agent/tests/integration/test_http_logging_observability.py), and [`test_openemr_base_url_misconfiguration.py`](agent/tests/integration/test_openemr_base_url_misconfiguration.py) (OpenEMR base URL wiring regressions).
+A typical local run is about **169 passed**, **15 skipped**; skips include optional live OpenEMR, `RUN_LATENCY_GATE`, and other gated tests (counts vary—run pytest to confirm). HTTP-focused coverage includes [`test_http_deps.py`](agent/tests/unit/test_http_deps.py), [`test_http_logging_observability.py`](agent/tests/integration/test_http_logging_observability.py), and [`test_openemr_base_url_misconfiguration.py`](agent/tests/integration/test_openemr_base_url_misconfiguration.py) (OpenEMR base URL wiring regressions).
 
 CI runs **ruff** and **pytest** on `agent/tests` and `deploy/tests` on **GitLab** (`.gitlab-ci.yml`) and **GitHub Actions** (`.github/workflows/agent-tests.yml`).
 
@@ -47,9 +47,12 @@ Configure OpenEMR origin via `fly secrets` per [`deploy/README-fly-agent.md`](de
 
 - Directory: [`fixtures/sample-patients/`](fixtures/sample-patients/) (Synthea-style exports; **not** loaded by the agent at runtime).
 - Validate: `python scripts/validate_sample_patient_fixtures.py` (full FK scan, ~10s) or `--quick` for CI.
+- **GitHub:** run [Validate sample patient fixtures](.github/workflows/validate-sample-fixtures.yml) manually (`workflow_dispatch`) for the full scan without waiting on PR CI.
 
 ### Documentation index
 
+- [`CHANGELOG.md`](CHANGELOG.md) — notable repo changes (living)
+- [`SECURITY.md`](SECURITY.md) — how to report vulnerabilities responsibly
 - [`PROJECT-SHOWCASE.md`](PROJECT-SHOWCASE.md) — end-to-end project story + key decisions (update as work completes)
 - [`USERS.md`](USERS.md) — Stage 4: primary user, workflow, use cases + why conversational agent; Part 2 = RBAC
 - [`AI-COST-ANALYSIS.md`](AI-COST-ANALYSIS.md) — cost template (fill TBD)

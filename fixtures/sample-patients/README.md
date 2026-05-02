@@ -33,6 +33,8 @@ These files follow the **Synthea**-style CSV export shape (column names such as 
    python scripts/validate_sample_patient_fixtures.py --quick
    ```
 
+   PowerShell: `pwsh -File scripts/validate_sample_patient_fixtures.ps1 -Quick`
+
 ## Promoting to OpenEMR (later / disruptive phase)
 
 The agent does **not** import CSV into MariaDB. When you are ready:

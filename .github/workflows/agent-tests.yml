@@ -6,6 +6,8 @@
 # repository secrets to match `.env.example`, then run:
 #   RUN_LIVE_OPENEMR_E2E=1 python -m pytest agent/tests/integration/test_live_openemr_optional.py -q
 #
+# Optional: full CSV fixture FK scan (manual only): `.github/workflows/validate-sample-fixtures.yml`
+#
 # Path gating (chat-ui-build, npm-audit-chat-ui): GitHub Actions does not support per-job `paths:` on
 # `push`/`pull_request`. Options: (1) this workflow uses `dorny/paths-filter` so the
 # heavy `chat-ui-build` job skips unless `chat-ui/**` or this workflow file changes;

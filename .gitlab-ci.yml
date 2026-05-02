@@ -70,6 +70,16 @@ latency-gate:
   script:
     - python -m pytest agent/tests/integration/test_latency_gate_optional.py -v --tb=short
 
+# Full FK scan on fixtures/sample-patients (~10s; stdlib only). Run manually when CSVs change.
+validate-sample-fixtures:
+  stage: test
+  image: python:3.12
+  rules:
+    - when: manual
+      allow_failure: true
+  script:
+    - python scripts/validate_sample_patient_fixtures.py
+
 # -----------------------------------------------------------------------------
 # Optional: live OpenEMR E2E (real network; requires CI/CD variables — not default)
 # -----------------------------------------------------------------------------
