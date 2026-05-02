@@ -107,6 +107,52 @@ fly deploy --build-arg VITE_AGENT_BASE_URL=https://clinical-agent-scaffold.fly.d
 
 Set **`AGENT_CORS_ORIGINS`** on the **agent** app to the chat UI’s public origin (see Secrets). For local dev, run Uvicorn on `127.0.0.1:8080` and `npm run dev` in `chat-ui/` (Vite proxies `/agent` to `VITE_DEV_PROXY_TARGET`, default `http://127.0.0.1:8080`).
 
+## Connecting agent to live OpenEMR data (FHIR backend)
+
+After importing Synthea patients into OpenEMR (`scripts/import_synthea_to_openemr.py`), you can point the agent directly at the live EMR instead of the baked-in CSV. The five clinical tools (`get_patient_demographics`, `list_active_medications`, `list_recent_laboratory_results`, `list_recent_vital_signs`, `list_allergies`) prefer OpenEMR FHIR R4 when the three secrets below are set, and fall back to CSV automatically when they are not.
+
+### Step 1 — Verify the import succeeded
+
+```powershell
+# Keep fly proxy running: fly proxy 3307:3306 --app clinical-copilot-db-v2
+python scripts/verify_import.py
+```
+
+All checks should pass and the seed patient `f1aa52b9-aded-3188-9386-012244805ebf` (Maurice742 Brekke496) should be visible.
+
+### Step 2 — Register an API client in OpenEMR
+
+1. Log into `https://clinical-copilot-v2.fly.dev` as admin.
+2. **Administration → Config → API Clients → Register New Client**
+3. Fill in:
+   - **Name:** `AI Copilot`
+   - **Grant type:** `client_credentials`
+   - **Scopes:** `patient/Patient.read patient/MedicationRequest.read patient/Observation.read patient/AllergyIntolerance.read`
+4. Copy the generated **client_id** and **client_secret**.
+
+### Step 3 — Set secrets and redeploy
+
+```powershell
+fly secrets set `
+  OPENEMR_FHIR_CLIENT_ID=<client_id> `
+  OPENEMR_FHIR_CLIENT_SECRET=<client_secret> `
+  --app clinical-agent-scaffold
+
+fly deploy --config fly.agent.toml
+```
+
+After the deploy completes, the agent's tool responses will include `"source": "openemr_fhir"` instead of `"source": "csv"`. The five workflow prompts in `deploy/CLINICIAN-WORKFLOWS.md` work identically — the LLM still calls the same five functions; only the data backend changes.
+
+### Rollback to CSV
+
+```powershell
+fly secrets unset OPENEMR_FHIR_CLIENT_ID OPENEMR_FHIR_CLIENT_SECRET --app clinical-agent-scaffold
+```
+
+No redeploy needed — the agent detects absent credentials at runtime and falls back to CSV.
+
+---
+
 ## Smoke checks
 
 ### curl (from any shell)
