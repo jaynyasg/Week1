@@ -33,3 +33,7 @@ ENTRYPOINT ["/openemr_wrapper.sh"]
 
 COPY --from=copilot_ui /ui/dist /var/www/localhost/htdocs/openemr/interface/copilot
 RUN chown -R apache:root /var/www/localhost/htdocs/openemr/interface/copilot
+
+# Inject AI Co-Pilot into the standard navigation menu (embedded path, same origin).
+RUN sed -i 's/^]$/,{"label":"AI Co-Pilot","menu_id":"AIcoPilot","url":"\/interface\/copilot\/","target":"_blank","children":[],"requirement":0}]/' \
+    /var/www/localhost/htdocs/openemr/interface/main/tabs/menu/menus/standard.json

@@ -18,7 +18,8 @@ export const strings = {
   authDemoHelp: "Sends X-Agent-Demo-Role. Requires AGENT_DEMO_BYPASS=1 on the agent.",
   authBearerLabel: "Authorization (paste raw token or full Bearer …)",
   authOpenEmrHelp:
-    "Sends cookies with credentials: include. Log into OpenEMR on this same site first. The agent must have OPENEMR_BASE_URL set to this OpenEMR origin.",
+    "Paste the Cookie header from a logged-in OpenEMR browser session (DevTools → Network → any request to OpenEMR → copy Cookie header value). The agent forwards it to OpenEMR /api/user to resolve your role.",
+  authOpenEmrCookieLabel: "Cookie header (paste from DevTools)",
   conversation: "Conversation",
   emptyHint: "Send a message to start. Session id is fixed until you refresh.",
   messageLabel: "Message",

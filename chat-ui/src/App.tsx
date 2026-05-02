@@ -61,6 +61,7 @@ export default function App() {
   const [role, setRole] = useState<(typeof ROLES)[number]>("PHYSICIAN");
   const [authMode, setAuthMode] = useState<AuthMode>(() => (isEmbedded ? "openemr" : "demo"));
   const [bearerToken, setBearerToken] = useState("");
+  const [sessionCookie, setSessionCookie] = useState("");
   const [draft, setDraft] = useState("");
   const [rows, setRows] = useState<ChatRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -117,6 +118,14 @@ export default function App() {
         return;
       }
       headers.Authorization = tok.startsWith("Bearer ") ? tok : `Bearer ${tok}`;
+    } else if (authMode === "openemr" && !isEmbedded) {
+      const ck = sessionCookie.trim();
+      if (!ck) {
+        setError("OpenEMR session mode requires a Cookie header value. Paste it from browser DevTools.");
+        setLoading(false);
+        return;
+      }
+      headers.Cookie = ck;
     }
 
     const prior = rows;
@@ -134,7 +143,7 @@ export default function App() {
           messages: prior,
         }),
       };
-      if (authMode === "openemr" || authMode === "bearer") {
+      if (authMode === "bearer") {
         init.credentials = "include";
       }
       const res = await fetch(endpoint, init);
@@ -306,13 +315,27 @@ export default function App() {
                 aria-label={strings.authBearerLabel}
               />
             </label>
-          ) : authMode === "demo" ? (
+          ) : authMode === "openemr" && !isEmbedded ? (
+            <label className="field" style={{ marginTop: "0.85rem" }}>
+              {strings.authOpenEmrCookieLabel}
+              <textarea
+                value={sessionCookie}
+                onChange={(e) => setSessionCookie(e.target.value)}
+                rows={3}
+                placeholder="OpenEMR=…; PHPSESSID=…; token_main=…"
+                aria-label={strings.authOpenEmrCookieLabel}
+              />
+              <span className="meta" style={{ marginTop: "0.4rem" }}>
+                {strings.authOpenEmrHelp}
+              </span>
+            </label>
+          ) : authMode === "openemr" && isEmbedded ? (
             <p className="meta" style={{ marginTop: "0.65rem", marginBottom: 0 }}>
-              {strings.authDemoHelp}
+              Session cookies are forwarded automatically — no extra setup needed.
             </p>
           ) : (
             <p className="meta" style={{ marginTop: "0.65rem", marginBottom: 0 }}>
-              {strings.authOpenEmrHelp}
+              {strings.authDemoHelp}
             </p>
           )}
         </div>
