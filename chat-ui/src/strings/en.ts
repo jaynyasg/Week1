@@ -29,7 +29,8 @@ export const strings = {
   offlineBanner: "You appear to be offline — messages cannot reach the agent until connectivity returns.",
   onlineBanner: "Back online.",
   loadingConversation: "Loading response…",
-  agentBaseEmbedded: "same origin → Apache /agent → Fly agent (6PN)",
+  agentBaseEmbedded:
+    "same origin → /interface/clinical-agent → Apache /agent → Fly agent (6PN)",
   agentBaseDevProxy: "(same origin — Vite dev proxy)",
   workflows: "Demo workflows",
   workflowsHelp:

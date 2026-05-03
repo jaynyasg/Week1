@@ -17,6 +17,10 @@ export default defineConfig(({ mode }) => {
           target,
           changeOrigin: true,
         },
+        "/interface/clinical-agent": {
+          target,
+          changeOrigin: true,
+        },
       },
     },
   };

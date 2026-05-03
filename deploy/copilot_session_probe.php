@@ -9,12 +9,17 @@
  * OAuth Bearer tokens are not PHP sessions; the agent uses Standard API routes for those.
  */
 
-$ignoreAuth = true;
-require_once dirname(__FILE__) . '/../globals.php';
-
 use OpenEMR\Common\Acl\AclExtended;
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Auth\AuthUtils;
+use OpenEMR\Common\Session\SessionUtil;
+
+$ignoreAuth = true;
+require_once dirname(__FILE__) . '/../globals.php';
+
+// globals.php starts the session read-mostly (read_and_close). Re-bind to the OpenEMR= cookie
+// so AuthUtils::authCheckSession() and ACL helpers see the same session data as the UI.
+SessionUtil::switchToCoreSession($GLOBALS['webroot'] ?? '', true);
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate');

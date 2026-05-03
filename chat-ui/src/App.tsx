@@ -32,7 +32,10 @@ const isEmbedded =
 
 function chatEndpoint(): string {
   const raw = (import.meta.env.VITE_AGENT_BASE_URL || "").trim().replace(/\/$/, "");
-  return raw ? `${raw}/agent/chat` : "/agent/chat";
+  if (raw) return `${raw}/agent/chat`;
+  // Embedded on OpenEMR: proxy lives under /interface/ so session cookies with Path=/interface/* are sent.
+  if (isEmbedded) return "/interface/clinical-agent/chat";
+  return "/agent/chat";
 }
 
 function randomSession(): string {
@@ -142,10 +145,9 @@ export default function App() {
           user_message: text,
           messages: prior,
         }),
+        credentials:
+          authMode === "bearer" || (authMode === "openemr" && isEmbedded) ? "include" : "same-origin",
       };
-      if (authMode === "bearer") {
-        init.credentials = "include";
-      }
       const res = await fetch(endpoint, init);
       const rawText = await res.text();
       let data: ChatResponse | null = null;
