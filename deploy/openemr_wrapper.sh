@@ -73,10 +73,12 @@ if agent_url.startswith("https://"):
 
 injection = """
     {marker}
-    <IfModule proxy_module>
-        ProxyPreserveHost Off{ssl}
-        ProxyPass /agent {agent_url}/agent
-        ProxyPassReverse /agent {agent_url}/agent
+    <IfModule proxy_module>{ssl}
+        <Location /agent>
+            ProxyPreserveHost Off
+            ProxyPass {agent_url}/agent
+            ProxyPassReverse {agent_url}/agent
+        </Location>
     </IfModule>
 
     Alias /interface/copilot /var/www/localhost/htdocs/openemr/interface/copilot
