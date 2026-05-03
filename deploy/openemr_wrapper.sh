@@ -42,46 +42,48 @@ fi
 write_copilot_apache_conf() {
   agent_url="${CLINICAL_AGENT_INTERNAL_URL:-http://clinical-agent-scaffold.internal:8080}"
   agent_url="${agent_url%/}"
-  conf=""
-  for dir in /etc/apache2/conf-enabled /etc/apache2/conf.d /etc/httpd/conf.d; do
-    if [ -d "$dir" ]; then
-      conf="$dir/99-clinical-copilot.conf"
-      break
-    fi
-  done
-  if [ -z "$conf" ]; then
-    echo "clinical-copilot: no apache conf.d found; /agent proxy not configured" >&2
+
+  # openemr.conf defines <VirtualHost *:80> — Apache uses only the FIRST
+  # matching VirtualHost, so a separate conf file's VirtualHost *:80 block is
+  # silently ignored. Instead, we inject the proxy directives directly into the
+  # existing VirtualHost *:80 block using Python (available in this image).
+  openemr_conf="/etc/apache2/conf.d/openemr.conf"
+  if [ ! -f "$openemr_conf" ]; then
+    echo "clinical-copilot: $openemr_conf not found; /agent proxy not configured" >&2
     return 0
   fi
-  # Proxy and copilot alias must live inside a <VirtualHost *:80> block because
-  # openemr.conf already defines <VirtualHost *:80>, making the global context
-  # irrelevant for port-80 requests. Apache merges multiple VirtualHost blocks
-  # for the same address:port, so adding a second block here is safe.
-  {
-    echo "<VirtualHost *:80>"
-    echo "    <IfModule mod_proxy.c>"
-    echo "        ProxyPreserveHost On"
-    echo "        ProxyPass /agent ${agent_url}/agent"
-    echo "        ProxyPassReverse /agent ${agent_url}/agent"
-    echo "    </IfModule>"
-    echo ""
-    echo "    Alias /interface/copilot /var/www/localhost/htdocs/openemr/interface/copilot"
-    echo "    <Directory \"/var/www/localhost/htdocs/openemr/interface/copilot\">"
-    echo "        AllowOverride None"
-    echo "        Require all granted"
-    echo "        Options FollowSymLinks"
-    echo "        <IfModule mod_rewrite.c>"
-    echo "            RewriteEngine On"
-    echo "            RewriteBase /interface/copilot/"
-    echo "            RewriteRule ^index\\.html\$ - [L]"
-    echo "            RewriteCond %{REQUEST_FILENAME} !-f"
-    echo "            RewriteCond %{REQUEST_FILENAME} !-d"
-    echo "            RewriteRule . index.html [L]"
-    echo "        </IfModule>"
-    echo "    </Directory>"
-    echo "</VirtualHost>"
-  } >"$conf"
-  echo "clinical-copilot: wrote $conf (proxy -> ${agent_url}/agent)"
+
+  python3 - "$openemr_conf" "$agent_url" <<'PY'
+import sys, re
+conf_path, agent_url = sys.argv[1], sys.argv[2]
+text = open(conf_path).read()
+
+marker = "# clinical-copilot-proxy-injected"
+if marker in text:
+    print("clinical-copilot: proxy already injected into", conf_path)
+    sys.exit(0)
+
+injection = """
+    {marker}
+    <IfModule proxy_module>
+        ProxyPreserveHost On
+        ProxyPass /agent {agent_url}/agent
+        ProxyPassReverse /agent {agent_url}/agent
+    </IfModule>
+
+    Alias /interface/copilot /var/www/localhost/htdocs/openemr/interface/copilot
+    <Directory "/var/www/localhost/htdocs/openemr/interface/copilot">
+        AllowOverride None
+        Require all granted
+        Options FollowSymLinks
+    </Directory>
+""".format(marker=marker, agent_url=agent_url)
+
+# Insert before the first </VirtualHost> closing tag (the *:80 block)
+new_text = re.sub(r'(</VirtualHost>)', injection + r'\1', text, count=1)
+open(conf_path, 'w').write(new_text)
+print("clinical-copilot: injected proxy into", conf_path, "->", agent_url + "/agent")
+PY
 }
 
 write_copilot_apache_conf
