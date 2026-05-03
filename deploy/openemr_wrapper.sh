@@ -24,15 +24,17 @@ fi
 
 # Ensure sites/ is owned by apache. Fly mounts the volume as root:root,
 # and the upstream startup chmods to 500/400 without chowning — so
-# apache (the httpd user) ends up unable to traverse sites/. Chown here
-# before the chmod step runs.
+# apache (the httpd user) ends up unable to traverse sites/. Run chown
+# in the background so Apache can start (and pass health checks) while
+# ownership is being fixed. openemr.sh re-chowns individual files it
+# touches, so partial ownership is safe during the startup window.
 if [ -d "$SITES_DIR" ]; then
-  chown -R apache:root "$SITES_DIR"
+  chown -R apache:root "$SITES_DIR" &
 fi
 
 COPILOT_STATIC=/var/www/localhost/htdocs/openemr/interface/copilot
 if [ -d "$COPILOT_STATIC" ]; then
-  chown -R apache:root "$COPILOT_STATIC"
+  chown -R apache:root "$COPILOT_STATIC" &
 fi
 
 # Apache: reverse-proxy /agent → FastAPI agent on Fly 6PN; serve SPA under /interface/copilot/.

@@ -43,19 +43,16 @@ primary_region = "iad"
   min_machines_running = 1
   processes = ["app"]
 
-# VM-level check: grace_period here is not capped at 60s by Fly's proxy layer,
-# so OpenEMR's 3-5 min chown/installer startup completes before the machine is
-# declared unhealthy.
-[[vm.checks]]
-  name = "openemr_login"
-  type = "http"
-  port = 80
-  protocol = "http"
-  method = "get"
-  path = "/interface/login/login.php"
-  interval = "30s"
-  timeout = "10s"
-  grace_period = "300s"
+  [[http_service.checks]]
+    grace_period = "60s"
+    interval = "30s"
+    method = "get"
+    timeout = "10s"
+    path = "/interface/login/login.php"
+
+# Extend deploy wait to 12 min — OpenEMR's chown/setup takes 3-5 min on Fly volumes.
+[deploy]
+  wait_timeout = "12m"
 
 # Resource sizing. OpenEMR + Apache is comfortable at 1 shared CPU + 1GB.
 # Bump to performance-2x if you start streaming many concurrent requests.
