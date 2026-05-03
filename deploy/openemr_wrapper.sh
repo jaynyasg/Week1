@@ -63,10 +63,18 @@ if marker in text:
     print("clinical-copilot: proxy already injected into", conf_path)
     sys.exit(0)
 
+ssl_directives = ""
+if agent_url.startswith("https://"):
+    ssl_directives = """
+        SSLProxyEngine On
+        SSLProxyVerify none
+        SSLProxyCheckPeerCN Off
+        SSLProxyCheckPeerName Off"""
+
 injection = """
     {marker}
     <IfModule proxy_module>
-        ProxyPreserveHost On
+        ProxyPreserveHost Off{ssl}
         ProxyPass /agent {agent_url}/agent
         ProxyPassReverse /agent {agent_url}/agent
     </IfModule>
@@ -77,7 +85,7 @@ injection = """
         Require all granted
         Options FollowSymLinks
     </Directory>
-""".format(marker=marker, agent_url=agent_url)
+""".format(marker=marker, ssl=ssl_directives, agent_url=agent_url)
 
 # Insert before the first </VirtualHost> closing tag (the *:80 block)
 new_text = re.sub(r'(</VirtualHost>)', injection + r'\1', text, count=1)

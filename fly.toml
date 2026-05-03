@@ -24,8 +24,11 @@ primary_region = "iad"
   # Force HTTPS-aware URLs in OpenEMR (Apache will see X-Forwarded-Proto from Fly).
   TRUST_PROXY = "true"
 
-  # FastAPI agent on Fly 6PN — Apache proxies /agent → this origin (see deploy/openemr_wrapper.sh).
-  CLINICAL_AGENT_INTERNAL_URL = "http://clinical-agent-scaffold.internal:8080"
+  # FastAPI agent — Apache proxies /agent → this origin.
+  # Using the public fly.dev URL (not the internal 6PN hostname) because the agent
+  # binds 0.0.0.0 (IPv4) while the private network resolves to IPv6-only addresses.
+  # Fly routes same-org same-region traffic internally so latency is negligible.
+  CLINICAL_AGENT_INTERNAL_URL = "https://clinical-agent-scaffold.fly.dev"
 
 # Persist OpenEMR's per-site config and uploaded documents across deploys.
 # Without this, sqlconf.php and patient documents disappear on every redeploy.
