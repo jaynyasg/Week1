@@ -5,6 +5,8 @@
 
 This is a one-page consolidation of the full audit, the users addressed by the system, and the architecture plan. For full evidence and remediation tracking, see [AUDIT.md](AUDIT.md).
 
+**Delta (2026-05-03):** The repo now ships a **FastAPI scaffold** with [`agent/access/rbac.py`](agent/access/rbac.py), **session probe + Bearer + demo** auth paths ([`agent/access/openemr_auth.py`](agent/access/openemr_auth.py), [`deploy/copilot_session_probe.php`](deploy/copilot_session_probe.php)), **five** OpenAI clinical tools ([`agent/tools/dispatch.py`](agent/tools/dispatch.py)), an embedded **React/Vite** UI, and **behavioral evals** ([`EVAL.md`](EVAL.md) — **53 + 21** tests). Treat earlier audit language implying **no `rbac.py`** as **superseded** for this snapshot; **AUD-004 / AUD-005 / Word drift** remain open until runtime evidence exists.
+
 ---
 
 ## 1. Key audit findings (13 total)
@@ -84,7 +86,7 @@ Three roles, enforced at the **agent layer** (e.g. retrieve node → `rbac.py`) 
 Browser → Nginx (TLS termination) → two services in one Docker network on Fly.io / Railway:
 
 - **OpenEMR (PHP / Apache)** — chart UI, `copilot_panel.php` injects the chat widget, exposes FHIR R4 + REST.
-- **Agent microservice (FastAPI / Python 3.11)** — separate service. Auth = OpenEMR session token validated against OpenEMR's own `/api/user`.
+- **Agent microservice (FastAPI / Python 3.11)** — separate service. **Auth:** clinician session via **PHP session probe** (cookie), **Bearer** token validated against OpenEMR `/apis/{site}/api/user`, or **demo bypass** when configured — see [`.planning/AI-ARCHITECTURE.md`](.planning/AI-ARCHITECTURE.md) and [`agent/access/openemr_auth.py`](agent/access/openemr_auth.py).
 
 ### Agent internals
 
@@ -101,12 +103,12 @@ Browser → Nginx (TLS termination) → two services in one Docker network on Fl
 |----------|--------|-----------|
 | Agent placement | Separate FastAPI microservice in same Docker network | Keeps Python/AI code cleanly separated from OpenEMR PHP; communicates via FHIR/REST API |
 | Data access | FHIR R4 primary, direct MySQL fallback | FHIR is the standard; some resources (e.g. appointments) require REST |
-| Auth flow | OpenEMR session token passed to agent via Authorization header | No second auth system; agent validates against OpenEMR's own `/api/user` |
+| Auth flow | **Cookies** → PHP session probe; **Bearer** → `/apis/{site}/api/user`; optional **demo bypass** (env + header) | Covers embedded UI, API clients, and non-PHI demos without a second clinician login |
 | LLM | Claude Sonnet (Anthropic) | Context window, reliable JSON, best instruction following for clinical structured output |
 | Agent framework | LangGraph | Explicit state for multi-turn sessions; retrieve → generate → verify with retry |
 | Verification | Programmatic grounding + domain rules | Faster than LLM-as-judge; deterministic; catches hallucinations and clinical constraint violations |
 | Observability | Langfuse (self-hosted) | HIPAA-compatible; full trace visibility across all LangGraph nodes |
-| Frontend | Vanilla JS + SSE injected into OpenEMR PHP | Minimal integration surface; avoids CORS complexity |
+| Frontend | **React + TypeScript + Vite** embedded at `/interface/copilot/`; Apache proxies `/agent` to FastAPI | Same-origin cookies for session auth; optional standalone Fly app for the SPA |
 | Vitals/labs split | Two FHIR tools on one Observation resource (category filter) | NURSE can access vitals without labs; RBAC requires distinct tool identities |
 | Session scoping | `AgentState` bound to one `patient_id`; navigation change resets state | Prevents context bleed between patients |
 | Incorrect-response flagging | `POST /flag` writes a FLAG event to Langfuse; no re-generation | Audit trail; auto-correction is out of scope for v1 |
@@ -126,7 +128,7 @@ Browser → Nginx (TLS termination) → two services in one Docker network on Fl
 | F8 RBAC | `rbac.py`, retrieve enforcement | PR #12 |
 | F9 Failure states | UI + agent errors | PR #09–10 |
 | F10 Observability | Langfuse + PHI-safe logger | PR #13 |
-| F11 Eval suite | `agent/eval/` | PR #15 |
+| F11 Eval suite | `agent/tests/eval/` + [`EVAL.md`](EVAL.md) | PR #15 |
 
 ---
 

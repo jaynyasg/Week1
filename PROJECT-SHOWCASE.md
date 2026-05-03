@@ -4,13 +4,36 @@
 
 **Living document:** Update this file when milestones close, tests counts shift materially, deployment URLs/cost figures change, the **stack** (§2) shifts, or **interview answers** (§10) need to reflect new audit/architecture/eval evidence. Append a row to **§ Revision history** at the bottom each time.
 
-**Last updated:** 2026-05-02
+**Last updated:** 2026-05-03
 
 ---
 
 ## 1. Executive overview
 
 This project is a **role-safe clinical copilot** integrated with **OpenEMR**, deployed as a **separate FastAPI agent** on **Fly.io**, with a **retrieve → generate → verify (RGV)** runtime shape, **structured observability hooks**, and an **automated test suite** that proves HTTP contracts, auth boundaries, and scaffold behavior **without** claiming full production LLM + FHIR + record-backed attribution in prose (those remain **fork / deployed-stack** work—see [`.planning/ROADMAP.md`](.planning/ROADMAP.md)).
+
+### 1.1 Synthea cohort + live OpenEMR path
+
+- **Offline / demo cohort:** [`fixtures/sample-patients/`](fixtures/sample-patients/README.md) holds **Synthea-shaped CSV** exports (patients, encounters, observations, medications, allergies, …). The agent loads them when **OpenEMR FHIR** credentials are not configured (`source: csv` in tool payloads).
+- **Import to OpenEMR:** [`scripts/import_synthea_to_openemr.py`](scripts/import_synthea_to_openemr.py) loads the same cohort into MariaDB for a Fly-hosted OpenEMR; [`scripts/verify_import.py`](scripts/verify_import.py) smoke-checks imported rows.
+- **Seed patient (demo / evals):** UUID **`f1aa52b9-aded-3188-9386-012244805ebf`** (Maurice742 Brekke496) appears across workflows, fixtures, and behavioral tests.
+- **FHIR-backed tools:** With `OPENEMR_BASE_URL` + `OPENEMR_FHIR_CLIENT_ID` + `OPENEMR_FHIR_CLIENT_SECRET`, the five clinical tools prefer **`openemr_fhir`** and fall back to CSV automatically when FHIR is unavailable.
+
+### 1.2 Clinician workflows + LLM-callable tools
+
+- **Seven scripted demo prompts** (roles, RBAC edges, expected tool patterns): [`deploy/CLINICIAN-WORKFLOWS.md`](deploy/CLINICIAN-WORKFLOWS.md).
+- **Five OpenAI function tools** the model may invoke (each scoped to `patient_id` and RBAC-mapped to PRD logical tools): **`get_patient_demographics`**, **`list_active_medications`**, **`list_recent_laboratory_results`**, **`list_recent_vital_signs`**, **`list_allergies`** — see [`agent/tools/dispatch.py`](agent/tools/dispatch.py). [`USERS.md`](USERS.md) Part 2 still defines **eight** logical tools for PRD alignment; `problem_list`, `visit_notes`, and `schedule` are **not** yet exposed as model functions in this scaffold.
+- **Structured chat response:** Successful turns can include **`tool_execution_summary`** (per-function status, headline counts, RBAC refusals) for demo and ops review.
+
+### 1.3 Three ways to authenticate `POST /agent/chat`
+
+| Mode | When to use | How it works (summary) |
+| --- | --- | --- |
+| **OpenEMR UI session (Cookie)** | Embedded chat in OpenEMR (same origin) or any client that can forward browser cookies | `Cookie` header (and optionally `X-OpenEMR-Browser-Cookies` for `document.cookie` mirroring). Agent validates with **`GET {OPENEMR_BASE_URL}/interface/copilot_session_probe.php`** (PHP reads `OpenEMR` session; returns JSON groups for role mapping). |
+| **Bearer (Standard API)** | API clients, curl, automation with an OAuth2 access token | `Authorization: Bearer …`. Agent validates with **`GET {OPENEMR_BASE_URL}/apis/{OPENEMR_SITE_ID}/api/user`** (not the old single `/api/user` path). |
+| **Demo bypass** | Non-PHI demos only (`AGENT_DEMO_BYPASS=1`) | Header **`X-Agent-Demo-Role: PHYSICIAN|NURSE|ADMIN`** skips OpenEMR validation; **never** enable with real PHI. |
+
+**Why keep all three:** Embedded clinicians already have a **session**—no separate “copilot login.” **Bearer** supports **machine and integration** callers that never hold PHP cookies. **Demo bypass** supports **offline/Gauntlet demos** without standing up a full OpenEMR session, isolated by env + header.
 
 The **design intent** (users, use cases, verification philosophy, observability minimums) is documented in canonical markdown; the **code** proves contracts and safety-oriented structure so the OpenEMR fork can inherit a verifiable foundation.
 
@@ -35,7 +58,7 @@ Everything below is **in-repo or CI-visible** unless marked *intent* (planned on
 | [**FastAPI**](https://fastapi.tiangolo.com/) | HTTP API (`/agent/chat`, `/agent/health`, …), dependency injection for auth and rate limits | OpenAPI-first, async-friendly, Pydantic-native request/response validation—fits contract-heavy clinical API |
 | [**Uvicorn**](https://www.uvicorn.org/) | ASGI server in the Fly container | Standard, lightweight ASGI host for FastAPI; `uvicorn[standard]` for production extras |
 | [**Pydantic**](https://docs.pydantic.dev/) (via FastAPI) | `ChatRequest` / `ChatResponse` schemas, validation errors → **422** | Typed JSON contracts and clear failure modes for UI + eval |
-| [**httpx**](https://www.python-httpx.org/) | Async HTTP to OpenEMR **`/api/user`**, optional live smoke tests | Modern async client; `MockTransport` supports unit tests without the network |
+| [**httpx**](https://www.python-httpx.org/) | Async HTTP to OpenEMR **session probe** (cookies) or **Standard API** `/apis/{site}/api/user` (Bearer), optional live smoke tests | Modern async client; `MockTransport` supports unit tests without the network |
 | [**OpenAI Python SDK**](https://github.com/openai/openai-python) | Optional **LLM-backed** `scaffold_generate` when `OPENAI_API_KEY` is set | Vendor-neutral “real model” path without locking the scaffold to one host pattern; degrades to echo when unset |
 | [**SlowAPI**](https://github.com/laurentS/slowapi) | Optional rate limiting on chat route when env-configured | Rate limits are a clinical-safety / abuse-control primitive for a public HTTP agent |
 | [**python-dotenv**](https://github.com/theskumar/python-dotenv) | Load local `.env` for dev (gitignored) | Keeps secrets out of code while matching Fly secret names conceptually |
@@ -102,7 +125,7 @@ Everything below is **in-repo or CI-visible** unless marked *intent* (planned on
 | Decision | What we chose | Why it matters | Where it lives |
 | --- | --- | --- | --- |
 | **Agent placement** | **Separate Fly app** from OpenEMR (`fly.agent.toml`, `Dockerfile.agent`) | Independent deploy, scale, and failure domain from PHP stack | [`fly.agent.toml`](fly.agent.toml), [`deploy/README-fly-agent.md`](deploy/README-fly-agent.md) |
-| **Auth boundary** | Validate **OpenEMR session** via **`/api/user`** (Bearer and/or Cookie); no second login | Trust inherits from EHR; role comes from same source clinicians already use | [`agent/access/openemr_auth.py`](agent/access/openemr_auth.py), [`agent/http/deps.py`](agent/http/deps.py) |
+| **Auth boundary** | **Cookie/UI:** PHP session probe [`deploy/copilot_session_probe.php`](deploy/copilot_session_probe.php) → JSON groups. **Bearer:** `GET /apis/{site}/api/user`. **Optional demo:** `AGENT_DEMO_BYPASS` + `X-Agent-Demo-Role`. No second login for real sessions. | Trust inherits from EHR; role comes from OpenEMR-backed validation or narrow demo header | [`agent/access/openemr_auth.py`](agent/access/openemr_auth.py), [`agent/http/deps.py`](agent/http/deps.py), [§1.3 above](#13-three-ways-to-authenticate-post-agentchat) |
 | **RGV loop** | **Retrieve → generate → verify** with **bounded retry** (`MAX_VERIFY_RETRIES`) | Ordering and graceful **`verified: false`** exit are explicit—not silent success | [`agent/runtime/rgv_pipeline.py`](agent/runtime/rgv_pipeline.py) |
 | **HTTP API** | `POST /agent/chat` with multi-turn **`messages`**, **`ChatResponse`** schema (`verified`, `verification_notes`, `tool_result_keys`, …) | Stable JSON contract for UI and eval | [`agent/http/schemas.py`](agent/http/schemas.py), [`agent/http/routes_chat.py`](agent/http/routes_chat.py) |
 | **Scaffold vs fork** | In-repo **scaffold** retrieve/generate/verify; **full PRD runtime** on fork | Honest scope: contracts + tests here; EMR-deep integration there | [`.planning/ROADMAP.md`](.planning/ROADMAP.md) Phase 3 notes, [`ARCHITECTURE.md`](ARCHITECTURE.md) executive summary |
@@ -130,8 +153,9 @@ Everything below is **in-repo or CI-visible** unless marked *intent* (planned on
 
 | Aspect | Status / intent |
 | --- | --- |
-| **Automated suite** | **`pytest`** over `agent/tests` and `deploy/tests`; typical offline run **~169 passed**, **~15 skipped** (live OpenEMR, optional gates)—**re-run to refresh** |
-| **What it proves** | RGV ordering, multi-turn history, auth/RBAC, OpenAPI contract, OpenEMR fetch edge cases (mocked), HTTP observability fields, deploy manifest checks, chat JSON shape vs `ChatResponse` |
+| **Behavioral eval pack** | **[`EVAL.md`](EVAL.md)** — **53** core tests (RBAC matrix, mocked OpenAI tool loop, CSV/Synthea fixture smoke) + **21** edge-case / failure-mode tests under `agent/tests/eval/` (**74** total); no live LLM required |
+| **Full automated suite** | **`pytest`** over `agent/tests` and `deploy/tests`; counts drift with new tests—**re-run to refresh** |
+| **What it proves** | RGV ordering, multi-turn history, auth/RBAC, OpenAPI contract, OpenEMR HTTP edge cases (mocked), tool dispatch + scope violations, HTTP observability fields, deploy manifest checks, chat JSON shape vs `ChatResponse` |
 | **Live / gated** | Optional `RUN_LIVE_OPENEMR_E2E` tests and latency gates documented in [`.env.example`](.env.example) |
 | **Traceability** | [`.planning/REQ-TEST-TRACEABILITY.md`](.planning/REQ-TEST-TRACEABILITY.md) |
 
@@ -209,12 +233,12 @@ Verification is **programmatic first** (deterministic, testable) inside a **retr
 **What does your agent do when a tool fails or a record is missing?**  
 Today’s behavior is **layered**:
 - **RBAC / policy “tool not allowed”** → refusal with explicit role + tool naming and structured logs (see [`USERS.md`](USERS.md) Part 2 and tests around tool refusal logging).
-- **OpenEMR session / HTTP failure** on `/api/user` → **`OpenEMRAuthError`** mapped to **401** with structured `detail` (no silent downgrade to “guest”).
+- **OpenEMR session / HTTP failure** on session probe or Standard API **`/api/user`** → **`OpenEMRAuthError`** mapped to **401** with structured `detail` (no silent downgrade to “guest”).
 - **Scaffold verify** with missing retrieve payload → verify fails; bounded retry may recover; else **`verified: false`** with notes so the UI and operator logs show **unverified** output.
 - **Real FHIR tool failures** (timeouts, partial pages, empty searches) are **fork responsibilities**—the architecture reserves explicit refusal / “insufficient data” paths rather than hallucination.
 
 **Where are the trust boundaries in your system, and how are they enforced?**  
-1. **OpenEMR session boundary** — every agent turn starts from a validated session (`/api/user`); enforced in [`agent/http/deps.py`](agent/http/deps.py) + [`agent/access/openemr_auth.py`](agent/access/openemr_auth.py).  
+1. **OpenEMR session boundary** — every agent turn starts from validated **session cookies** (PHP probe) and/or **Bearer** (`/apis/{site}/api/user`), or a **demo** role when explicitly enabled; enforced in [`agent/http/deps.py`](agent/http/deps.py) + [`agent/access/openemr_auth.py`](agent/access/openemr_auth.py).  
 2. **Role → tool boundary (RBAC)** — enforced before clinical retrieval in the agent layer per [`USERS.md`](USERS.md) Part 2 / `rbac.py`.  
 3. **Generation → user boundary** — verification gate + explicit **`verified`** bit; enforced in RGV pipeline + response schema.  
 4. **Logging boundary** — structured `agent_event` lines must not echo raw tokens; refusal and auth paths tested for shape (see observability tests).
@@ -254,7 +278,7 @@ Ship **record-backed attribution** for factual claims, **clinically reviewed ver
 
 1. Run `python -m pytest agent/tests deploy/tests -q` and note **passed / skipped**.  
 2. Re-read [`.planning/STATE.md`](.planning/STATE.md) and [`.planning/ROADMAP.md`](.planning/ROADMAP.md) for phase completion.  
-3. Update **§5 Evaluation** counts and **§6** if cost tables are filled.  
+3. Update **§5 Evaluation** counts and **[`EVAL.md`](EVAL.md)** (53 core + 21 edge-case) if files under `agent/tests/eval/` change; align **§6** if cost tables are filled.  
 4. If **users/use cases** change, edit [`USERS.md`](USERS.md) Part 1 first, then summarize here.  
 5. If **dependencies or platforms** change, update **§2** and `requirements.txt` / `deploy/requirements-agent.txt` / `chat-ui/package.json` pointers.  
 6. If **audit findings, architecture behavior, or eval results** change materially, revise **§10** (interview Q&A) so spoken answers match evidence.  
@@ -270,4 +294,5 @@ Ship **record-backed attribution** for factual claims, **clinically reviewed ver
 | 2026-05-02 | Added **§2 Tools, software, and platforms** (stack tables + rationale); renumbered sections; refresh checklist includes stack updates. |
 | 2026-05-02 | Added **§10 Interview-style Q&A** (audit, architecture, evaluation, production thinking); **§11** refresh checklist. |
 | 2026-05-02 | Documented **synthetic CSV fixtures** (`fixtures/sample-patients/`), validation script, gitignored `local/`, README + showcase hygiene links. |
+| 2026-05-03 | **§11:** Refresh checklist ties evaluation counts to [`EVAL.md`](EVAL.md) when `agent/tests/eval/` changes. |
 | 2026-05-02 | Nondisruptive backlog: `CHANGELOG.md`, `MAINTAINERS` routing, `CONTRIBUTING` synthetic data note, pre-commit fixture quick hook, GitHub/GitLab manual full FK jobs, fixture header tests, `deploy/README-fly-agent` link to fixtures. |

@@ -24,6 +24,16 @@ Operational and data-quality dependencies are well called out in the PRD open qu
 
 Overall readiness: **RBAC narrative is unified in `users.md` with the markdown PRD v1.1**; **tool-count language in PRD §2 should still be corrected**; **Word PRD v1.0 and Word TaskList v2.0 must not be treated as equivalent to the markdown v1.1 / v2.1 pair** (see **AUD-012**, **AUD-013**); **open questions must be closed with measured evidence** before merge gates on PR #07 (EHR tools) and PR #12 (RBAC code + tests).
 
+### Update 2026-05-03 (implementation evidence, not a re-audit)
+
+Since audit **v1.2**, this repository gained **executable** (still demo-scoped) pieces that narrow—but do not fully close—earlier **“no code in scope”** caveats:
+
+- **RBAC enforcement** in [`agent/access/rbac.py`](agent/access/rbac.py) with pytest coverage including [`agent/tests/eval/`](agent/tests/eval/) (**see [`EVAL.md`](EVAL.md)**).
+- **OpenEMR auth** via **PHP session probe** + **Standard API Bearer** + optional **demo bypass** ([`agent/access/openemr_auth.py`](agent/access/openemr_auth.py), [`deploy/copilot_session_probe.php`](deploy/copilot_session_probe.php)).
+- **Five** LLM-callable clinical tools (CSV + optional FHIR) ([`agent/tools/dispatch.py`](agent/tools/dispatch.py)).
+
+Runtime security review, PHI log sampling, and FHIR performance **still** require a controlled environment—this note does **not** replace those activities.
+
 ---
 
 ## 1. Overview

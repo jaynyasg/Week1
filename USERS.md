@@ -121,6 +121,16 @@ Every agent capability in MVP should cite **at least one UC id** (UC-01…UC-06)
 
 [`USER.md`](USER.md) holds a **short cross-reference** to this file. **Part 1 of `USERS.md` is authoritative** for Stage 4 / submission alignment.
 
+### 1.8 Agent API authentication (how the copilot knows the role)
+
+The FastAPI agent (`POST /agent/chat`) accepts **three** complementary paths—see [`PROJECT-SHOWCASE.md`](PROJECT-SHOWCASE.md) §1.3 for the full rationale:
+
+1. **OpenEMR UI session (cookies)** — default for **embedded** chat: browser sends `Cookie` / `X-OpenEMR-Browser-Cookies`; the agent calls the PHP **session probe** (`/interface/copilot_session_probe.php`) to read group membership and map to `PHYSICIAN|NURSE|ADMIN`.
+2. **Bearer token** — for **API / scripted** clients: `Authorization: Bearer …` validated via OpenEMR Standard API **`GET /apis/{site}/api/user`**.
+3. **Demo bypass** — only when `AGENT_DEMO_BYPASS` is set: header `X-Agent-Demo-Role` trusts the role **without** OpenEMR (non-PHI demos).
+
+**Clinician-facing scripted demos** (CSV cohort, tool summaries): [`deploy/CLINICIAN-WORKFLOWS.md`](deploy/CLINICIAN-WORKFLOWS.md).
+
 ---
 
 ## Part 2 — RBAC: Agent tool access (`rbac.py`)
@@ -139,6 +149,8 @@ This section matches **PRD v1.1 · Feature 8 (Role-Based Access Control)**.
 ---
 
 ### The eight patient-context tools
+
+**Scaffold note:** The in-repo OpenAI tool surface exposes **five** read functions that map to this matrix: **demographics, medications, labs, vitals, allergies** ([`agent/tools/dispatch.py`](agent/tools/dispatch.py)). **Problem list, visit notes, and schedule** remain PRD-aligned targets for the OpenEMR fork—they are not yet registered as model-callable functions in this repository.
 
 | # | Tool (logical name) | Purpose (summary) |
 |---|---------------------|-------------------|

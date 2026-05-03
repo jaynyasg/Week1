@@ -138,6 +138,26 @@ def fhir_medications(patient_uuid: str) -> dict[str, Any]:
     return {"source": "openemr_fhir", "count": len(meds), "medications": meds}
 
 
+def observation_resource_matches_category(resource: dict[str, Any], want: str) -> bool:
+    """
+    Return True if this Observation resource carries ``want`` as a category **code**.
+
+    Used as defense-in-depth (AUD-004): OpenEMR may return observations that do not
+    match the FHIR ``category`` search parameter. Nurses must not see laboratory rows
+    through the vitals tool because of server-side miscategorization or empty category.
+
+    ``want`` is ``laboratory`` or ``vital-signs`` (HL7 observation-category).
+    Observations with **no** matching category code are **excluded** from both tools.
+    """
+    want_norm = want.strip().lower()
+    for cat in resource.get("category") or []:
+        for coding in (cat.get("coding") or []):
+            code = coding.get("code")
+            if code and str(code).strip().lower() == want_norm:
+                return True
+    return False
+
+
 def fhir_observations(patient_uuid: str, category: str = "laboratory") -> dict[str, Any]:
     """Observations for one category (laboratory | vital-signs)."""
     patient = fhir_patient_by_identifier(patient_uuid)
@@ -150,8 +170,12 @@ def fhir_observations(patient_uuid: str, category: str = "laboratory") -> dict[s
     )
     entries = (bundle or {}).get("entry") or []
     rows = []
+    skipped_miscategorized = 0
     for e in entries:
         r = e.get("resource", {})
+        if not observation_resource_matches_category(r, category):
+            skipped_miscategorized += 1
+            continue
         code_block = r.get("code") or {}
         value_qty = r.get("valueQuantity") or {}
         rows.append({
@@ -161,7 +185,14 @@ def fhir_observations(patient_uuid: str, category: str = "laboratory") -> dict[s
             "date": r.get("effectiveDateTime", ""),
         })
     key = "labs" if category == "laboratory" else "vitals"
-    return {"source": "openemr_fhir", "count": len(rows), key: rows}
+    out: dict[str, Any] = {
+        "source": "openemr_fhir",
+        "count": len(rows),
+        key: rows,
+        "category_filter": category,
+        "skipped_not_matching_category": skipped_miscategorized,
+    }
+    return out
 
 
 def fhir_allergies(patient_uuid: str) -> dict[str, Any]:

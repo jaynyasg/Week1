@@ -8,20 +8,57 @@
  * if that fails but $_SESSION still holds a core clinician login, fall back to an
  * active-user DB check so hash-migration / edge cases do not block co-pilot.
  *
+ * Group names come from phpGACL tables via SQL. Avoid AclExtended/AclMain here:
+ * initializing Gacl/GaclApi under $ignoreAuth can fatally error while normal pages work.
+ *
  * OAuth Bearer tokens are not PHP sessions; the agent uses Standard API routes for those.
  */
 
-use OpenEMR\Common\Acl\AclExtended;
-use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Auth\AuthUtils;
-use OpenEMR\Common\Session\SessionUtil;
 
 $ignoreAuth = true;
-require_once dirname(__FILE__) . '/../globals.php';
+// This file lives in interface/ (same dir as globals.php), not interface/login/.
+require_once dirname(__FILE__) . '/globals.php';
 
-// globals.php starts the session read-mostly (read_and_close). Re-bind to the OpenEMR= cookie
-// with a writable session so AuthUtils sees the same data as the main app.
-SessionUtil::switchToCoreSession($GLOBALS['webroot'] ?? '', false);
+/**
+ * Group display names (gacl_aro_groups.name) for a login — mirrors AclExtended::aclGetGroupTitles output shape.
+ *
+ * @return list<string>
+ */
+function copilot_probe_acl_group_names(string $username): array
+{
+    $names = [];
+    $sql = "
+        SELECT DISTINCT gag.name AS grp_name
+        FROM gacl_aro AS garo
+        INNER JOIN gacl_groups_aro_map AS gam ON garo.id = gam.aro_id
+        INNER JOIN gacl_aro_groups AS gag ON gam.group_id = gag.id
+        WHERE garo.section_value = 'users'
+          AND garo.value = ?
+        ORDER BY grp_name
+    ";
+    $res = sqlStatement($sql, [$username]);
+    while ($row = sqlFetchArray($res)) {
+        if (!empty($row['grp_name'])) {
+            $names[] = $row['grp_name'];
+        }
+    }
+    return array_values(array_unique($names));
+}
+
+/**
+ * Approximate admin/users ACL using group membership (Administrators and similar).
+ */
+function copilot_probe_user_is_admin_like(array $groups): bool
+{
+    foreach ($groups as $g) {
+        $gl = strtolower((string) $g);
+        if (stripos($gl, 'admin') !== false) {
+            return true;
+        }
+    }
+    return false;
+}
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate');
@@ -52,9 +89,8 @@ if (!$strictSession && !$fallbackSession) {
     exit;
 }
 
-$session = \OpenEMR\Common\Session\SessionWrapperFactory::getInstance()->getActiveSession();
-$authUserID = $session->get('authUserID');
-$authUser = $session->get('authUser');
+$authUserID = $_SESSION['authUserID'] ?? null;
+$authUser = $_SESSION['authUser'] ?? null;
 
 if (empty($authUserID) || empty($authUser)) {
     http_response_code(401);
@@ -65,25 +101,8 @@ if (empty($authUserID) || empty($authUser)) {
     exit;
 }
 
-$groups = AclExtended::aclGetGroupTitles((string) $authUser);
-if (!is_array($groups)) {
-    $groups = [];
-}
-$groups = array_values($groups);
-
-$isAdmin = AclMain::aclCheckCore('admin', 'users', '', (string) $authUser);
-if ($isAdmin) {
-    $hasAdminGroup = false;
-    foreach ($groups as $g) {
-        if (stripos((string) $g, 'admin') !== false) {
-            $hasAdminGroup = true;
-            break;
-        }
-    }
-    if (!$hasAdminGroup) {
-        $groups[] = 'Administrators';
-    }
-}
+$groups = copilot_probe_acl_group_names((string) $authUser);
+$isAdmin = copilot_probe_user_is_admin_like($groups);
 
 echo json_encode([
     'id' => (string) $authUserID,

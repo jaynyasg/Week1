@@ -14,6 +14,13 @@ This file is the AI integration plan and implementation-intent architecture for 
 - **Session model**: per-patient and per-role scoped context with reset behavior on chart/patient boundary changes.
 - **Trust boundaries**: OpenEMR auth boundary, tool authorization boundary, verification boundary, and output boundary.
 
+## Implemented scaffold (2026-05) — tools and auth
+
+- **Model-invokable tools (five):** `get_patient_demographics`, `list_active_medications`, `list_recent_laboratory_results`, `list_recent_vital_signs`, `list_allergies` — OpenAI function schemas and execution in [`agent/tools/dispatch.py`](../agent/tools/dispatch.py); data from **CSV/Synthea fixtures** or **OpenEMR FHIR R4** when client credentials are set (see [`deploy/README-fly-agent.md`](../deploy/README-fly-agent.md) FHIR section).
+- **Auth to agent:** (1) **Cookie / session probe** — [`deploy/copilot_session_probe.php`](../deploy/copilot_session_probe.php); (2) **Bearer** — Standard API user route; (3) **Demo bypass** — `AGENT_DEMO_BYPASS` + `X-Agent-Demo-Role` only for non-PHI demos. Details in [`agent/access/openemr_auth.py`](../agent/access/openemr_auth.py), [`agent/http/deps.py`](../agent/http/deps.py).
+- **Demo workflows:** [`deploy/CLINICIAN-WORKFLOWS.md`](../deploy/CLINICIAN-WORKFLOWS.md).
+- **Behavioral evals:** [`EVAL.md`](../EVAL.md) — 53 core + 21 edge-case tests under `agent/tests/eval/`.
+
 ## PRD Agent Requirements Coverage
 
 **Phase 3 scope (gap review 2026-04-30, aligned with `.planning/ROADMAP.md`)**: This repository documents **PRD-aligned design intent** and ships **scaffold + HTTP/contracts + automated tests** for retrieve–generate–verify and chat (e.g. ordering, multi-turn session headers, structured verification fields, bounded retry, degradation paths). It does **not** close the full **executable** PRD agent path (production LLM, FHIR-backed retrieve, record-backed source attribution in response artifacts, domain-grounded verify module). That **runtime** work is **OpenEMR fork / deployed-stack** ownership—treat in-repo behavior as **scaffold and contract proof**, not full PRD runtime parity.
@@ -41,6 +48,7 @@ This file is the AI integration plan and implementation-intent architecture for 
 - Eval scope includes happy path, failure modes, regressions, and unauthorized-access attempts.
 - Release gating depends on measured latency/reliability thresholds plus safety policy adherence.
 - Eval artifacts are retained as evidence for milestone/checkpoint defensibility.
+- **In-repo pack:** [`EVAL.md`](../EVAL.md) inventories **53** core + **21** edge-case behavioral tests (`agent/tests/eval/`).
 
 ## Deployment Intent for AI Layer
 - AI behavior in deployed environments must match planned runtime contracts.
