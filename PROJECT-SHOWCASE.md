@@ -167,7 +167,7 @@ Everything below is **in-repo or CI-visible** unless marked *intent* (planned on
 
 | Aspect | Status |
 | --- | --- |
-| **Deliverable** | [`AI-COST-ANALYSIS.md`](AI-COST-ANALYSIS.md) — dev spend table (**TBD**), tiered **100 → 100K** user framing, architectural implications per tier |
+| **Deliverable** | [`AI-COST-ANALYSIS.md`](AI-COST-ANALYSIS.md) — **OpenAI / Fly / Langfuse** list prices (linked), modeled dev month **~$5.24**, LLM rollups, tiered **100 → 10K** MAC framing |
 | **Runtime honesty** | Scaffold logs often use **`cost_envelope="unknown"`** until provider usage is wired—see [`.planning/observability-gap-analysis.md`](.planning/observability-gap-analysis.md) |
 
 **Update before submission:** Replace **TBD** with real API and infra numbers.

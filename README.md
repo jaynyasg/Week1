@@ -31,7 +31,7 @@ Single overview of decisions, users, eval, cost, observability: [`PROJECT-SHOWCA
 | **Users / workflows / use cases (Stage 4, source of truth)** | [`USERS.md`](USERS.md) Part 1 ([`USER.md`](USER.md) is an alias) |
 | Architecture (+ executive summary) | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
 | Audit | [`AUDIT.md`](AUDIT.md) · [`AUDIT_V2.md`](AUDIT_V2.md) · [`DOCUMENT-CONTROL.md`](DOCUMENT-CONTROL.md) (Word vs markdown authority) |
-| AI cost analysis (fill TBD spend) | [`AI-COST-ANALYSIS.md`](AI-COST-ANALYSIS.md) |
+| AI cost analysis (vendor list prices + modeled examples) | [`AI-COST-ANALYSIS.md`](AI-COST-ANALYSIS.md) |
 | Eval snapshot / how to reproduce results | [`.planning/eval-artifacts/2026-05-01-submission-prep-snapshot.md`](.planning/eval-artifacts/2026-05-01-submission-prep-snapshot.md) |
 | Observability gap inventory | [`.planning/observability-gap-analysis.md`](.planning/observability-gap-analysis.md) |
 
@@ -56,7 +56,7 @@ Configure OpenEMR origin via `fly secrets` per [`deploy/README-fly-agent.md`](de
 - [`SECURITY.md`](SECURITY.md) — how to report vulnerabilities responsibly
 - [`PROJECT-SHOWCASE.md`](PROJECT-SHOWCASE.md) — end-to-end project story + key decisions (update as work completes)
 - [`USERS.md`](USERS.md) — Stage 4: primary user, workflow, use cases + why conversational agent; Part 2 = RBAC
-- [`AI-COST-ANALYSIS.md`](AI-COST-ANALYSIS.md) — cost template (fill TBD)
+- [`AI-COST-ANALYSIS.md`](AI-COST-ANALYSIS.md) — OpenAI / Fly / Langfuse list prices + worked examples
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [.planning/ROADMAP.md](.planning/ROADMAP.md)
 - [.planning/STATE.md](.planning/STATE.md)

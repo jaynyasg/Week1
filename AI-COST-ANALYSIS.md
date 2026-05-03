@@ -3,129 +3,131 @@
 **Last updated:** 2026-05-03  
 **Scope:** Clinical Co-Pilot agent (LLM + retrieval + verification stack).
 
-This document now includes **modeled USD** from public **list prices** and explicit token assumptions. **Your actual bill** = usage × those rates (plus taxes / tiers). Replace **TBD** in §1 with exports from your OpenAI and Fly dashboards before a formal submission.
+All dollar amounts below come from **published vendor list prices** (with **arithmetic** for combined scenarios). Your invoice may differ (taxes, prepaid commitments, enterprise discounts, regional Fly rates, actual token usage).
 
 **Primary API model in this repo:** [`OPENAI_CHAT_MODEL`](agent/services/openai_tool_loop.py) defaults to **`gpt-4o-mini`** when unset.
 
----
+**Authoritative price sources (retrieved for this document):**
 
-## 1. Development spend (actual)
-
-| Period | Item | Amount (USD) | Evidence / notes |
-| --- | --- | --- | --- |
-| TBD | OpenAI / Anthropic API (dev keys) | TBD | Paste invoice or dashboard export |
-| TBD | Fly.io (agent + OpenEMR apps) | TBD | `fly scale`, bandwidth, volume |
-| TBD | Other (CI, Langfuse host, etc.) | TBD | |
-
-**Total dev (YTD):** TBD
+- **OpenAI** — Standard API rates: [OpenAI API pricing](https://openai.com/api/pricing/) and model table [Pricing (platform docs)](https://platform.openai.com/docs/pricing) (prices per **1M tokens**).
+- **Fly.io** — Machine RAM/CPU: [Fly.io resource pricing](https://fly.io/docs/about/pricing/) (per-second → **730h/mo** “always-on” equivalents in their tables).
+- **Langfuse Cloud** — [Langfuse pricing](https://langfuse.com/pricing) (Hobby **$0**, Core **$29/mo**, etc.).
+- **GitHub Actions** — [Billing for GitHub Actions](https://docs.github.com/en/billing/concepts/billing-for-github-actions) (public repos: **$0** for standard hosted runners within policy).
 
 ---
 
-## 2. Vendor list prices (snapshot for math below)
+## 1. Example “small team” month (modeled, not an invoice)
 
-Rates below are **OpenAI public list prices** (USD per **1M tokens**) as commonly published for chat models in 2026; **confirm** on [OpenAI Pricing](https://openai.com/api/pricing/) before locking a budget. Cached-input discounts are omitted unless you enable prompt caching.
+Illustrates how list prices combine. Figures are **rounded**.
 
-| Model | Input $/1M | Output $/1M | Notes |
-| --- | ---: | ---: | --- |
-| **gpt-4o-mini** | 0.15 | 0.60 | Default in scaffold; best baseline for tables below |
-| **gpt-4o** | 2.50 | 10.00 | “Step up” if quality/latency requires a larger model |
+| Line item | Amount (USD) | Basis |
+| --- | ---: | --- |
+| OpenAI **`gpt-4o-mini`** (Standard) | **1.92** | **8M** input + **1.2M** output tokens/month → \((8 × 0.15) + (1.2 × 0.60) = 1.20 + 0.72\) using [platform **gpt-4o-mini** row: **$0.15 / $0.60** per 1M](https://platform.openai.com/docs/pricing) |
+| Fly.io **1×** `shared-cpu-1x` **512MB** machine (always-on) | **3.32** | Fly [resource pricing](https://fly.io/docs/about/pricing/) table lists **~$3.32/mo** for that shape in published examples (use their calculator for your region; regions differ slightly) |
+| GitHub Actions (CI) | **0.00** | **Public** repo: standard Linux minutes **$0** within [GitHub Actions billing](https://docs.github.com/en/billing/concepts/billing-for-github-actions) allowances |
+| Langfuse Cloud **Hobby** | **0.00** | [Langfuse Hobby](https://langfuse.com/pricing): **$0**, 50k billable units/mo cap |
+| **Example subtotal** | **~5.24** | Sum of above |
 
-**Formula for one completion:**  
-`usd = (tokens_in / 1e6) × price_in + (tokens_out / 1e6) × price_out`
-
-**Tool-loop note:** With [`AGENT_LLM_CSV_TOOLS=1`](agent/services/openai_tool_loop.py), each **tool round** is typically a **separate** Chat Completions call until the model returns final text (cap `_MAX_TOOL_ROUNDS = 10`). **Billable tokens** accumulate across rounds (system prompt and history are re-sent per request unless you optimize). **Verification** can add up to **one extra generate** pass ([`MAX_VERIFY_RETRIES = 1`](agent/runtime/rgv_pipeline.py)) on failure paths.
-
----
-
-## 3. Example token assumptions (for illustration)
-
-These are **not** measured from production logs; they are **reasonable ranges** for a short clinician question with one chart context.
-
-| Scenario | Completions (calls) | Total input tok (all calls) | Total output tok (all calls) | Rationale |
-| --- | ---: | ---: | ---: | --- |
-| **A — Simple reply** (no tool path / echo path or single completion) | 1 | 900 | 350 | System + 1 user turn + moderate reply |
-| **B — Typical tools** (2 model rounds: plan/tools → answer) | 2 | 6,500 | 600 | Larger system + tool defs; one tool result blob |
-| **C — Heavy tools + retry** (2 rounds + one verify failure → regen) | 3 | 9,500 | 900 | Extra history + second answer attempt |
-
-Adjust these after you log **real** `usage.prompt_tokens` / `completion_tokens` from OpenAI.
+If you add a **second** Fly machine (e.g. OpenEMR on its own VM of the same size), add **~$3.32/mo** from the same Fly table. Volumes are extra (**~$0.15/GB/mo** on Fly per [resource pricing](https://fly.io/docs/about/pricing/)).
 
 ---
 
-## 4. Worked per-turn cost (list price only)
+## 2. OpenAI list prices used in this document (Standard tier)
+
+From [OpenAI platform pricing — Standard](https://platform.openai.com/docs/pricing) (USD per **1M tokens**):
+
+| Model | Input | Cached input | Output |
+| --- | ---: | ---: | ---: |
+| **gpt-4o-mini** | $0.15 | $0.075 | $0.60 |
+| **gpt-4o** | $2.50 | $1.25 | $10.00 |
+
+**One completion (uncached):**  
+\(\text{usd} = (\text{tokens\_in} / 10^6) × \text{input\_price} + (\text{tokens\_out} / 10^6) × \text{output\_price}\)
+
+**Tool-loop note:** With [`AGENT_LLM_CSV_TOOLS=1`](agent/services/openai_tool_loop.py), each **tool round** is usually a **separate** Chat Completions call until the model emits final text (cap `_MAX_TOOL_ROUNDS = 10`). Tokens sum across rounds unless you use **cached input** ([OpenAI prompt caching](https://platform.openai.com/docs/guides/prompt-caching), **$0.075** / 1M for **gpt-4o-mini** cached). **Verification** can add one extra generate ([`MAX_VERIFY_RETRIES = 1`](agent/runtime/rgv_pipeline.py)).
+
+**Batch API** is **−50%** on those Standard input/output rates for eligible jobs per the same pricing page.
+
+---
+
+## 3. Token scenarios (engineering assumptions)
+
+Reasonable **short** clinician question + light chart context; replace with logged `usage` from OpenAI when available.
+
+| Scenario | Completions | Total input tok | Total output tok |
+| --- | ---: | ---: | ---: |
+| **A — Simple reply** | 1 | 900 | 350 |
+| **B — Typical tools** (two rounds) | 2 | 6,500 | 600 |
+| **C — Heavy + verify retry** | 3 | 9,500 | 900 |
+
+---
+
+## 4. Per-turn cost at list price (Standard, uncached)
 
 | Scenario | **gpt-4o-mini** | **gpt-4o** |
 | --- | ---: | ---: |
-| A — Simple | **≈ $0.00035** | **≈ $0.0058** |
-| B — Typical tools | **≈ $0.00134** | **≈ $0.0223** |
-| C — Heavy + retry | **≈ $0.00196** | **≈ $0.0328** |
+| A | **$0.000345** | **$0.00575** |
+| B | **$0.001335** | **$0.02225** |
+| C | **$0.001965** | **$0.03275** |
 
-**Mini — scenario B detail:**  
-`(6,500 / 1e6)(0.15) + (600 / 1e6)(0.60) = 0.000975 + 0.00036 ≈ $0.00134` per **successful** multi-round turn (single verify pass).
+**Mini, scenario B:** \((6500/10^6)(0.15) + (600/10^6)(0.60) = 0.001335\).
 
 ---
 
-## 5. Monthly LLM-only rollups (illustrative)
+## 5. Monthly LLM-only rollups
 
-Assume **22 clinical days / month**, **20 co-pilot turns / day / clinician**, all at **scenario B** mix.
+Assume **22 clinical days**, **20 turns/day/clinician**, **scenario B** every turn.
 
-| MAC | Turns / month | gpt-4o-mini (@ $0.00134) | gpt-4o (@ $0.0223) |
+| MAC | Turns/mo | **gpt-4o-mini** @ $0.001335 | **gpt-4o** @ $0.02225 |
 | --- | ---: | ---: | ---: |
-| 10 | 4,400 | **≈ $6** | **≈ $98** |
-| 100 | 44,000 | **≈ $59** | **≈ $981** |
-| 1,000 | 440,000 | **≈ $590** | **≈ $9,810** |
+| 10 | 4,400 | **$5.87** | **$97.90** |
+| 100 | 44,000 | **$58.74** | **$979.00** |
+| 1,000 | 440,000 | **$587.40** | **$9,790.00** |
 
-If half of turns are **scenario A** and half **scenario B**, blend costs:  
-`0.5 × $0.00035 + 0.5 × $0.00134 ≈ $0.00085` / turn on mini → 44,000 turns ≈ **$37/mo** at 100 MAC.
+**50/50 blend** of scenarios A and B on mini: \((0.5 × 0.000345) + (0.5 × 0.001335) = 0.00084\) / turn → 44,000 turns → **~$36.96/mo** at 100 MAC.
 
-**Behavioral evals** ([`EVAL.md`](EVAL.md), 53 + 21 tests) run **mocked** in CI by default: **~$0** LLM spend for that suite.
+**Behavioral evals** ([`EVAL.md`](EVAL.md)) run **mocked** in CI: **$0** OpenAI meter.
 
 ---
 
-## 6. Non-LLM infra (order of magnitude)
+## 6. Non-LLM infra (list-price anchors)
 
-| Item | Rough monthly USD | Notes |
+| Item | Monthly USD | Source |
 | --- | ---: | --- |
-| Agent VM (Fly) | **~$3–15** | [`fly.agent.toml`](fly.agent.toml): `shared-cpu-1x`, `512mb`; depends on region, always-on vs scale-to-zero, and egress |
-| OpenEMR host | **varies** | Often dominates vs agent LLM at small MAC |
-| Observability (Langfuse, etc.) | **$0–50+** | Self-host vs cloud |
+| Agent VM (`shared-cpu-1x`, 512MB, always-on) | **~3.32** | [Fly.io resource pricing](https://fly.io/docs/about/pricing/) |
+| + second VM (e.g. OpenEMR) same size | **~3.32** | Same |
+| Volume 10 GB | **~1.50** | **~$0.15/GB/mo** on Fly ([pricing](https://fly.io/docs/about/pricing/)) |
+| Outbound bandwidth | **0–** | First **100 GB/mo** often **$0** on Fly; beyond that **~$0.02/GB** (see Fly docs) |
+| **Langfuse Cloud Core** (if used) | **29.00** | [Langfuse Core](https://langfuse.com/pricing) base; + graduated units beyond 100k |
+| **Langfuse self-hosted** | **0.00** | Software OSS; you still pay underlying Fly/VM + ops time ([self-hosting](https://langfuse.com/docs/deployment/self-host)) |
 
-FHIR/REST traffic to OpenEMR does not hit OpenAI’s meter but drives **EHR load, egress, and SRE time**.
+FHIR traffic does not bill OpenAI but affects Fly egress and OpenEMR sizing.
 
 ---
 
 ## 7. Tiered projections (architecture vs cost)
 
-| MAC | Rough architecture implication | LLM (mini, scenario B order-of-mag.) | Non-LLM notes |
+| MAC | Architecture note | LLM (mini, §5 @ 100 MAC) | Non-LLM anchor |
 | --- | --- | ---: | --- |
-| **100** | Single-region Fly agent; shared CPU | **~$50–80/mo** at 20 turns/day (see §5) | Low egress; one OpenEMR instance |
-| **1,000** | Horizontal scale; rate limits; prompt / retrieve cache | **~$0.5–1k/mo** same usage | DB / FHIR tuning |
-| **10,000** | Queues, routing small vs large model, strong observability | **~$5–10k/mo** before enterprise discounts | Multi-region, audit retention |
+| **100** | Single-region Fly | **~$59/mo** LLM + **~$7** two tiny VMs (Fly table) | Add volumes/egress |
+| **1,000** | Scale-out, caching | **~$587/mo** LLM | More machines + DB |
+| **10,000** | Routing, queues | **~$5,874/mo** LLM at same per-clinician usage | Enterprise API / reserved capacity |
 
-\* Recompute with **your** token histogram; **large-model** rows scale ~**17×** vs mini for the same tokens (price ratio at list rates).
-
----
-
-## 8. Architectural changes by tier
-
-- **100 → 1K:** Enable **per-session budgets**; **cache** stable system + tool preamble; tighten **timeouts** on verify.
-- **1K → 10K:** **Rate limit** per org; **multiple** agent machines; **route** cheap vs premium model by intent.
-- **10K → 100K:** **Enterprise** API pricing; **regional** inference; **continuous eval** + shadow traffic.
+**Large-model multiplier** at equal tokens: **gpt-4o** output/input list ratio vs mini is \((10/0.6)/(2.5/0.15)\) on output-heavy workloads — roughly **~16–17×** on the scenario-B blend (use §4 columns).
 
 ---
 
-## 9. Honesty checklist (submission-quality)
+## 8. Architectural levers (cost)
 
-- [ ] Replace §1 **TBD** with invoice-backed spend or label as “not tracked.”
-- [ ] Log **real** token usage for 100–500 prod/staging turns and replace §3 assumptions.
-- [ ] Separate **variable** (tokens) vs **fixed** (machines, DB) costs — §5 vs §6.
-- [ ] Mention **tool rounds** and **verify retries** as multipliers ([§2](#2-vendor-list-prices-snapshot-for-math-below)).
-- [ ] Align narrative with [`ARCHITECTURE.md`](ARCHITECTURE.md) and `.planning/ROADMAP.md`.
+- **100 → 1K:** Prompt / system **caching** ([OpenAI cached input](https://platform.openai.com/docs/pricing) **$0.075**/1M for mini); cap tool rounds; **Batch** (−50%) for offline jobs.
+- **1K → 10K:** Route cheap vs premium model; **Fly** horizontal scale; Langfuse **spend alerts** ([Langfuse docs](https://langfuse.com/docs/administration/spend-alerts)).
+- **10K → 100K:** OpenAI **Scale / reserved** ([OpenAI Scale Tier](https://openai.com/api-scale-tier/)); regional inference per contract.
 
 ---
 
-## 10. Repo pointers
+## 9. Repo pointers
 
-- Scaffold marks **`cost_envelope="unknown"`** in chat-turn logs until wired ([`agent/services/chat_turn.py`](agent/services/chat_turn.py)).
+- Scaffold may log **`cost_envelope="unknown"`** until wired ([`agent/services/chat_turn.py`](agent/services/chat_turn.py)).
 - Optional latency gate: `RUN_LATENCY_GATE` tests if enabled.
-- Fly sizing: [`fly.agent.toml`](fly.agent.toml) VM memory / CPU.
-- **Behavioral eval footprint (CPU-only):** [`EVAL.md`](EVAL.md) — 53 + 21 tests; no token spend in mocked runs.
+- Fly sizing: [`fly.agent.toml`](fly.agent.toml).
+- **Evals (CPU-only):** [`EVAL.md`](EVAL.md) — 53 + 21 tests.
