@@ -21,6 +21,10 @@ from agent.access.openemr_auth import (
     [
         ({"agent_role": "physician"}, "PHYSICIAN"),
         ({"copilot_role": "NURSE"}, "NURSE"),
+        ({"agent_role": "clinician"}, "NURSE"),
+        ({"groups": ["Clinicians"]}, "NURSE"),
+        ({"groups": ["Physicians", "Clinicians"]}, "PHYSICIAN"),
+        ({"groups": ["Non-clinician staff"]}, None),
         ({"groups": ["Admin"]}, "ADMIN"),
         ({"groups": ["Registered Nurse"]}, "NURSE"),
         ({"groups": ["Physician"]}, "PHYSICIAN"),

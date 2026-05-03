@@ -221,6 +221,15 @@ async def test_resolve_agent_role_bypass_short_circuits_without_calling_openemr(
     )
     assert role == "PHYSICIAN"
 
+    role_c = await resolve_agent_role(
+        req,
+        authorization=None,
+        cookie=None,
+        x_openemr_browser_cookies=None,
+        x_agent_demo_role="clinician",
+    )
+    assert role_c == "NURSE"
+
     bypass_records = [
         r
         for r in caplog.records
@@ -228,8 +237,10 @@ async def test_resolve_agent_role_bypass_short_circuits_without_calling_openemr(
         and getattr(r, LOG_EXTRA_EVENT, None) == DEMO_BYPASS_ACTIVE
     ]
     assert bypass_records, "expected an auth_demo_bypass event"
-    rec = bypass_records[0]
-    assert getattr(rec, "role") == "PHYSICIAN"
+    assert len(bypass_records) >= 2
+    assert getattr(bypass_records[0], "role") == "PHYSICIAN"
+    rec = bypass_records[-1]
+    assert getattr(rec, "role") == "NURSE"
     assert getattr(rec, "what") == "auth_demo_bypass"
     assert getattr(rec, "why") == "AGENT_DEMO_BYPASS=1"
     assert getattr(rec, "fallback") == "none"

@@ -31,7 +31,7 @@ This project is a **role-safe clinical copilot** integrated with **OpenEMR**, de
 | --- | --- | --- |
 | **OpenEMR UI session (Cookie)** | Embedded chat in OpenEMR (same origin) or any client that can forward browser cookies | `Cookie` header (and optionally `X-OpenEMR-Browser-Cookies` for `document.cookie` mirroring). Agent validates with **`GET {OPENEMR_BASE_URL}/interface/copilot_session_probe.php`** (PHP reads `OpenEMR` session; returns JSON groups for role mapping). |
 | **Bearer (Standard API)** | API clients, curl, automation with an OAuth2 access token | `Authorization: Bearer …`. Agent validates with **`GET {OPENEMR_BASE_URL}/apis/{OPENEMR_SITE_ID}/api/user`** (not the old single `/api/user` path). |
-| **Demo bypass** | Non-PHI demos only (`AGENT_DEMO_BYPASS=1`) | Header **`X-Agent-Demo-Role: PHYSICIAN|NURSE|ADMIN`** skips OpenEMR validation; **never** enable with real PHI. |
+| **Demo bypass** | Non-PHI demos only (`AGENT_DEMO_BYPASS=1`) | Header **`X-Agent-Demo-Role: PHYSICIAN|NURSE|ADMIN|CLINICIAN`** (**`CLINICIAN`** → nurse tier) skips OpenEMR validation; **never** enable with real PHI. |
 
 **Why keep all three:** Embedded clinicians already have a **session**—no separate “copilot login.” **Bearer** supports **machine and integration** callers that never hold PHP cookies. **Demo bypass** supports **offline/Gauntlet demos** without standing up a full OpenEMR session, isolated by env + header.
 

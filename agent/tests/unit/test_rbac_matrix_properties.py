@@ -14,11 +14,15 @@ from agent.access.rbac import (
 )
 
 
-@pytest.mark.parametrize("role", ["PHYSICIAN", "NURSE", "ADMIN"])
+@pytest.mark.parametrize("role", ["PHYSICIAN", "NURSE", "ADMIN", "CLINICIAN"])
 def test_allowed_tools_subset_of_canonical_names(role: str) -> None:
     per_role = allowed_tools(role)
     assert per_role <= TOOL_NAMES
     assert per_role == per_role & TOOL_NAMES
+
+
+def test_clinician_matches_nurse_toolset() -> None:
+    assert allowed_tools("CLINICIAN") == allowed_tools("NURSE")
 
 
 def test_physician_is_most_permissive_among_three_roles() -> None:

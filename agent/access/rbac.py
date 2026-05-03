@@ -40,6 +40,27 @@ TOOL_NAMES: Final[frozenset[str]] = frozenset(
 )
 
 
+def canonical_agent_role(role: str) -> str:
+    """
+    Normalize ``CLINICIAN`` to the ``NURSE`` tool tier (PRD Feature 8 matrix).
+
+    ``PHYSICIAN``, ``NURSE``, and ``ADMIN`` must match **exactly** (uppercase) on
+    the agent API; OpenEMR explicit JSON and demo headers typically emit those
+    literals after validation.
+
+    ``CLINICIAN`` is accepted case-insensitively (e.g. ``clinician``, ``Clinician``).
+    Any other string is returned unchanged so it does not receive a tool tier.
+    """
+    raw = role.strip()
+    if not raw:
+        return raw
+    if raw.upper() == "CLINICIAN":
+        return "NURSE"
+    if raw in ("PHYSICIAN", "NURSE", "ADMIN"):
+        return raw
+    return raw
+
+
 class ToolRefusal(Exception):
     """Raised when a role may not invoke a tool (explicit deny, not silent filter)."""
 
@@ -50,15 +71,17 @@ class ToolRefusal(Exception):
 
 
 def refusal_message(role: str, tool: str) -> str:
-    return f"Role {role} is not permitted to use tool {tool!r}."
+    r = canonical_agent_role(role)
+    return f"Role {r} is not permitted to use tool {tool!r}."
 
 
 def allowed_tools(user_role: str) -> frozenset[str]:
-    if user_role == "PHYSICIAN":
+    r = canonical_agent_role(user_role)
+    if r == "PHYSICIAN":
         return PHYSICIAN_TOOLS
-    if user_role == "NURSE":
+    if r == "NURSE":
         return NURSE_TOOLS
-    if user_role == "ADMIN":
+    if r == "ADMIN":
         return ADMIN_TOOLS
     return frozenset()
 
@@ -70,10 +93,11 @@ def is_tool_allowed(user_role: str, tool: str) -> bool:
 
 
 def assert_tool_allowed(user_role: str, tool: str) -> None:
+    r = canonical_agent_role(user_role)
     if tool not in TOOL_NAMES:
-        raise ToolRefusal(refusal_message(user_role, tool), role=user_role, tool=tool)
-    if tool not in allowed_tools(user_role):
-        raise ToolRefusal(refusal_message(user_role, tool), role=user_role, tool=tool)
+        raise ToolRefusal(refusal_message(r, tool), role=r, tool=tool)
+    if tool not in allowed_tools(r):
+        raise ToolRefusal(refusal_message(r, tool), role=r, tool=tool)
 
 
 def assert_tools_allowed(user_role: str, tools: Iterable[str]) -> None:

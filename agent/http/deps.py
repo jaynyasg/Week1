@@ -14,6 +14,7 @@ from agent.access.openemr_auth import (
     OpenEMRAuthError,
     validate_session_and_resolve_role,
 )
+from agent.access.rbac import canonical_agent_role
 from agent.observability.events import log_agent_event
 from agent.observability.metrics_counters import (
     inc_client_missing_credentials,
@@ -52,7 +53,7 @@ def _normalize_openemr_base_url_value(raw: str) -> str:
     return u
 
 
-_DEMO_BYPASS_ROLES = frozenset({"PHYSICIAN", "NURSE", "ADMIN"})
+_DEMO_BYPASS_ROLES = frozenset({"PHYSICIAN", "NURSE", "ADMIN", "CLINICIAN"})
 
 
 def _normalize_openemr_cookie_header_value(raw: str) -> str:
@@ -182,7 +183,7 @@ async def resolve_agent_role(
     x_agent_demo_role: Annotated[str | None, Header(alias="X-Agent-Demo-Role")] = None,
 ) -> str:
     """
-    Validate OpenEMR and map to PHYSICIAN|NURSE|ADMIN.
+    Validate OpenEMR and map to PHYSICIAN|NURSE|ADMIN (``CLINICIAN`` becomes ``NURSE``).
 
     With a ``Cookie`` header (and optionally ``X-OpenEMR-Browser-Cookies`` from the
     embedded SPA mirroring ``document.cookie``), validates the UI PHP session via
@@ -192,8 +193,8 @@ async def resolve_agent_role(
     is used (cookies drive embedded co-pilot auth).
 
     Demo bypass (NOT for production): when ``AGENT_DEMO_BYPASS`` is truthy AND
-    ``X-Agent-Demo-Role`` is one of ``PHYSICIAN|NURSE|ADMIN``, this returns the
-    supplied role without calling OpenEMR. If the env var is unset, the demo
+    ``X-Agent-Demo-Role`` is one of ``PHYSICIAN|NURSE|ADMIN|CLINICIAN``, this returns
+    the normalized role (``CLINICIAN`` → ``NURSE``) without calling OpenEMR. If the env var is unset, the demo
     header is ignored entirely (default behavior unchanged). If the env var is
     set but the header is missing/invalid, we fall through to the normal
     Authorization/Cookie path so existing flows still work.
@@ -203,18 +204,19 @@ async def resolve_agent_role(
     if _demo_bypass_enabled() and x_agent_demo_role is not None:
         candidate = x_agent_demo_role.strip().upper()
         if candidate in _DEMO_BYPASS_ROLES:
+            normalized = canonical_agent_role(candidate)
             log_agent_event(
                 _LOG,
                 DEMO_BYPASS_ACTIVE,
                 what="auth_demo_bypass",
                 why="AGENT_DEMO_BYPASS=1",
-                role=candidate,
+                role=normalized,
                 fallback="none",
                 duration_ms=0.0,
                 cost_envelope="unknown",
                 client_request_id=_client_request_id(request) or "none",
             )
-            return candidate
+            return normalized
 
     auth_value = (
         authorization.strip() if authorization and authorization.strip() else None

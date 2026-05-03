@@ -197,7 +197,7 @@ curl.exe -fsS -X POST "https://clinical-agent-scaffold.fly.dev/agent/chat" `
 
 ## Demo bypass mode (NOT for production)
 
-> **WARNING: Demo bypass active.** When `AGENT_DEMO_BYPASS=1` **and** the request carries `X-Agent-Demo-Role: PHYSICIAN|NURSE|ADMIN`, the agent **skips OpenEMR session validation entirely** and trusts the supplied role. Use this **only** for non-PHI demos against a throwaway environment. Never enable in real PHI environments. Either condition alone (env var without header, or header without env var) leaves the normal `Authorization` / `Cookie` validation path unchanged.
+> **WARNING: Demo bypass active.** When `AGENT_DEMO_BYPASS=1` **and** the request carries `X-Agent-Demo-Role: PHYSICIAN|NURSE|ADMIN|CLINICIAN`, the agent **skips OpenEMR session validation entirely** and trusts the supplied role ( **`CLINICIAN`** is normalized to **`NURSE`** for tool access). Use this **only** for non-PHI demos against a throwaway environment. Never enable in real PHI environments. Either condition alone (env var without header, or header without env var) leaves the normal `Authorization` / `Cookie` validation path unchanged.
 >
 > Default behavior with the env var unset is byte-identical to before: the `X-Agent-Demo-Role` header is ignored and OpenEMR validation is still required.
 

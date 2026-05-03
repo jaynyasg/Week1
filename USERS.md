@@ -125,9 +125,9 @@ Every agent capability in MVP should cite **at least one UC id** (UC-01…UC-06)
 
 The FastAPI agent (`POST /agent/chat`) accepts **three** complementary paths—see [`PROJECT-SHOWCASE.md`](PROJECT-SHOWCASE.md) §1.3 for the full rationale:
 
-1. **OpenEMR UI session (cookies)** — default for **embedded** chat: browser sends `Cookie` / `X-OpenEMR-Browser-Cookies`; the agent calls the PHP **session probe** (`/interface/copilot_session_probe.php`) to read group membership and map to `PHYSICIAN|NURSE|ADMIN`.
+1. **OpenEMR UI session (cookies)** — default for **embedded** chat: browser sends `Cookie` / `X-OpenEMR-Browser-Cookies`; the agent calls the PHP **session probe** (`/interface/copilot_session_probe.php`) to read group membership and map to **`PHYSICIAN` / `NURSE` / `ADMIN`**. Group names containing **`clinician`** (except **`non-clinician`**) normalize to the **same tool tier as `NURSE`**. Explicit JSON `agent_role` / `copilot_role` may also use **`CLINICIAN`** as an alias for `NURSE`.
 2. **Bearer token** — for **API / scripted** clients: `Authorization: Bearer …` validated via OpenEMR Standard API **`GET /apis/{site}/api/user`**.
-3. **Demo bypass** — only when `AGENT_DEMO_BYPASS` is set: header `X-Agent-Demo-Role` trusts the role **without** OpenEMR (non-PHI demos).
+3. **Demo bypass** — only when `AGENT_DEMO_BYPASS` is set: header `X-Agent-Demo-Role` accepts **`PHYSICIAN` / `NURSE` / `ADMIN` / `CLINICIAN`** ( **`CLINICIAN`** is stored as **`NURSE`** for RBAC) **without** OpenEMR (non-PHI demos).
 
 **Clinician-facing scripted demos** (CSV cohort, tool summaries): [`deploy/CLINICIAN-WORKFLOWS.md`](deploy/CLINICIAN-WORKFLOWS.md).
 
@@ -135,7 +135,7 @@ The FastAPI agent (`POST /agent/chat`) accepts **three** complementary paths—s
 
 ## Part 2 — RBAC: Agent tool access (`rbac.py`)
 
-This section matches **PRD v1.1 · Feature 8 (Role-Based Access Control)**.
+This section matches **PRD v1.1 · Feature 8 (Role-Based Access Control)**. The code maps **`CLINICIAN` → `NURSE`** (same five-tool allowance and refusals); PRD prose may still say **nurse**; OpenEMR installs that label ACL groups **“Clinicians”** get the nurse tier automatically.
 
 **Normative source:** `AF/PRD.md` §4 Feature 8, §2 Definitions (`ADMIN`, `Role`).
 

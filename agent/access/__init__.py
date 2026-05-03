@@ -7,6 +7,7 @@ from agent.access.rbac import (
     allowed_tools,
     assert_tool_allowed,
     assert_tools_allowed,
+    canonical_agent_role,
     log_tool_refusal,
     refusal_message,
 )
@@ -26,6 +27,7 @@ __all__ = [
     "allowed_tools",
     "assert_tool_allowed",
     "assert_tools_allowed",
+    "canonical_agent_role",
     "log_tool_refusal",
     "refusal_message",
     "OpenEMRAuthError",

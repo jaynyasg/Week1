@@ -7,7 +7,7 @@ export const DEMO_SEED_PATIENT_ID = "f1aa52b9-aded-3188-9386-012244805ebf";
 export type WorkflowPreset = {
   id: string;
   title: string;
-  role: "PHYSICIAN" | "NURSE" | "ADMIN";
+  role: "PHYSICIAN" | "CLINICIAN" | "ADMIN";
   prompt: string;
 };
 
@@ -50,7 +50,7 @@ export const CLINICIAN_WORKFLOWS: readonly WorkflowPreset[] = [
   {
     id: "w6",
     title: "Nurse chart pull (RBAC)",
-    role: "NURSE",
+    role: "CLINICIAN",
     prompt:
       "Pull demographics, vitals, and allergies in one turn. Do not access laboratory results.",
   },

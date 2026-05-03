@@ -23,7 +23,7 @@ type ChatResponse = {
   messages: ChatRow[];
 };
 
-const ROLES = ["PHYSICIAN", "NURSE", "ADMIN"] as const;
+const ROLES = ["PHYSICIAN", "CLINICIAN", "ADMIN"] as const;
 
 type AuthMode = "openemr" | "demo" | "bearer";
 

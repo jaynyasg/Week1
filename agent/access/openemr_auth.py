@@ -10,7 +10,7 @@ Validate OpenEMR credentials for the Clinical Co-Pilot.
   this route).
 
 See ARCHITECTURE.md auth flow; ``map_openemr_payload_to_agent_role`` maps JSON to
-``PHYSICIAN|NURSE|ADMIN``.
+``PHYSICIAN|NURSE|ADMIN`` (``CLINICIAN`` normalizes to ``NURSE``).
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ from typing import Any
 
 import httpx
 
+from agent.access.rbac import canonical_agent_role
 from agent.observability.metrics_counters import inc_openemr_auth_failure
 
 
@@ -34,19 +35,34 @@ class OpenEMRAuthError(Exception):
         inc_openemr_auth_failure()
 
 
+def _group_implies_nurse_or_clinician(group_lower: str) -> bool:
+    """True if ACL group name suggests nurse/clinician (non-physician) tool tier."""
+    if "nurse" in group_lower:
+        return True
+    if "non-clinician" in group_lower or "nonclinician" in group_lower:
+        return False
+    return "clinician" in group_lower
+
+
 def map_openemr_payload_to_agent_role(payload: dict[str, Any]) -> str | None:
     """
     Map /api/user JSON to PHYSICIAN | NURSE | ADMIN, or None if unknown.
 
+    ``CLINICIAN`` (explicit or in ``groups``) normalizes to ``NURSE`` — same RBAC
+    row as in USERS.md.
+
     Priority:
-    1. Explicit ``agent_role`` / ``copilot_role`` (uppercased).
+    1. Explicit ``agent_role`` / ``copilot_role`` (uppercased; ``CLINICIAN`` allowed).
     2. ``groups`` / ``acl_groups`` string list heuristics (site-tunable).
+
+    Physician-like groups are checked before nurse/clinician so dual membership
+    resolves to ``PHYSICIAN``.
     """
     explicit = payload.get("agent_role") or payload.get("copilot_role")
     if isinstance(explicit, str):
         u = explicit.strip().upper()
-        if u in ("PHYSICIAN", "NURSE", "ADMIN"):
-            return u
+        if u in ("PHYSICIAN", "NURSE", "ADMIN", "CLINICIAN"):
+            return canonical_agent_role(u)
 
     groups = payload.get("groups") or payload.get("acl_groups") or []
     if isinstance(groups, str):
@@ -57,10 +73,10 @@ def map_openemr_payload_to_agent_role(payload: dict[str, Any]) -> str | None:
     gl = [str(g).lower() for g in groups]
     if any("admin" in g for g in gl):
         return "ADMIN"
-    if any("nurse" in g for g in gl):
-        return "NURSE"
     if any(x in g for g in gl for x in ("physician", "phys", "doctor", "md")):
         return "PHYSICIAN"
+    if any(_group_implies_nurse_or_clinician(g) for g in gl):
+        return "NURSE"
     return None
 
 
@@ -203,4 +219,4 @@ async def validate_session_and_resolve_role(
             "Could not map OpenEMR user to agent role",
             reason_code="role_mapping_failed",
         )
-    return role
+    return canonical_agent_role(role)

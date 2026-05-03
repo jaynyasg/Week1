@@ -33,6 +33,7 @@ def _cases() -> list[tuple[str, str, bool]]:
     }
     for fn in FUNCTIONS:
         rows.append(("NURSE", fn, fn not in nurse_ok))
+        rows.append(("CLINICIAN", fn, fn not in nurse_ok))
     admin_ok = {"get_patient_demographics"}
     for fn in FUNCTIONS:
         rows.append(("ADMIN", fn, fn not in admin_ok))
@@ -74,6 +75,18 @@ def test_execute_matrix_rbac(
         )
         assert "error" not in out
         assert out.get("rbac_tool")
+
+
+def test_clinician_role_alias_matches_nurse_for_demographics() -> None:
+    """OpenEMR / demo may emit CLINICIAN; RBAC tier matches NURSE."""
+    out = execute_tool_function(
+        function_name="get_patient_demographics",
+        arguments_json=json.dumps({"patient_id": PID}),
+        user_role="CLINICIAN",
+        session_patient_id=PID,
+    )
+    assert "error" not in out
+    assert out.get("rbac_tool") == "demographics"
 
 
 def test_unknown_function_returns_error() -> None:
