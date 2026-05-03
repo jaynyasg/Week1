@@ -53,27 +53,33 @@ write_copilot_apache_conf() {
     echo "clinical-copilot: no apache conf.d found; /agent proxy not configured" >&2
     return 0
   fi
+  # Proxy and copilot alias must live inside a <VirtualHost *:80> block because
+  # openemr.conf already defines <VirtualHost *:80>, making the global context
+  # irrelevant for port-80 requests. Apache merges multiple VirtualHost blocks
+  # for the same address:port, so adding a second block here is safe.
   {
-    echo "<IfModule mod_proxy.c>"
-    echo "    ProxyPreserveHost On"
-    echo "    ProxyPass /agent ${agent_url}/agent"
-    echo "    ProxyPassReverse /agent ${agent_url}/agent"
-    echo "</IfModule>"
-    echo ""
-    echo "Alias /interface/copilot /var/www/localhost/htdocs/openemr/interface/copilot"
-    echo "<Directory \"/var/www/localhost/htdocs/openemr/interface/copilot\">"
-    echo "    AllowOverride None"
-    echo "    Require all granted"
-    echo "    Options FollowSymLinks"
-    echo "    <IfModule mod_rewrite.c>"
-    echo "        RewriteEngine On"
-    echo "        RewriteBase /interface/copilot/"
-    echo "        RewriteRule ^index\\.html\$ - [L]"
-    echo "        RewriteCond %{REQUEST_FILENAME} !-f"
-    echo "        RewriteCond %{REQUEST_FILENAME} !-d"
-    echo "        RewriteRule . index.html [L]"
+    echo "<VirtualHost *:80>"
+    echo "    <IfModule mod_proxy.c>"
+    echo "        ProxyPreserveHost On"
+    echo "        ProxyPass /agent ${agent_url}/agent"
+    echo "        ProxyPassReverse /agent ${agent_url}/agent"
     echo "    </IfModule>"
-    echo "</Directory>"
+    echo ""
+    echo "    Alias /interface/copilot /var/www/localhost/htdocs/openemr/interface/copilot"
+    echo "    <Directory \"/var/www/localhost/htdocs/openemr/interface/copilot\">"
+    echo "        AllowOverride None"
+    echo "        Require all granted"
+    echo "        Options FollowSymLinks"
+    echo "        <IfModule mod_rewrite.c>"
+    echo "            RewriteEngine On"
+    echo "            RewriteBase /interface/copilot/"
+    echo "            RewriteRule ^index\\.html\$ - [L]"
+    echo "            RewriteCond %{REQUEST_FILENAME} !-f"
+    echo "            RewriteCond %{REQUEST_FILENAME} !-d"
+    echo "            RewriteRule . index.html [L]"
+    echo "        </IfModule>"
+    echo "    </Directory>"
+    echo "</VirtualHost>"
   } >"$conf"
   echo "clinical-copilot: wrote $conf (proxy -> ${agent_url}/agent)"
 }
