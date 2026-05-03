@@ -129,6 +129,11 @@ export default function App() {
         return;
       }
       headers.Cookie = ck;
+    } else if (authMode === "openemr" && isEmbedded) {
+      const dc = typeof document !== "undefined" ? document.cookie.trim() : "";
+      if (dc) {
+        headers["X-OpenEMR-Browser-Cookies"] = dc;
+      }
     }
 
     const prior = rows;

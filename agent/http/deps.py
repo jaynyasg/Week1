@@ -32,6 +32,33 @@ _DEMO_BYPASS_TRUTHY = frozenset({"1", "true", "yes"})
 _DEMO_BYPASS_ROLES = frozenset({"PHYSICIAN", "NURSE", "ADMIN"})
 
 
+def effective_openemr_cookie_header(
+    cookie: str | None,
+    x_openemr_browser_cookies: str | None,
+) -> str | None:
+    """Merge ``Cookie`` and SPA-supplied ``document.cookie`` for OpenEMR validation.
+
+    Embedded co-pilot may run where the reverse proxy omits cookies on the upstream
+    request, or where path rules prevent the ``OpenEMR=`` cookie from attaching to
+    ``fetch``. The SPA can send ``X-OpenEMR-Browser-Cookies`` (OpenEMR core session
+    is not HttpOnly) so the agent still forwards a session to the PHP probe.
+
+    When the browser header includes ``OpenEMR=``, it is appended after any inbound
+    ``Cookie`` value so the session id remains visible to PHP.
+    """
+    c = (cookie or "").strip()
+    x = (x_openemr_browser_cookies or "").strip()
+    if not c and not x:
+        return None
+    if not x:
+        return c
+    if not c:
+        return x
+    if "openemr=" in x.lower():
+        return f"{c}; {x}"
+    return c
+
+
 def _demo_bypass_enabled() -> bool:
     """True iff ``AGENT_DEMO_BYPASS`` env is one of {"1","true","yes"} (case-insensitive).
 
@@ -98,12 +125,16 @@ async def resolve_agent_role(
     request: Request,
     authorization: Annotated[str | None, Header(alias="Authorization")] = None,
     cookie: Annotated[str | None, Header(alias="Cookie")] = None,
+    x_openemr_browser_cookies: Annotated[
+        str | None, Header(alias="X-OpenEMR-Browser-Cookies")
+    ] = None,
     x_agent_demo_role: Annotated[str | None, Header(alias="X-Agent-Demo-Role")] = None,
 ) -> str:
     """
     Validate OpenEMR and map to PHYSICIAN|NURSE|ADMIN.
 
-    With a ``Cookie`` header, validates the UI PHP session via
+    With a ``Cookie`` header (and optionally ``X-OpenEMR-Browser-Cookies`` from the
+    embedded SPA mirroring ``document.cookie``), validates the UI PHP session via
     ``OPENEMR_SESSION_VALIDATE_PATH`` (default ``/interface/copilot_session_probe.php``).
     With ``Authorization`` only, calls Standard API ``GET /apis/{OPENEMR_SITE_ID}/api/user``
     (Bearer). Both headers may be sent; when a cookie is present, the session probe
@@ -137,7 +168,8 @@ async def resolve_agent_role(
     auth_value = (
         authorization.strip() if authorization and authorization.strip() else None
     )
-    cookie_value = cookie.strip() if cookie and cookie.strip() else None
+    merged_cookie = effective_openemr_cookie_header(cookie, x_openemr_browser_cookies)
+    cookie_value = merged_cookie.strip() if merged_cookie and merged_cookie.strip() else None
     if auth_value is None and cookie_value is None:
         cid = _client_request_id(request) or "none"
         log_agent_event(
@@ -153,7 +185,10 @@ async def resolve_agent_role(
         inc_client_missing_credentials()
         raise HTTPException(
             status_code=401,
-            detail="Missing Authorization or Cookie header",
+            detail=(
+                "Missing Authorization or Cookie header "
+                "(embedded OpenEMR UI may send X-OpenEMR-Browser-Cookies)"
+            ),
         )
     base = get_openemr_base_url(request)
     client = get_http_client(request)

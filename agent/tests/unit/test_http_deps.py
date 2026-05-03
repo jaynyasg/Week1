@@ -12,6 +12,7 @@ from agent.access.openemr_auth import OpenEMRAuthError
 from agent.http.deps import (
     _client_request_id,
     _demo_bypass_enabled,
+    effective_openemr_cookie_header,
     get_openemr_base_url,
     resolve_agent_role,
 )
@@ -145,6 +146,21 @@ def test_demo_bypass_enabled_unset_is_false(monkeypatch: pytest.MonkeyPatch) -> 
     assert _demo_bypass_enabled() is False
 
 
+@pytest.mark.parametrize(
+    "cookie,x_browser,expected",
+    [
+        (None, None, None),
+        ("a=1", None, "a=1"),
+        (None, "OpenEMR=xyz", "OpenEMR=xyz"),
+        ("_ga=1", "OpenEMR=xyz; token_main=1", "_ga=1; OpenEMR=xyz; token_main=1"),
+    ],
+)
+def test_effective_openemr_cookie_header_merges(
+    cookie: str | None, x_browser: str | None, expected: str | None
+) -> None:
+    assert effective_openemr_cookie_header(cookie, x_browser) == expected
+
+
 @pytest.mark.asyncio
 async def test_resolve_agent_role_bypass_short_circuits_without_calling_openemr(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
@@ -174,6 +190,7 @@ async def test_resolve_agent_role_bypass_short_circuits_without_calling_openemr(
         req,
         authorization=None,
         cookie=None,
+        x_openemr_browser_cookies=None,
         x_agent_demo_role="physician",
     )
     assert role == "PHYSICIAN"
@@ -230,6 +247,7 @@ async def test_resolve_agent_role_bypass_invalid_role_falls_through(
         req,
         authorization="Bearer abc",
         cookie=None,
+        x_openemr_browser_cookies=None,
         x_agent_demo_role="GUEST",
     )
     assert role == "NURSE"
@@ -268,6 +286,7 @@ async def test_resolve_agent_role_bypass_disabled_ignores_header(
         req,
         authorization="Bearer abc",
         cookie=None,
+        x_openemr_browser_cookies=None,
         x_agent_demo_role="PHYSICIAN",
     )
     assert role == "ADMIN"
@@ -297,7 +316,11 @@ async def test_resolve_agent_role_openemr_failure_emits_event_and_structured_htt
 
     with pytest.raises(HTTPException) as exc_info:
         await resolve_agent_role(
-            req, authorization="Bearer x", cookie=None, x_agent_demo_role=None
+            req,
+            authorization="Bearer x",
+            cookie=None,
+            x_openemr_browser_cookies=None,
+            x_agent_demo_role=None,
         )
     assert exc_info.value.status_code == 401
     d = exc_info.value.detail
@@ -330,6 +353,50 @@ async def test_resolve_agent_role_bypass_disabled_no_auth_still_401(
             req,
             authorization=None,
             cookie=None,
+            x_openemr_browser_cookies=None,
             x_agent_demo_role="PHYSICIAN",
         )
     assert exc_info.value.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_resolve_agent_role_x_openemr_browser_cookies_forwards_to_validator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Embedded SPA may send only X-OpenEMR-Browser-Cookies (no Cookie header)."""
+    monkeypatch.delenv("AGENT_DEMO_BYPASS", raising=False)
+    monkeypatch.setenv("OPENEMR_BASE_URL", "https://openemr.example.test")
+
+    called: dict[str, object] = {}
+
+    async def _fake_validate(
+        _base: str,
+        *,
+        authorization_header_value: str | None = None,
+        cookie_header_value: str | None = None,
+        client,  # noqa: ARG001
+        request_id: str | None = None,  # noqa: ARG001
+    ) -> str:
+        called["cookie"] = cookie_header_value
+        called["authorization"] = authorization_header_value
+        return "ADMIN"
+
+    monkeypatch.setattr(
+        "agent.http.deps.validate_session_and_resolve_role",
+        _fake_validate,
+    )
+
+    req = MagicMock()
+    req.app.state.http_client = MagicMock()
+    req.headers.get = lambda _name, default=None: default
+
+    role = await resolve_agent_role(
+        req,
+        authorization=None,
+        cookie=None,
+        x_openemr_browser_cookies="OpenEMR=abc; token_main=z",
+        x_agent_demo_role=None,
+    )
+    assert role == "ADMIN"
+    assert called["cookie"] == "OpenEMR=abc; token_main=z"
+    assert called["authorization"] is None
