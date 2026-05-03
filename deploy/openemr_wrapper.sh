@@ -37,63 +37,39 @@ if [ -d "$COPILOT_STATIC" ]; then
   chown -R apache:root "$COPILOT_STATIC" &
 fi
 
-# Apache: reverse-proxy /agent → FastAPI agent on Fly 6PN; serve SPA under /interface/copilot/.
-# CLINICAL_AGENT_INTERNAL_URL is set in fly.toml [env] (e.g. http://clinical-agent-scaffold.internal:8080).
+# Apache: reverse-proxy /agent → FastAPI agent; static SPA under /interface/copilot/.
+# CLINICAL_AGENT_INTERNAL_URL is set in fly.toml [env] (HTTPS fly.dev URL recommended).
+#
+# IMPORTANT: Do not put ProxyPass inside openemr.conf — that file is parsed BEFORE
+# proxy.conf alphabetically, so <IfModule proxy_module> is false and the proxy is
+# silently skipped. Use zz-*.conf so mod_proxy is already loaded.
 write_copilot_apache_conf() {
-  agent_url="${CLINICAL_AGENT_INTERNAL_URL:-http://clinical-agent-scaffold.internal:8080}"
+  agent_url="${CLINICAL_AGENT_INTERNAL_URL:-https://clinical-agent-scaffold.fly.dev}"
   agent_url="${agent_url%/}"
+  conf=/etc/apache2/conf.d/zz-clinical-copilot.conf
 
-  # openemr.conf defines <VirtualHost *:80> — Apache uses only the FIRST
-  # matching VirtualHost, so a separate conf file's VirtualHost *:80 block is
-  # silently ignored. Instead, we inject the proxy directives directly into the
-  # existing VirtualHost *:80 block using Python (available in this image).
-  openemr_conf="/etc/apache2/conf.d/openemr.conf"
-  if [ ! -f "$openemr_conf" ]; then
-    echo "clinical-copilot: $openemr_conf not found; /agent proxy not configured" >&2
-    return 0
-  fi
-
-  python3 - "$openemr_conf" "$agent_url" <<'PY'
-import sys, re
-conf_path, agent_url = sys.argv[1], sys.argv[2]
-text = open(conf_path).read()
-
-marker = "# clinical-copilot-proxy-injected"
-if marker in text:
-    print("clinical-copilot: proxy already injected into", conf_path)
-    sys.exit(0)
-
-ssl_directives = ""
-if agent_url.startswith("https://"):
-    ssl_directives = """
-        SSLProxyEngine On
-        SSLProxyVerify none
-        SSLProxyCheckPeerCN Off
-        SSLProxyCheckPeerName Off"""
-
-injection = """
-    {marker}
-    <IfModule proxy_module>{ssl}
-        <Location /agent>
-            ProxyPreserveHost Off
-            ProxyPass {agent_url}/agent
-            ProxyPassReverse {agent_url}/agent
-        </Location>
-    </IfModule>
-
-    Alias /interface/copilot /var/www/localhost/htdocs/openemr/interface/copilot
-    <Directory "/var/www/localhost/htdocs/openemr/interface/copilot">
-        AllowOverride None
-        Require all granted
-        Options FollowSymLinks
-    </Directory>
-""".format(marker=marker, ssl=ssl_directives, agent_url=agent_url)
-
-# Insert before the first </VirtualHost> closing tag (the *:80 block)
-new_text = re.sub(r'(</VirtualHost>)', injection + r'\1', text, count=1)
-open(conf_path, 'w').write(new_text)
-print("clinical-copilot: injected proxy into", conf_path, "->", agent_url + "/agent")
-PY
+  {
+    echo "# Clinical Co-Pilot — zz- prefix loads after proxy.conf (mod_proxy available)."
+    if [ "${agent_url#https://}" != "$agent_url" ]; then
+      echo "SSLProxyEngine On"
+      echo "SSLProxyVerify none"
+      echo "SSLProxyCheckPeerCN Off"
+      echo "SSLProxyCheckPeerName Off"
+    fi
+    echo "<Location /agent>"
+    echo "    ProxyPreserveHost Off"
+    echo "    ProxyPass ${agent_url}/agent"
+    echo "    ProxyPassReverse ${agent_url}/agent"
+    echo "</Location>"
+    echo ""
+    echo "Alias /interface/copilot /var/www/localhost/htdocs/openemr/interface/copilot"
+    echo "<Directory \"/var/www/localhost/htdocs/openemr/interface/copilot\">"
+    echo "    AllowOverride None"
+    echo "    Require all granted"
+    echo "    Options FollowSymLinks"
+    echo "</Directory>"
+  } >"$conf"
+  echo "clinical-copilot: wrote $conf (proxy -> ${agent_url}/agent)"
 }
 
 write_copilot_apache_conf
