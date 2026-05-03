@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 from typing import Annotated
+from urllib.parse import urlparse, urlunparse
 
 import httpx
 from fastapi import Header, HTTPException, Request
@@ -29,7 +30,54 @@ from agent.services.chat_turn import run_scaffold_chat_turn
 _LOG = logging.getLogger(__name__)
 
 _DEMO_BYPASS_TRUTHY = frozenset({"1", "true", "yes"})
+
+
+def _normalize_openemr_base_url_value(raw: str) -> str:
+    """Strip outer slashes and fix ``…/apis/<site_id>`` pasted as the base URL.
+
+    Session probe paths are ``{origin}/interface/...``; if ``OPENEMR_BASE_URL`` is set
+    to the Standard API root (``https://host/apis/default``), the probe becomes a
+    non-existent URL and OpenEMR returns 401/404.
+    """
+    u = raw.strip().rstrip("/")
+    if not u:
+        return u
+    parsed = urlparse(u)
+    segs = [s for s in parsed.path.split("/") if s]
+    if len(segs) == 2 and segs[0] == "apis":
+        trimmed = urlunparse(
+            (parsed.scheme, parsed.netloc, "", "", "", ""),
+        ).rstrip("/")
+        return trimmed or u
+    return u
+
+
 _DEMO_BYPASS_ROLES = frozenset({"PHYSICIAN", "NURSE", "ADMIN"})
+
+
+def _normalize_openemr_cookie_header_value(raw: str) -> str:
+    """Keep a single ``OpenEMR=`` pair (last wins) so PHP does not see duplicates.
+
+    Merging ``Cookie`` + ``X-OpenEMR-Browser-Cookies`` often yields two ``OpenEMR=``
+    assignments; PHP typically picks the first, which may be stale or empty.
+    """
+    chunks = [p.strip() for p in raw.split(";") if p.strip()]
+    if not chunks:
+        return ""
+    openemr_val: str | None = None
+    rest: list[str] = []
+    for ch in chunks:
+        if "=" not in ch:
+            rest.append(ch)
+            continue
+        name, value = ch.split("=", 1)
+        if name.strip().lower() == "openemr":
+            openemr_val = value
+        else:
+            rest.append(ch)
+    if openemr_val is None:
+        return "; ".join(chunks)
+    return "; ".join([*rest, f"OpenEMR={openemr_val}"])
 
 
 def effective_openemr_cookie_header(
@@ -43,20 +91,23 @@ def effective_openemr_cookie_header(
     ``fetch``. The SPA can send ``X-OpenEMR-Browser-Cookies`` (OpenEMR core session
     is not HttpOnly) so the agent still forwards a session to the PHP probe.
 
-    When the browser header includes ``OpenEMR=``, it is appended after any inbound
-    ``Cookie`` value so the session id remains visible to PHP.
+    ``OpenEMR=`` is deduplicated (last value wins) after merging so PHP receives one
+    session id.
     """
     c = (cookie or "").strip()
     x = (x_openemr_browser_cookies or "").strip()
     if not c and not x:
         return None
     if not x:
-        return c
-    if not c:
-        return x
-    if "openemr=" in x.lower():
-        return f"{c}; {x}"
-    return c
+        merged = c
+    elif not c:
+        merged = x
+    elif "openemr=" in x.lower():
+        merged = f"{c}; {x}"
+    else:
+        merged = c
+    out = _normalize_openemr_cookie_header_value(merged).strip()
+    return out or None
 
 
 def _demo_bypass_enabled() -> bool:
@@ -100,7 +151,7 @@ def get_chat_turn_runner():
 
 
 def get_openemr_base_url(request: Request | None = None) -> str:
-    base = os.environ.get("OPENEMR_BASE_URL", "").strip().rstrip("/")
+    base = _normalize_openemr_base_url_value(os.environ.get("OPENEMR_BASE_URL", ""))
     if not base:
         cid = _client_request_id(request)
         log_agent_event(

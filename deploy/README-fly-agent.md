@@ -279,6 +279,8 @@ Production logs use JSON-friendly **`event` / `event_type`** fields on `agent_ev
 
 | Symptom | Likely cause | What to do |
 |--------|----------------|------------|
+| **`401` on `/agent/chat` or embedded UI**, JSON `openemr_auth_failed` / `openemr_http_401` / “session probe returned 401” | **`OPENEMR_BASE_URL` is wrong** — often set to `https://host/apis/default` instead of the **origin** `https://host`. The probe URL becomes `…/apis/default/interface/copilot_session_probe.php`, which is invalid. | Set secret to the UI origin only: `fly secrets set OPENEMR_BASE_URL=https://<your-openemr-host> --app <agent-app>` (no `/apis/...`). Or deploy agent code that normalizes this suffix. |
+| **`401` on `/agent/chat` or embedded UI** (same JSON) | **OpenEMR Fly app has multiple Machines** (PHP file sessions are per-Machine). | On the **OpenEMR** app: `fly scale count 1 --app <openemr-app>`. Future deploys: `fly deploy --config fly.toml --ha=false`. |
 | **502 Bad Gateway** | Machine stopped (`min_machines_running = 0`), cold start, or process crash before accepting connections. | `fly logs --app <app>`; retry after a few seconds; consider `min_machines_running = 1` if you need always-on. |
 | **502 / connection refused / health never passes** | **Wrong port** — `internal_port` or `PORT` in `fly.agent.toml` does not match Uvicorn’s listen port in `Dockerfile.agent`. | Re-read [Port alignment (8080)](#port-alignment-8080); fix Dockerfile **and** `fly.agent.toml` together, then redeploy. |
 | **500 on `/agent/chat`**, health OK | **`OPENEMR_BASE_URL` missing or invalid** — server cannot reach or configure OpenEMR backend. | `fly secrets list --app <app>`; set `OPENEMR_BASE_URL` to the correct HTTPS origin; check logs for upstream errors. |

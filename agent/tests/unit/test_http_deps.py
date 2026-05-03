@@ -86,6 +86,27 @@ def test_get_openemr_base_url_unchanged_without_trailing_slash(
     assert get_openemr_base_url() == "https://host/path"
 
 
+def test_get_openemr_base_url_strips_standard_api_root_suffix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """OPENEMR_BASE_URL must be the UI origin, not …/apis/<site_id>."""
+    monkeypatch.setenv(
+        "OPENEMR_BASE_URL",
+        "https://clinical-copilot-v2.fly.dev/apis/default",
+    )
+    assert get_openemr_base_url() == "https://clinical-copilot-v2.fly.dev"
+
+
+def test_get_openemr_base_url_keeps_subdirectory_before_apis(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "OPENEMR_BASE_URL",
+        "https://host/openemr/apis/default",
+    )
+    assert get_openemr_base_url() == "https://host/openemr/apis/default"
+
+
 def test_client_request_id_prefers_first_header() -> None:
     req = MagicMock()
     req.headers.get = lambda name, default=None: {
@@ -152,7 +173,12 @@ def test_demo_bypass_enabled_unset_is_false(monkeypatch: pytest.MonkeyPatch) -> 
         (None, None, None),
         ("a=1", None, "a=1"),
         (None, "OpenEMR=xyz", "OpenEMR=xyz"),
-        ("_ga=1", "OpenEMR=xyz; token_main=1", "_ga=1; OpenEMR=xyz; token_main=1"),
+        ("_ga=1", "OpenEMR=xyz; token_main=1", "_ga=1; token_main=1; OpenEMR=xyz"),
+        (
+            "OpenEMR=stale; foo=1",
+            "OpenEMR=fresh",
+            "foo=1; OpenEMR=fresh",
+        ),
     ],
 )
 def test_effective_openemr_cookie_header_merges(
@@ -398,5 +424,5 @@ async def test_resolve_agent_role_x_openemr_browser_cookies_forwards_to_validato
         x_agent_demo_role=None,
     )
     assert role == "ADMIN"
-    assert called["cookie"] == "OpenEMR=abc; token_main=z"
+    assert called["cookie"] == "token_main=z; OpenEMR=abc"
     assert called["authorization"] is None

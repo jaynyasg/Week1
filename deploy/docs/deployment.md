@@ -103,6 +103,8 @@ After deploy, open **`{OPENEMR_ORIGIN}/interface/copilot/`** while logged into O
 
 To point at a different agent machine, set **`CLINICAL_AGENT_INTERNAL_URL`** in `fly.toml` `[env]` or override with a Fly secret of the same name.
 
+**Embedded chat returns `401` with `openemr_auth_failed` / `openemr_http_401`:** Often means the **OpenEMR Fly app is running more than one Machine**. PHP stores UI sessions in **files on that Machine’s disk**; Fly load-balances across Machines, so a cookie created on Machine A is meaningless on Machine B. Use **`fly scale show --app <openemr-app>`** (or **`fly status`**) and ensure **one** running Machine for the OpenEMR process group, e.g. **`fly scale count 1 --app clinical-copilot-v2`**. Prefer **`fly deploy --ha=false`** on future OpenEMR deploys so new Machines are not auto-created in pairs. For true multi-Machine HA you would need a **shared session store** (Redis, DB-backed sessions, etc.), not the default file handler.
+
 ## Known limitations
 
 1. **Single region (iad).** Multi-region requires a volume per region and a strategy for MariaDB replication — out of scope for MVP. Document explicitly in `ARCHITECTURE.md`.
@@ -135,6 +137,7 @@ All seven tests must pass before submission. The tests cover:
 | `Connection refused` to MariaDB from OpenEMR | `clinical-copilot-db` not deployed yet, or in a different Fly org | `fly status --app clinical-copilot-db`; confirm both apps in the same org |
 | `sites/default/sqlconf.php exists` error after volume destroy | Stale volume content from a prior install | `fly volumes destroy openemr_sites` then re-run deploy |
 | Login page loads but credentials rejected | `OE_PASS` not set, or installer ran with different value than current secret | Reset: `fly ssh console --app clinical-copilot -C 'cat /var/www/localhost/htdocs/openemr/sites/default/sqlconf.php' \| grep pass` |
+| Embedded chat / agent: `401`, `openemr_http_401`, session probe failed | **Two+ Fly Machines** on the OpenEMR app — file sessions are per-Machine | `fly scale count 1 --app <openemr-app>`; use `fly deploy --ha=false` on next OpenEMR deploy |
 | `test_mysql_port_not_exposed` fails | Someone added a `[[services]]` or `[http_service]` block to `fly.db.toml` | Remove it. MariaDB must never have a public service block. |
 
 ## Related documentation

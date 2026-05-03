@@ -1,5 +1,12 @@
 # fly.toml — OpenEMR (PHP/Apache) Fly app
-# Deploy: fly deploy --config fly.toml
+#
+# Deploy (single Machine — required for default PHP file sessions):
+#   fly deploy --config fly.toml --ha=false
+# If you already have two Machines, scale down:
+#   fly scale count 1 --app clinical-copilot-v2
+# Fly’s default HA uses two Machines for [http_service]; sessions written on one
+# disk are invisible to the other → embedded chat / session probe may get 401.
+#
 # Public URL: https://clinical-copilot-v2.fly.dev
 #
 # Connects to MariaDB at clinical-copilot-db-v2.internal (see fly.db.toml).

@@ -111,7 +111,7 @@ def test_chat_cookie_only_auth_reaches_chat_path(
     assert "assistant_message" in data
     assert data["messages"][-1]["role"] == "assistant"
     assert captured["authorization"] is None
-    assert captured["cookie"] == "OpenEMR=abc; PHPSESSID=xyz; token_main=tok"
+    assert captured["cookie"] == "PHPSESSID=xyz; token_main=tok; OpenEMR=abc"
 
 
 def test_chat_forwards_x_request_id_to_openemr_validator(
