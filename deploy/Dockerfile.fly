@@ -25,10 +25,12 @@ RUN npm run build
 FROM openemr/openemr:7.0.2
 
 COPY deploy/enable-apache-proxy-modules.sh /tmp/enable-apache-proxy-modules.sh
-RUN sh /tmp/enable-apache-proxy-modules.sh && rm -f /tmp/enable-apache-proxy-modules.sh
+RUN sed -i 's/\r$//' /tmp/enable-apache-proxy-modules.sh \
+    && sh /tmp/enable-apache-proxy-modules.sh \
+    && rm -f /tmp/enable-apache-proxy-modules.sh
 
 COPY deploy/openemr_wrapper.sh /openemr_wrapper.sh
-RUN chmod +x /openemr_wrapper.sh
+RUN sed -i 's/\r$//' /openemr_wrapper.sh && chmod +x /openemr_wrapper.sh
 ENTRYPOINT ["/openemr_wrapper.sh"]
 
 COPY --from=copilot_ui /ui/dist /var/www/localhost/htdocs/openemr/interface/copilot
