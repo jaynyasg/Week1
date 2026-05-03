@@ -1,52 +1,52 @@
 # Clinical Co-Pilot — Consolidated Audit Summary (AUDIT_V2.md)
 
-**AgentForge · Gauntlet AI**
-**Sources:** [AUDIT.md](AUDIT.md) v1.2, [USERS.md](USERS.md), [ARCHITECTURE.md](ARCHITECTURE.md)
+**AgentForge · Gauntlet AI**  
+**Sources:** [AUDIT.md](AUDIT.md) v1.3, [USERS.md](USERS.md), [ARCHITECTURE.md](ARCHITECTURE.md)
 
-This is a one-page consolidation of the full audit, the users addressed by the system, and the architecture plan. For full evidence and remediation tracking, see [AUDIT.md](AUDIT.md).
+This is a one-page consolidation of the full audit, the users addressed by the system, and the architecture plan. For full evidence and remediation tracking, see [AUDIT.md](AUDIT.md) §4–§6.
 
-**Delta (2026-05-03):** The repo now ships a **FastAPI scaffold** with [`agent/access/rbac.py`](agent/access/rbac.py), **session probe + Bearer + demo** auth paths ([`agent/access/openemr_auth.py`](agent/access/openemr_auth.py), [`deploy/copilot_session_probe.php`](deploy/copilot_session_probe.php)), **five** OpenAI clinical tools ([`agent/tools/dispatch.py`](agent/tools/dispatch.py)), an embedded **React/Vite** UI, and **behavioral evals** ([`EVAL.md`](EVAL.md) — **53 + 21** tests). Treat earlier audit language implying **no `rbac.py`** as **superseded** for this snapshot; **AUD-004 / AUD-005 / Word drift** remain open until runtime evidence exists.
+**Delta (2026-05-03):** The repo ships a **FastAPI scaffold** with [`agent/access/rbac.py`](agent/access/rbac.py), **session probe + Bearer + demo** auth paths ([`agent/access/openemr_auth.py`](agent/access/openemr_auth.py), [`deploy/copilot_session_probe.php`](deploy/copilot_session_probe.php)), **five** OpenAI clinical tools ([`agent/tools/dispatch.py`](agent/tools/dispatch.py)), **FHIR Observation category filtering** ([`agent/tools/openemr_fhir.py`](agent/tools/openemr_fhir.py)), an embedded **React/Vite** UI, [`DOCUMENT-CONTROL.md`](DOCUMENT-CONTROL.md) for Word-vs-markdown authority, and **behavioral evals** ([`EVAL.md`](EVAL.md) — **53 + 21** tests).
 
 ---
 
-## 1. Key audit findings (13 total)
+## 1. Key audit findings (13 total) — May 2026 snapshot
 
 ### Critical (2)
 
 | ID | Finding | Status |
 |----|---------|--------|
-| **AUD-001** | `users.md` contradicted PRD on `ADMIN` permissions. | **Resolved (docs)** — [USERS.md](USERS.md) aligned 2026-04-28. Code in PR #12 still pending. |
-| **AUD-013** | Word `Clinical_CoPilot_TaskList_v2.docx` (v2.0) specifies 7 tools and lets NURSE access `labs`, contradicting v1.1 (8 tools, NURSE blocked from `labs`). Following the Word task list would break the RBAC gate. | **Open** |
+| **AUD-001** | `users.md` contradicted PRD on `ADMIN` permissions (historical). | **Resolved** — [`USERS.md`](USERS.md) + [`rbac.py`](agent/access/rbac.py) + tests |
+| **AUD-013** | Word TaskList v2.0 contradicts v1.1 nurse RBAC (nurse/`labs`, seven tools). | **Governance resolved (Week1)** — [`DOCUMENT-CONTROL.md`](DOCUMENT-CONTROL.md); do not implement from Word without diff |
 
 ### High (4)
 
 | ID | Finding | Status |
 |----|---------|--------|
-| **AUD-002** | Nurse "write notes" semantics contradicted MVP read-only matrix. | **Resolved (docs)** — nurse is read-only subset. |
-| **AUD-004** | RBAC for nurse depends on correct FHIR `Observation.category` tagging (`laboratory` vs `vital-signs`); untagged data could leak labs through the vitals tool. | **Open** — gate PR #07. |
-| **AUD-005** | ≤5s pre-visit summary budget unproven against real OpenEMR FHIR latency. | **Open** — measure after deploy. |
-| **AUD-012** | Word PRD v1.0 diverges materially from markdown v1.1 (10 vs 11 features, different PCP IDs, different HIPAA framing). | **Open** |
+| **AUD-002** | Nurse “write notes” vs MVP read-only matrix (historical). | **Resolved** (docs) |
+| **AUD-004** | Nurse vitals vs labs depends on FHIR `Observation.category`. | **Mitigated** — in-process category code filter + `skipped_not_matching_category`; uncategorized rows omitted |
+| **AUD-005** | ≤5s pre-visit summary budget unproven vs real FHIR latency. | **Partial** — run [`scripts/benchmark_fhir_latency.py`](scripts/benchmark_fhir_latency.py); record p50/p95 in next [AUDIT.md](AUDIT.md) revision |
+| **AUD-012** | Word PRD v1.0 diverges from markdown v1.1. | **Governance resolved (Week1)** — [`DOCUMENT-CONTROL.md`](DOCUMENT-CONTROL.md) |
 
 ### Medium (5)
 
 | ID | Finding | Status |
 |----|---------|--------|
-| **AUD-003** | PRD §2 Definitions still says "7 patient context functions" while Feature 4 defines 8 tools. | **Open** |
-| **AUD-006** | Verification threshold for partial unverifiable claims undecided ("strip + count" vs "withhold all"). | **Open** — pre PR #11. |
-| **AUD-007** | Session-keying model (token + patient_id vs server session store) is open. | **Open** — pre PR #08–09. |
-| **AUD-008** | Anthropic usage without BAA is acceptable only under demo-data policy. | **Open** — standing until real PHI. |
-| **AUD-010** | PCP-10 (multi-patient schedule summary) requires different authorization pattern; cross-patient leakage hazard if built early. | **Waived** — deferred per PRD. |
+| **AUD-003** | “7 patient context functions” vs eight tools. | **Resolved (in-repo PRD + USERS)**; external `AF/PRD.md` may still need an edit |
+| **AUD-006** | Verification threshold for partial unverifiable claims undecided. | **Partial** — scaffold: `verified` + bounded retry; fork owns strip/withhold ADR ([`ARCHITECTURE.md`](ARCHITECTURE.md)) |
+| **AUD-007** | Session-keying model open. | **Resolved (scaffold)** — stateless API; `patient_id` + `X-Clinical-Session-Id` ([`ARCHITECTURE.md`](ARCHITECTURE.md)) |
+| **AUD-008** | LLM vendor without BAA only under demo-data policy. | **Standing** — prod PHI requires BAAs + operator review |
+| **AUD-010** | PCP-10 multi-patient schedule — cross-patient hazard. | **Waived** — deferred per PRD |
 
 ### Low (2)
 
 | ID | Finding | Status |
 |----|---------|--------|
-| **AUD-009** | Langfuse self-hosted vs cloud affects compliance narrative. | **Open** — PR #13. |
-| **AUD-011** | Deliverable file naming (`USERS.md` / `ARCHITECTURE.md` at repo root). | **Open** — before submission. |
+| **AUD-009** | Langfuse self-hosted vs cloud — compliance narrative. | **Partial** — [`.planning/observability-gap-analysis.md`](.planning/observability-gap-analysis.md) |
+| **AUD-011** | Deliverable file naming (`USERS.md` / `ARCHITECTURE.md`). | **Resolved** — present at repo root |
 
-### Critical scope caveat
+### Scope caveat
 
-The audit is **design / document-only**. No runtime security testing, log sampling, or FHIR benchmarks have been run. Findings are not substitutes for runtime security testing, PHI log sampling, or API abuse testing against a live deployment.
+The **April 2026** audit pass was static for external `AF/*` artifacts. The **Week1** codebase adds **enforcement and tests**, but findings are **not** substitutes for penetration testing, PHI log sampling, or production FHIR load results. See [AUDIT.md](AUDIT.md) v1.3.
 
 ---
 
@@ -92,10 +92,11 @@ Browser → Nginx (TLS termination) → two services in one Docker network on Fl
 
 - **API layer:** `POST /chat`, `/summary`, `/flag`, `GET /chat/stream` (SSE) → Auth middleware → PHI-safe logger → `AgentState` (patient_id, role, session_id, messages, tool_results, verified).
 - **LangGraph state machine:** Retrieve → Generate → Verify, with ≤1 retry on verify failure.
-- **8 patient-context tools:** 7 FHIR (`demographics`, `medications`, `labs`, `vitals`, `allergies`, `problem_list`, `visit_notes`) + 1 REST (`schedule`). Labs/vitals are deliberately split tools on the same `Observation` resource so RBAC can grant vitals without labs.
+- **8 patient-context tools (target):** 7 FHIR + 1 REST (`schedule`). **Shipped scaffold:** five OpenAI tools (demographics, medications, labs, vitals, allergies) — see [`dispatch.py`](agent/tools/dispatch.py).
 - **Verification:** programmatic — `grounding.py` (source attribution) + `domain_rules.py` (allergy / lab range / date logic). No LLM-as-judge.
 - **RBAC:** `rbac.py` enforced at the **retrieve node**; refusals named and logged.
-- **Observability:** Langfuse self-hosted; spans from all 3 graph nodes; `/flag` writes FLAG events without re-generation.
+- **Observability:** Langfuse self-hosted (target); scaffold: structured `agent_event` logs.
+- **FHIR labs/vitals:** server query + **client-side category code filter** to mitigate miscategorized `Observation` resources.
 
 ### Key architecture choices
 
@@ -109,7 +110,7 @@ Browser → Nginx (TLS termination) → two services in one Docker network on Fl
 | Verification | Programmatic grounding + domain rules | Faster than LLM-as-judge; deterministic; catches hallucinations and clinical constraint violations |
 | Observability | Langfuse (self-hosted) | HIPAA-compatible; full trace visibility across all LangGraph nodes |
 | Frontend | **React + TypeScript + Vite** embedded at `/interface/copilot/`; Apache proxies `/agent` to FastAPI | Same-origin cookies for session auth; optional standalone Fly app for the SPA |
-| Vitals/labs split | Two FHIR tools on one Observation resource (category filter) | NURSE can access vitals without labs; RBAC requires distinct tool identities |
+| Vitals/labs split | Two FHIR tools on one Observation resource (category filter + in-process enforcement) | NURSE can access vitals without labs; RBAC requires distinct tool identities |
 | Session scoping | `AgentState` bound to one `patient_id`; navigation change resets state | Prevents context bleed between patients |
 | Incorrect-response flagging | `POST /flag` writes a FLAG event to Langfuse; no re-generation | Audit trail; auto-correction is out of scope for v1 |
 | Graceful degradation | Frontend shows "Co-Pilot unavailable" banner when agent is unreachable | Clinicians can still use OpenEMR; agent failure must not block core EHR workflows |
@@ -134,4 +135,4 @@ Browser → Nginx (TLS termination) → two services in one Docker network on Fl
 
 ## 4. Bottom line
 
-The design is internally strong on the non-negotiables: session scoping to a single patient, programmatic verification, graceful degradation, and no PHI on disk. The RBAC story is now documentation-consistent. Three open issues — `Observation` category tagging (AUD-004), FHIR latency proof (AUD-005), and Word-export drift (AUD-012 / AUD-013) — must close with measured evidence before code-level audits can take over from this static review.
+Most **documentation and governance** findings are **resolved or mitigated in this repository** ([AUDIT.md](AUDIT.md) v1.3): RBAC code + evals, Observation category defense-in-depth, document control for Word drift, root deliverable names, and a **repeatable FHIR latency script**. **Still operator-owned:** paste benchmark numbers (AUD-005), production security testing, PHI log review, Langfuse deployment mode under real compliance constraints (AUD-008/009), and final verify policy for partial grounding in the fork (AUD-006).

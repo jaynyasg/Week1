@@ -30,7 +30,7 @@ Single overview of decisions, users, eval, cost, observability: [`PROJECT-SHOWCA
 | --- | --- |
 | **Users / workflows / use cases (Stage 4, source of truth)** | [`USERS.md`](USERS.md) Part 1 ([`USER.md`](USER.md) is an alias) |
 | Architecture (+ executive summary) | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
-| Audit | [`AUDIT.md`](AUDIT.md) |
+| Audit | [`AUDIT.md`](AUDIT.md) · [`AUDIT_V2.md`](AUDIT_V2.md) · [`DOCUMENT-CONTROL.md`](DOCUMENT-CONTROL.md) (Word vs markdown authority) |
 | AI cost analysis (fill TBD spend) | [`AI-COST-ANALYSIS.md`](AI-COST-ANALYSIS.md) |
 | Eval snapshot / how to reproduce results | [`.planning/eval-artifacts/2026-05-01-submission-prep-snapshot.md`](.planning/eval-artifacts/2026-05-01-submission-prep-snapshot.md) |
 | Observability gap inventory | [`.planning/observability-gap-analysis.md`](.planning/observability-gap-analysis.md) |

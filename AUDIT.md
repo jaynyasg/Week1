@@ -1,7 +1,7 @@
 # Clinical Co-Pilot — System Audit (AUDIT.md)
 
 **AgentForge · Gauntlet AI**  
-**Audit artifact version:** 1.2 · **Date:** April 28, 2026  
+**Audit artifact version:** 1.3 · **Date:** May 3, 2026 *(status refresh; original review April 28, 2026)*  
 **Sources reviewed:** `AF/architecture.md`, `AF/PRD.md` (v1.1), `AF/Tasks.md` (v2.1), `users.md` (RBAC — aligned with PRD Feature 8 as of v1.1), `Projects/AgentForge/Clinical_CoPilot_PRD.docx` (Word **v1.0**), `Projects/AgentForge/Clinical_CoPilot_TaskList_v2.docx` (Word **v2.0**)
 
 ---
@@ -10,19 +10,19 @@
 
 This audit reviews the Clinical Co-Pilot design as expressed in the Week 1 architecture narrative, **markdown** PRD **v1.1** (`AF/PRD.md`), the PR/task map **v2.1** (`AF/Tasks.md`), and `users.md` (RBAC tool matrix aligned with PRD Feature 8 as of audit v1.1). **Additionally**, two **Word** sources in `Projects/AgentForge/` were reviewed by extracting body text from the `.docx` packages: **`Clinical_CoPilot_PRD.docx` (dated Version 1.0)** and **`Clinical_CoPilot_TaskList_v2.docx` (Version 2.0)**. Those Word files are **not equivalent** to the markdown versions: they describe an **older / alternate baseline** (e.g. **10** MVP features vs **11** in v1.1, **seven** patient tools with **no vitals/labs split**, different **PCP story numbering**, generic RBAC without the **ADMIN tool matrix**, and different **LLM / HIPAA** framing). **For implementation and Gauntlet hard gates, treat `AF/PRD.md` v1.1 + `AF/Tasks.md` v2.1 as authoritative** unless product explicitly re-baselines the Word exports.
 
-The intended system (per **v1.1 markdown + architecture**) is a FastAPI agent behind Nginx, validating OpenEMR session tokens, retrieving patient context through **eight** distinct tools (FHIR-first, REST where needed), running a LangGraph retrieve → generate → verify loop, streaming to a vanilla JS panel injected into OpenEMR, and emitting PHI-safe logs plus Langfuse traces—including explicit **`POST /flag`** audit events without re-generation.
+The intended system (per **v1.1 markdown + architecture**) is a FastAPI agent behind Nginx, validating OpenEMR session context (cookies and/or Bearer token), retrieving patient context through **eight** distinct logical tools (FHIR-first, REST where needed), running a retrieve → generate → verify loop, streaming to a **React/Vite** panel embedded in OpenEMR, and emitting PHI-safe logs plus Langfuse traces (target)—including explicit **`POST /flag`** audit events without re-generation.
 
 The design is internally strong on several non-negotiable clinical-AI controls: session scoping to a single patient, programmatic verification (grounding plus domain rules), graceful degradation when the agent is down, and a stated refusal to persist conversation content to disk. The PRD’s MVP hard gates correctly force documentation, deployment, user modeling, architecture defense, and this audit before heavy implementation.
 
-**Update (audit v1.1):** `users.md` previously contradicted PRD Feature 8 on **`ADMIN`** (full access vs restricted) and on **nurse “write notes”** vs the MVP **read-only eight-tool** matrix. **`users.md` has been rewritten** to match PRD Feature 8 (tool matrix, refusal behavior, admin security boundary). **Implementation in `agent/access/rbac.py` is still pending** (Tasks PR #12); this closes the **documentation** finding only.
+**Update (audit v1.3):** [`USERS.md`](USERS.md) / [`agent/access/rbac.py`](agent/access/rbac.py) + **[`EVAL.md`](EVAL.md)** implement PRD Feature 8 refusals in code (superseding “RBAC pending” language from v1.1).
 
-A **remaining** cross-document inconsistency is in the PRD itself: the Definitions table still refers to “**7** patient context functions” while Feature 4 and the architecture diagram specify **eight** tools with labs and vitals split. That ambiguity can cause incomplete tool registration, incorrect eval coverage, or mistaken performance budgets (finding **AUD-003**, still open).
+**Update (AUD-003):** External **`AF/PRD.md` §2** may still say “seven” functions — the **in-repo** ingest PRD and **`USERS.md`** state **eight** tools with labs/vitals split; reconcile **`AF/`** copies when distributed.
 
-Operational and data-quality dependencies are well called out in the PRD open questions but remain **unverified in this audit**: FHIR latency against the five-second summary budget, consistent `Observation.category` tagging (`laboratory` vs `vital-signs`) in demo data, verification policy when partial claims fail grounding, and Langfuse hosting posture (self-hosted vs cloud) relative to HIPAA framing. The Tasks checklist appropriately elevates Observation category verification before the vitals/labs split lands in PR #07.
+Operational and data-quality dependencies: **FHIR latency** toward the five-second summary budget can be probed with [`scripts/benchmark_fhir_latency.py`](scripts/benchmark_fhir_latency.py) (**AUD-005** partial until p50/p95 are recorded). **`Observation.category`** integrity is **mitigated** in-agent by filtering each returned resource (**AUD-004**); **unlabeled** observations are omitted—fix imports for full charts. **Verification policy** for partial grounding is **documented for the scaffold**; full strip/withhold semantics remain fork work (**AUD-006**). **Langfuse** hosting posture remains an operator choice (**AUD-009**).
 
-**Scope limitation (critical transparency):** This repository snapshot contains **planning and diagram documentation only**. There is **no runnable OpenEMR fork, no `agent/access/rbac.py`, and no executed benchmark or penetration test** in scope for this pass. Therefore, findings below are **design- and document-level** with **proposed verification steps**; they are not substitutes for runtime security testing, PHI log sampling, or API abuse testing against a live deployment.
+**Scope limitation (critical transparency):** The **2026-04-28** audit pass was **design- and document-level** for external `AF/` artifacts. The **2026-05-03** repository snapshot adds **runnable agent code** (FastAPI, RBAC, OpenEMR auth paths, FHIR client, behavioral evals—see §Update 2026-05-03 and Appendix C). Findings below remain **design truth statements**; **closure status** is tracked in §6 with **2026-05-03** remediation notes where the **Week1 repo** addresses them. Runtime security testing, PHI log sampling, and **published** FHIR latency tables are still **operator responsibilities** for production gates.
 
-Overall readiness: **RBAC narrative is unified in `users.md` with the markdown PRD v1.1**; **tool-count language in PRD §2 should still be corrected**; **Word PRD v1.0 and Word TaskList v2.0 must not be treated as equivalent to the markdown v1.1 / v2.1 pair** (see **AUD-012**, **AUD-013**); **open questions must be closed with measured evidence** before merge gates on PR #07 (EHR tools) and PR #12 (RBAC code + tests).
+Overall readiness: **RBAC narrative is unified in `USERS.md` with the markdown PRD v1.1**; **tool-count language in external `AF/PRD.md` §2 should still be corrected where it says “seven”** (in-repo ingest PRD updated — **AUD-003** in this repo); **Word PRD v1.0 and Word TaskList v2.0 must not be treated as equivalent to markdown v1.1 / v2.1** — use **[`DOCUMENT-CONTROL.md`](DOCUMENT-CONTROL.md)** for authority (**AUD-012**, **AUD-013**); **AUD-005** needs **measured** p50/p95 (script provided); **AUD-006** fork policy for partial claims still open beyond scaffold documentation.
 
 ### Update 2026-05-03 (implementation evidence, not a re-audit)
 
@@ -31,8 +31,11 @@ Since audit **v1.2**, this repository gained **executable** (still demo-scoped) 
 - **RBAC enforcement** in [`agent/access/rbac.py`](agent/access/rbac.py) with pytest coverage including [`agent/tests/eval/`](agent/tests/eval/) (**see [`EVAL.md`](EVAL.md)**).
 - **OpenEMR auth** via **PHP session probe** + **Standard API Bearer** + optional **demo bypass** ([`agent/access/openemr_auth.py`](agent/access/openemr_auth.py), [`deploy/copilot_session_probe.php`](deploy/copilot_session_probe.php)).
 - **Five** LLM-callable clinical tools (CSV + optional FHIR) ([`agent/tools/dispatch.py`](agent/tools/dispatch.py)).
+- **FHIR Observation defense-in-depth:** category coding filter + `skipped_not_matching_category` ([`agent/tools/openemr_fhir.py`](agent/tools/openemr_fhir.py)) — **AUD-004 mitigated** (not eliminated: untagged data still omitted).
+- **FHIR latency probe:** [`scripts/benchmark_fhir_latency.py`](scripts/benchmark_fhir_latency.py) — **AUD-005 partial** until results are recorded.
+- **Document control:** [`DOCUMENT-CONTROL.md`](DOCUMENT-CONTROL.md) — **AUD-012 / AUD-013 governance** closure for this repo.
 
-Runtime security review, PHI log sampling, and FHIR performance **still** require a controlled environment—this note does **not** replace those activities.
+Runtime security review, PHI log sampling, and **published** FHIR benchmark tables **still** require a controlled environment—this note does **not** replace those activities. See **§6 status (v1.3)** for closure codes (**Resolved / Mitigated / Partial / Open**).
 
 ---
 
@@ -61,10 +64,10 @@ Runtime security review, PHI log sampling, and FHIR performance **still** requir
 
 | Limitation | Impact |
 |------------|--------|
-| No deployed OpenEMR + agent stack in this workspace | Cannot validate TLS config, header behavior, real FHIR timings, or idempotency under load |
-| No source code for `rbac.py`, tools, or middleware | Cannot confirm enforcement at retrieve-node vs route vs FHIR client layers |
-| No live log / Langfuse sample review | Cannot confirm absence of raw PHI in stdout or third-party sinks |
-| No legal / BAA interpretation | Only policy alignment to PRD §1.4 demo-data assumption is assessed |
+| No **canonical** deployed OpenEMR + agent stack in every reviewer environment | Cannot validate TLS, **production** FHIR p95 for all readers. **Mitigation:** [`scripts/benchmark_fhir_latency.py`](scripts/benchmark_fhir_latency.py) when `OPENEMR_*` secrets are set. |
+| **Historical (April 2026 snapshot):** no `rbac.py` in tree | **Superseded in Week1 repo:** [`agent/access/rbac.py`](agent/access/rbac.py) + eval coverage ([`EVAL.md`](EVAL.md)). |
+| No live log / Langfuse sample review in this static pass | Cannot certify absence of raw PHI in sinks — operator security review still required. |
+| No legal / BAA interpretation | Only policy alignment to PRD §1.4 demo-data assumption is assessed. |
 
 ### 2.3 Authoritative documentation (conflict resolution)
 
@@ -102,17 +105,17 @@ Runtime security review, PHI log sampling, and FHIR performance **still** requir
 |----|------|----------|---------|----------------------|
 | **AUD-001** | Security / RBAC | **Critical** | **`users.md` contradicted PRD Feature 8 on `ADMIN` permissions** (historical). **Resolved (docs):** `users.md` now matches PRD — ADMIN may use **`demographics` + `schedule` only**; clinical tools must refuse with role + tool named. | PRD §4 Feature 8; PRD §2 Definitions; `users.md` (post–v1.1) |
 | **AUD-002** | Security / RBAC | **High** | **`users.md` nurse “write notes” did not match PRD MVP agent tools** (historical). **Resolved (docs):** nurse flow is **subset of eight read tools** only; explicit note that write paths are out of Feature 8 unless PRD is amended. | PRD §4 Feature 8; PRD §3.3; `users.md` (post–v1.1) |
-| **AUD-003** | Documentation | **Medium** | **PRD still says “7 patient context functions” in Definitions while Feature 4 defines eight tools** (labs and vitals split). Causes test plan and marketing misalignment. | PRD §2 “Tool call”; PRD §4 Feature 4 |
-| **AUD-004** | Data quality | **High** | **RBAC boundary for nurses depends on correct FHIR `Observation.category` tagging.** If demo or OpenEMR data mis-tags vitals/labs, vitals tool may leak lab-equivalent observations or block legitimate vitals. | PRD §3.3 NR-01 note; PRD §8 open question; Tasks PR #01 integration checklist |
-| **AUD-005** | Performance | **High** | **End-to-end pre-visit summary (≤5s) is unproven** against real OpenEMR FHIR latency; PRD flags this as an open question. | PRD §1.2 metrics; PRD §8 FHIR latency question; `AF/architecture.md` parallel tool design |
-| **AUD-006** | Safety / UX | **Medium** | **Verification threshold for partial unverifiable claims is undecided** (“strip + count” vs “withhold all”). Affects false confidence vs false silence tradeoff. | PRD §6 Feature 6; PRD §8 open question |
-| **AUD-007** | Security | **Medium** | **Session isolation strategy** (token + patient_id vs server-side session store) is listed as open; affects concurrent session safety and replay handling. | PRD §8; architecture `AgentState` session scoping |
+| **AUD-003** | Documentation | **Medium** | **External `AF/PRD.md` may still say “7 patient context functions”** while Feature 4 defines eight tools. **Resolved (in-repo):** [`PRD-AgentForge-Clinical-CoPilot-Requirements.md`](PRD-AgentForge-Clinical-CoPilot-Requirements.md) + [`USERS.md`](USERS.md) state eight tools with labs/vitals split. Reconcile **AF/** copy if used. | PRD §2 “Tool call”; PRD §4 Feature 4 |
+| **AUD-004** | Data quality | **High** | **RBAC boundary for nurses depends on correct FHIR `Observation.category` tagging.** **Mitigated (agent):** [`agent/tools/openemr_fhir.py`](agent/tools/openemr_fhir.py) drops observations whose `category` coding does not match the requested tool (`laboratory` vs `vital-signs`); `skipped_not_matching_category` surfaces miscategorized rows. **Residual:** uncategorized observations are omitted—data import must tag categories for full charts. | PRD §3.3 NR-01; unit tests `test_observation_category_filter.py` |
+| **AUD-005** | Performance | **High** | **End-to-end pre-visit summary (≤5s) is unproven** against real OpenEMR FHIR latency. **Partial remediation:** operator timing via [`scripts/benchmark_fhir_latency.py`](scripts/benchmark_fhir_latency.py); **residual** = paste p50/p95 into next audit revision. | PRD §1.2 metrics; PRD §8 FHIR latency question |
+| **AUD-006** | Safety / UX | **Medium** | **Verification threshold for partial unverifiable claims** (“strip + count” vs “withhold all”). **Scaffold documented** in [`ARCHITECTURE.md`](ARCHITECTURE.md) (verified flag + bounded retry); **fork/ADR** still owns final strip/withhold policy. | PRD §6 Feature 6; PRD §8 open question |
+| **AUD-007** | Security | **Medium** | **Session isolation** — **Resolved (scaffold):** stateless FastAPI; role from OpenEMR auth; `patient_id` + `X-Clinical-Session-Id` per request (see [`ARCHITECTURE.md`](ARCHITECTURE.md)). **Fork:** optional Redis session store + TTL if PRD requires stricter replay semantics. | PRD §8; [`ARCHITECTURE.md`](ARCHITECTURE.md) |
 | **AUD-008** | Compliance | **Medium** | **Anthropic usage without BAA** is acceptable **only** under demo-data policy; any drift to real PHI invalidates the assumption. Must stay visible in architecture + runbooks. | PRD §1.4; PRD §5 stack pitfalls |
-| **AUD-009** | Observability | **Low** | **Langfuse “self-hosted” vs cloud** choice affects compliance narrative; PRD asks for explicit documentation before queries. | PRD §8; architecture Langfuse subgraph |
+| **AUD-009** | Observability | **Low** | **Langfuse “self-hosted” vs cloud** choice affects compliance narrative; PRD asks for explicit documentation before queries. **Partial:** scaffold logs documented in [`.planning/observability-gap-analysis.md`](.planning/observability-gap-analysis.md). | PRD §8; architecture Langfuse subgraph |
 | **AUD-010** | Architecture | **Medium** | **PCP-10 (multi-patient schedule summary)** requires a different authorization pattern; PRD defers without design review. Premature implementation is a **cross-patient leakage** hazard. | PRD §3.5; PRD §6 out of scope discipline |
-| **AUD-011** | Process | **Low** | **Deliverable naming:** PRD §7 requires `USERS.md` / `ARCHITECTURE.md` at repo root; this workspace uses `users.md` and `AF/architecture.md`. Risk of submission checklist mismatch until renamed or copied. | PRD §7 checklist; Tasks file map |
-| **AUD-012** | Documentation / governance | **High** | **`Clinical_CoPilot_PRD.docx` (v1.0) diverges materially from `AF/PRD.md` (v1.1).** Word PRD describes **10** MVP features (no separate “incorrect response flagging” feature as in v1.1 Feature 7; RBAC is Feature 7 in Word vs Feature 8 in markdown; **Patient Context Tools** lists **seven** retrievals **without** a dedicated **vitals** tool or `Observation` category split). **PCP user story IDs differ** (e.g. Word maps “problem list / schedule” to **PCP-08 / PCP-09** where v1.1 reserves **PCP-08** for flagging and **PCP-09** for problem list). **LLM / HIPAA** language differs (Word stack table: “treat as if BAA is in place (per Gauntlet requirement)” vs v1.1 **demo-data-only**, no BAA). | Side-by-side: Word `Clinical_CoPilot_PRD.docx` extracted body vs `AF/PRD.md` |
-| **AUD-013** | Security / RBAC | **Critical** | **`Clinical_CoPilot_TaskList_v2.docx` (v2.0) contradicts v1.1 nurse RBAC and tool model.** Word task list specifies **seven** tools, **`POST /summary` calling all seven in parallel**, and RBAC examples stating **NURSE** is allowed **`labs`** while blocked from visit notes and problem list. **PRD v1.1 Feature 8** requires **eight** tools with **labs and vitals split**, and **NURSE must not** access **labs** or **visit notes** but **may** access **vitals**. Following the **Word v2.0** task list for RBAC or tool count would **violate** the v1.1 “RBAC refusal accuracy” gate and NR-03/NR-04 intent. | `Clinical_CoPilot_TaskList_v2.docx` (RBAC / seven-tool / nurse-labs passages) vs `AF/PRD.md` Feature 4 & 8; `users.md` matrix |
+| **AUD-011** | Process | **Low** | **Deliverable naming:** **Resolved (Week1 repo):** root [`USERS.md`](USERS.md) and [`ARCHITECTURE.md`](ARCHITECTURE.md). Historical `users.md` naming risk closed for this workspace. | PRD §7 checklist |
+| **AUD-012** | Documentation / governance | **High** | **`Clinical_CoPilot_PRD.docx` (v1.0) diverges materially from `AF/PRD.md` (v1.1).** (See original audit body for bullet list.) **Governance closure (Week1):** [`DOCUMENT-CONTROL.md`](DOCUMENT-CONTROL.md) — repo markdown authoritative; Word is reference-only. **Residual:** stakeholder Word exports still need version hygiene outside this repo. | Side-by-side: Word `Clinical_CoPilot_PRD.docx` vs `AF/PRD.md` |
+| **AUD-013** | Security / RBAC | **Critical** | **`Clinical_CoPilot_TaskList_v2.docx` (v2.0) contradicts v1.1 nurse RBAC and tool model.** (Full conflict text preserved in audit v1.2 export if restored.) **Governance closure (Week1):** enforce [`DOCUMENT-CONTROL.md`](DOCUMENT-CONTROL.md) + [`agent/access/rbac.py`](agent/access/rbac.py) / [`EVAL.md`](EVAL.md) matrix tests — **do not implement from Word** without diff. | Word v2.0 vs `AF/PRD.md` Feature 4 & 8; [`USERS.md`](USERS.md) |
 
 ---
 
@@ -120,19 +123,19 @@ Runtime security review, PHI log sampling, and FHIR performance **still** requir
 
 | ID | Recommendation | Actionable fix (owner: team) | Verified by |
 |----|----------------|------------------------------|-------------|
-| **AUD-001** | Single source of truth for RBAC | **Rewrite `users.md`** (and future `agent/access/rbac.py` docstring) to match PRD Feature 8 matrix: PHYSICIAN = 8 tools; NURSE = subset; ADMIN = demographics + schedule only; refusals must **name role + tool** and log. Remove “admin highest” unless explicitly scoped to **OpenEMR core** (out of agent scope). | **Done (docs):** `users.md` 2026-04-28. **Pending:** `agent/access/rbac.py` + PR #12 `test_rbac.py`; demo video RBAC refusal |
-| **AUD-002** | Align nurse write semantics | Either **(A)** remove nurse “write notes” from agent RBAC doc and scope to OpenEMR-native documentation only, or **(B)** add a PRD amendment + tool design if nursing notes via agent are in scope (currently not in Feature list). | **Done (docs):** option **(A)** in `users.md` 2026-04-28. **Pending:** PRD traceability if product later chooses **(B)** |
-| **AUD-003** | Fix tool count language | Update PRD §2 definition of “Tool call” to **eight** tools; grep PRD for “seven/7” in tool context. | Editorial PR on `AF/PRD.md` |
-| **AUD-004** | Block tool split on data proof | Complete Tasks PR #01 checklist item: **`test_fhir_observation_category_tags_present`**; document fallback strategy if tags missing. | Integration test pass; ADR 005 reference |
-| **AUD-005** | Evidence performance budget | Run scripted FHIR benchmarks (Patient + 8 resource patterns) on local + deployed URL; record p50/p95 in AUDIT appendix next revision. | PR #03 follow-up or PR #07 gate |
-| **AUD-006** | Lock verification policy | Decide threshold before verify node implementation; add to `ARCHITECTURE.md` + ADR; add eval cases for partial failure. | PR #11 tests + eval baseline |
-| **AUD-007** | Decide session keying | Document chosen model in `ARCHITECTURE.md`; if needed, add server session store + TTL aligned to PRD 30 min inactivity. | PR #08–09 design review |
-| **AUD-008** | PHI guardrails | Add prominent **“demo data only”** banner in deployment docs; block production keys in `.env.example`; CI check for secrets. | PR #01–02 |
-| **AUD-009** | Observability posture | Confirm Langfuse deployment mode; if cloud, document data handling per PRD. | `docs/observability.md` (Tasks PR #13) |
-| **AUD-010** | Contain PCP-10 | Do not implement schedule-wide summary until multi-patient auth ADR exists and is reviewed. | PRD §3.5 gate |
-| **AUD-011** | Submission hygiene | Add root-level `USERS.md` / `ARCHITECTURE.md` that satisfy PRD naming **or** adjust submission package with explicit mapping note. | PRD §7 checklist |
-| **AUD-012** | Word PRD v1.0 vs markdown v1.1 | **Declare authority:** Add a one-page “document control” note at top of Word export or stop distributing Word as parallel spec. **Export Word v1.1** from markdown (or vice versa) so filenames/versions match content. Reconcile **PCP IDs** and **feature numbering** in any stakeholder deck. | Single canonical PRD; version table in README |
-| **AUD-013** | Word TaskList v2.0 vs markdown v2.1 | **Do not implement RBAC or tool lists from `Clinical_CoPilot_TaskList_v2.docx` without diffing to `AF/Tasks.md` v2.1.** Update Word export to **v2.1** (eight tools, `vitals.py`, `POST /flag`, nurse matrix = demographics, medications, **vitals**, allergies, schedule; ADMIN restricted). Add CI or checklist item: “RBAC unit tests assert v1.1 matrix.” | PR #07 + #12 tests; `test_rbac.py` parameterized from `users.md` / PRD |
+| **AUD-001** | Single source of truth for RBAC | [`USERS.md`](USERS.md) + [`agent/access/rbac.py`](agent/access/rbac.py); refusals named + logged. | **Done (docs + code + tests):** [`EVAL.md`](EVAL.md) matrix coverage |
+| **AUD-002** | Align nurse write semantics | Agent RBAC = read-only nursing tool subset per PRD. | **Done (docs)** — option (A) in `USERS.md` |
+| **AUD-003** | Fix tool count language | Reconcile external `AF/PRD.md` if needed; in-repo PRD updated. | [`PRD-AgentForge-Clinical-CoPilot-Requirements.md`](PRD-AgentForge-Clinical-CoPilot-Requirements.md) |
+| **AUD-004** | Block tool split on data proof | Category filter + unit tests; operators tag imports. | [`openemr_fhir.py`](agent/tools/openemr_fhir.py); [`test_observation_category_filter.py`](agent/tests/unit/test_observation_category_filter.py) |
+| **AUD-005** | Evidence performance budget | Run benchmark script; record p50/p95. | [`scripts/benchmark_fhir_latency.py`](scripts/benchmark_fhir_latency.py) — **numbers TBD** |
+| **AUD-006** | Lock verification policy | ARCHITECTURE audit table + fork ADR for partial claims. | **Scaffold documented**; fork owns strip/withhold |
+| **AUD-007** | Decide session keying | Stateless model documented. | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| **AUD-008** | PHI guardrails | Demo posture in deploy docs; BAAs for prod. | Standing — [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| **AUD-009** | Observability posture | Langfuse vs structured logs. | [`.planning/observability-gap-analysis.md`](.planning/observability-gap-analysis.md) |
+| **AUD-010** | Contain PCP-10 | Do not implement until ADR. | **Waived** per PRD |
+| **AUD-011** | Submission hygiene | Root deliverable files. | **Done:** [`USERS.md`](USERS.md), [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| **AUD-012** | Word PRD vs markdown | Declare authority. | [`DOCUMENT-CONTROL.md`](DOCUMENT-CONTROL.md) |
+| **AUD-013** | Word TaskList vs markdown | Do not implement from Word alone. | [`DOCUMENT-CONTROL.md`](DOCUMENT-CONTROL.md) + RBAC tests |
 
 ---
 
@@ -140,21 +143,21 @@ Runtime security review, PHI log sampling, and FHIR performance **still** requir
 
 | Finding ID | Severity | Status | Owner | Target / note |
 |--------------|----------|--------|-------|----------------|
-| AUD-001 | Critical | **Resolved** (documentation) | Docs + Agent | `users.md` aligned 2026-04-28; code in PR #12 still required |
-| AUD-002 | High | **Resolved** (documentation) | Product / Docs | Nurse = read-only tool subset per PRD; `users.md` updated 2026-04-28 |
-| AUD-003 | Medium | **Open** | Docs | Single PRD edit |
-| AUD-004 | High | **Open** | Data + PR #01 | Gate PR #07 |
-| AUD-005 | High | **Open** | Infra + Agent | Measure after OpenEMR runs |
-| AUD-006 | Medium | **Open** | Product + Agent | Pre PR #11 |
-| AUD-007 | Medium | **Open** | Architecture | Pre PR #08–09 |
-| AUD-008 | Medium | **Open** | Compliance narrative | Standing until real PHI |
-| AUD-009 | Low | **Open** | Infra | PR #13 |
-| AUD-010 | Medium | **Waived** (defer) | Product | Intentionally not built Week 1 per PRD |
-| AUD-011 | Low | **Open** | Release | Before submission |
-| AUD-012 | High | **Open** | Product / Docs | Reconcile or retire Word PRD v1.0 as parallel spec |
-| AUD-013 | Critical | **Open** | Product / Docs | Update Word TaskList to v2.1 parity or mark “superseded” |
+| AUD-001 | Critical | **Resolved** (docs + code) | Agent | [`rbac.py`](agent/access/rbac.py), [`EVAL.md`](EVAL.md) |
+| AUD-002 | High | **Resolved** (documentation) | Product / Docs | [`USERS.md`](USERS.md) |
+| AUD-003 | Medium | **Resolved** (in-repo) / **Open** (external `AF/PRD.md`) | Docs | Ingest PRD + `USERS.md`; reconcile `AF/` if distributed |
+| AUD-004 | High | **Mitigated** (agent filter + tests) | Data + Agent | Residual: fix untagged Observation data at import |
+| AUD-005 | High | **Partial** | Infra | [`scripts/benchmark_fhir_latency.py`](scripts/benchmark_fhir_latency.py); append timings to appendix |
+| AUD-006 | Medium | **Partial** (scaffold documented) | Product + Agent | Fork: strip/withhold ADR |
+| AUD-007 | Medium | **Resolved** (scaffold — stateless) | Architecture | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| AUD-008 | Medium | **Open** / standing | Compliance | Demo posture documented; BAAs for prod PHI |
+| AUD-009 | Low | **Partial** | Infra | [`.planning/observability-gap-analysis.md`](.planning/observability-gap-analysis.md) |
+| AUD-010 | Medium | **Waived** (defer) | Product | Per PRD |
+| AUD-011 | Low | **Resolved** | Release | Root [`USERS.md`](USERS.md), [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| AUD-012 | High | **Governance resolved** (Week1) | Product / Docs | [`DOCUMENT-CONTROL.md`](DOCUMENT-CONTROL.md); Word file hygiene external |
+| AUD-013 | Critical | **Governance resolved** (Week1) | Product / Docs | Same; enforce in code review |
 
-**Legend:** Open = not remediated; **Resolved (documentation)** = spec/truth captured in repo docs; implementation may still be **Open** in code; Waived = accepted deferral per PRD.
+**Legend:** **Mitigated** / **Partial** = risk reduced but not fully eliminated; **Governance resolved** = authoritative docs + enforcement path exist in-repo; **Open** = still needs owner action (often external artifacts or prod gates).
 
 ---
 
@@ -176,6 +179,7 @@ Runtime security review, PHI log sampling, and FHIR performance **still** requir
 | 1.0 | 2026-04-28 | Engineering (AI-assisted) | Initial audit from architecture, PRD v1.1, Tasks v2.1, users.md; static scope; status table initialized |
 | 1.1 | 2026-04-28 | Engineering (AI-assisted) | `users.md` rewritten to PRD Feature 8; AUD-001/AUD-002 marked resolved (documentation); executive summary updated |
 | 1.2 | 2026-04-28 | Engineering (AI-assisted) | Incorporated `Clinical_CoPilot_PRD.docx` (v1.0) and `Clinical_CoPilot_TaskList_v2.docx` (v2.0); added §2.3 authority table; findings **AUD-012**, **AUD-013**; methodology + tools updated |
+| 1.3 | 2026-05-03 | Engineering (AI-assisted) | §4 findings updated for Week1 code (RBAC, FHIR category filter, benchmarks); **`DOCUMENT-CONTROL.md`**; §6 status refresh; Appendix A F11 path → `agent/tests/eval/`; §2.2 scope note superseding “no rbac” |
 
 ---
 
@@ -193,7 +197,7 @@ Runtime security review, PHI log sampling, and FHIR performance **still** requir
 | F8 RBAC | `rbac.py`, retrieve enforcement | PR #12 |
 | F9 Failure states | UI + agent errors | PR #09–10 |
 | F10 Observability | Langfuse + PHI-safe logger | PR #13 |
-| F11 Eval suite | `agent/eval/` | PR #15 |
+| F11 Eval suite | `agent/tests/eval/` + [`EVAL.md`](EVAL.md) | PR #15 |
 
 ---
 
@@ -220,4 +224,4 @@ When `agent/` and OpenEMR fork land in-repo, re-run this audit with:
 | Evaluation | **~169** automated tests passing offline (`agent/tests`, `deploy/tests`); live OpenEMR gated by env. Snapshot: [`.planning/eval-artifacts/2026-05-01-submission-prep-snapshot.md`](.planning/eval-artifacts/2026-05-01-submission-prep-snapshot.md). | Low |
 | Deployed agent | Fly app name in `fly.agent.toml` is `clinical-agent-scaffold`; public health check pattern in `README.md`. **Availability** and **spend** are operator-owned, not re-audited here. | Info |
 
-**Summary (this appendix):** The repository **substantiates contracts and safety-oriented structure** (auth, RGV, tests, logging shape) and **does not** yet close the full **“every factual claim traceable to a record”** bar in live LLM output—that remains the **highest-risk honest gap** for the next audit revision when the fork ships.
+**Summary (this appendix):** The repository **substantiates contracts and safety-oriented structure** (auth, RGV, Observation **category filter** for FHIR tools, tests, logging shape) and **does not** yet close the full **“every factual claim traceable to a record”** bar in live LLM output—that remains the **highest-risk honest gap** for the next audit revision when the fork ships.

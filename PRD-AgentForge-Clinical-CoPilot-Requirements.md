@@ -64,3 +64,8 @@ The foundation phase requires completion of:
 ## Source
 - PDF source: `Week 1 - AgentForge.pdf`
 - Extracted and normalized on: 2026-04-30
+
+## Gauntlet / audit alignment (tool count — AUD-003)
+
+The **Stage 4** and **Feature 4** agent surface is **eight** distinct patient-context tools in **[`USERS.md`](USERS.md)** and **[`ARCHITECTURE.md`](ARCHITECTURE.md)**: demographics, problem list, medications, **laboratory** observations, **vital-sign** observations (split from labs per FHIR `Observation.category`), allergies, visit notes, and schedule. Any legacy wording elsewhere that refers to “seven” aggregate patient functions should be treated as **superseded** for Week 1 repos that implement the labs/vitals split.
+

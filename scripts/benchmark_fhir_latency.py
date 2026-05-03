@@ -40,8 +40,8 @@ def main() -> int:
             fhir_observations,
             fhir_patient_by_identifier,
         )
-    except ImportError:
-        print("Run from repo root with PYTHONPATH=. or: python -m scripts.benchmark_fhir_latency", file=sys.stderr)
+    except ImportError as e:
+        print(f"Import error (run from repo root): {e}", file=sys.stderr)
         return 2
 
     try:

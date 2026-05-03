@@ -20,6 +20,20 @@ At runtime the assistant follows a **retrieve → generate → verify** loop. **
 
 **Known tradeoffs in this repo snapshot:** the **mermaid** diagram and table below describe the **target** architecture (LangGraph, Langfuse, `POST /flag`); the **checked-in code** proves **contracts, ordering, session + Bearer + demo auth paths, and testable verification fields** on a **FastAPI + OpenAI tool-calling scaffold**. Full **record-level source attribution in prose**, **production-only LLM** hardening, and **all eight PRD tools** are tracked in [`.planning/ROADMAP.md`](.planning/ROADMAP.md) and [`USERS.md`](USERS.md) as **fork / deployment** work. **Behavioral eval inventory:** [`EVAL.md`](EVAL.md) (53 core + 21 edge-case tests under `agent/tests/eval/`).
 
+### Audit remediation pointers ([`AUDIT.md`](AUDIT.md))
+
+| ID | How this repo addresses it |
+| --- | --- |
+| **AUD-003** | Eight logical tools documented in [`USERS.md`](USERS.md) / this file; [`PRD-AgentForge-Clinical-CoPilot-Requirements.md`](PRD-AgentForge-Clinical-CoPilot-Requirements.md) states the labs/vitals split explicitly. |
+| **AUD-004** | Defense-in-depth: [`agent/tools/openemr_fhir.py`](agent/tools/openemr_fhir.py) filters each `Observation` by **category code** (`laboratory` vs `vital-signs`); responses include `skipped_not_matching_category`. Unit tests: [`agent/tests/unit/test_observation_category_filter.py`](agent/tests/unit/test_observation_category_filter.py). *Operator note:* uncategorized observations are omitted from both tools—fix data if charts look empty. |
+| **AUD-005** | [`scripts/benchmark_fhir_latency.py`](scripts/benchmark_fhir_latency.py) times Patient + Observation reads when `OPENEMR_*` credentials are set; paste results into the next audit revision. |
+| **AUD-006** | **Scaffold:** RGV uses at most one verify retry ([`MAX_VERIFY_RETRIES`](agent/runtime/rgv_pipeline.py)); responses expose `verified` and `verification_notes`. **Fork target:** explicit policy for partial grounding (strip vs withhold) in verify node + ADR. |
+| **AUD-007** | **Stateless** FastAPI: clinician identity from OpenEMR auth; `patient_id` and `X-Clinical-Session-Id` per request; no server session database in the scaffold. |
+| **AUD-008** | Demo-data and vendor posture in PRD §1.4; production PHI requires BAAs and operator review—scaffold defaults to non-persisted chat per design narrative. |
+| **AUD-009** | Target observability: Langfuse self-hosted in diagram; current scaffold emphasizes **structured `agent_event` logs** (see [`.planning/observability-gap-analysis.md`](.planning/observability-gap-analysis.md)). |
+| **AUD-011** | Root **[`USERS.md`](USERS.md)** and this **[`ARCHITECTURE.md`](ARCHITECTURE.md)** satisfy submission naming. |
+| **AUD-012 / AUD-013** | **[`DOCUMENT-CONTROL.md`](DOCUMENT-CONTROL.md)** declares repo markdown authoritative over stale Word exports. |
+
 ---
 
 ## Diagram and component view
@@ -106,7 +120,7 @@ flowchart TB
     subgraph TESTS["🧪  Test Infrastructure"]
         UNIT_T["Unit Tests\nagent/tests/unit/  ·  9 files\nNo live services required"]
         INTG_T["Integration Tests\nagent/tests/integration/  ·  4 files\nRequires running OpenEMR"]
-        EVAL_T["Eval Suite\nagent/eval/  ·  20+ cases\nHappy path · Missing data\nAuth boundary · Adversarial"]
+        EVAL_T["Eval Suite\nagent/tests/eval/\n53 + 21 behavioral cases\nHappy path · RBAC · Tools"]
     end
 
     %% ── Browser ↔ Nginx ──────────────────────────────────────────────────
