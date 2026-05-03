@@ -1,9 +1,16 @@
 """
-Validate OpenEMR session tokens via GET /api/user (see ARCHITECTURE.md auth flow).
+Validate OpenEMR credentials for the Clinical Co-Pilot.
 
-OpenEMR installs vary in JSON shape; callers should prefer injecting ``agent_role``
-after authoritative mapping in middleware. This module provides a transport helper
-plus a small heuristic mapper for tests and bootstrap environments.
+- **Browser session (Cookie)**: GET the PHP ``copilot_session_probe`` endpoint
+  (session cookies from the OpenEMR UI). OpenEMR's Standard REST ``GET /api/user``
+  is **admin-scoped** and OAuth Bearer-only; it does not accept UI cookies.
+
+- **Bearer token**: GET ``/apis/{site}/api/user`` (Standard API base), same as
+  OpenEMR docs — typically requires appropriate OAuth scopes (often admin for
+  this route).
+
+See ARCHITECTURE.md auth flow; ``map_openemr_payload_to_agent_role`` maps JSON to
+``PHYSICIAN|NURSE|ADMIN``.
 """
 
 from __future__ import annotations
@@ -62,6 +69,49 @@ def _openemr_http_timeout_seconds() -> float:
     return max(1.0, float(raw))
 
 
+def _openemr_site_id() -> str:
+    return (os.environ.get("OPENEMR_SITE_ID") or "default").strip() or "default"
+
+
+def _session_validate_path() -> str:
+    raw = (
+        os.environ.get("OPENEMR_SESSION_VALIDATE_PATH")
+        or "/interface/copilot_session_probe.php"
+    ).strip()
+    if not raw.startswith("/"):
+        raw = "/" + raw
+    return raw
+
+
+def _validation_url_and_target_name(
+    openemr_base_url: str,
+    *,
+    has_cookie: bool,
+) -> tuple[str, str]:
+    """Return (url, short name for error strings)."""
+    base = openemr_base_url.rstrip("/")
+    if has_cookie:
+        return f"{base}{_session_validate_path()}", "OpenEMR session probe"
+    site = _openemr_site_id()
+    return f"{base}/apis/{site}/api/user", "OpenEMR Standard API GET /api/user"
+
+
+def normalize_openemr_user_payload(data: dict[str, Any]) -> dict[str, Any]:
+    """Flatten Standard API ``data`` wrappers so role mapping sees ``groups`` / ``acl``."""
+    inner = data.get("data")
+    if isinstance(inner, list) and len(inner) == 1 and isinstance(inner[0], dict):
+        row: dict[str, Any] = dict(inner[0])
+    elif isinstance(inner, dict):
+        row = dict(inner)
+    else:
+        return data
+    if "groups" not in row and "acl" in row:
+        acl = row.get("acl")
+        if isinstance(acl, list):
+            row["groups"] = acl
+    return row
+
+
 async def fetch_openemr_user_json(
     openemr_base_url: str,
     *,
@@ -71,12 +121,11 @@ async def fetch_openemr_user_json(
     request_id: str | None = None,
 ) -> dict[str, Any]:
     """
-    GET {base}/api/user with ``Authorization`` and/or ``Cookie`` forwarded.
+    Validate OpenEMR and return a JSON object suitable for ``map_openemr_payload_to_agent_role``.
 
-    Either ``authorization_header_value`` (Bearer or session scheme) **or**
-    ``cookie_header_value`` (raw ``Cookie`` header from a logged-in OpenEMR
-    browser session) must be a non-blank string. If both are provided, both
-    are sent and OpenEMR decides which to honor.
+    If a ``Cookie`` header is present, validates via the PHP session probe
+    (UI login). Otherwise uses Standard API ``GET /apis/{site}/api/user`` with
+    ``Authorization`` (Bearer).
 
     Raises ``OpenEMRAuthError`` on missing credentials, non-200, or invalid JSON.
     """
@@ -84,12 +133,14 @@ async def fetch_openemr_user_json(
     cookie_value = (cookie_header_value or "").strip()
     if not auth_value and not cookie_value:
         raise OpenEMRAuthError(
-            "OpenEMR /api/user call requires Authorization or Cookie header",
+            "OpenEMR validation requires Authorization or Cookie header",
             reason_code="missing_credentials",
         )
 
-    base = openemr_base_url.rstrip("/")
-    url = f"{base}/api/user"
+    has_cookie = bool(cookie_value)
+    url, target_name = _validation_url_and_target_name(
+        openemr_base_url, has_cookie=has_cookie
+    )
     headers: dict[str, str] = {}
     if auth_value:
         headers["Authorization"] = auth_value
@@ -104,28 +155,30 @@ async def fetch_openemr_user_json(
         )
     except httpx.RequestError as exc:  # pragma: no cover - network
         raise OpenEMRAuthError(
-            f"OpenEMR /api/user request failed: {exc}",
+            f"{target_name} request failed: {exc}",
             reason_code="upstream_unreachable",
         ) from exc
 
     if response.status_code != 200:
         raise OpenEMRAuthError(
-            f"OpenEMR /api/user returned {response.status_code}",
+            f"{target_name} returned {response.status_code}",
             reason_code=f"openemr_http_{response.status_code}",
         )
     try:
         data = response.json()
     except ValueError as exc:
         raise OpenEMRAuthError(
-            "OpenEMR /api/user returned non-JSON body",
+            f"{target_name} returned non-JSON body",
             reason_code="invalid_json",
         ) from exc
     if not isinstance(data, dict):
         raise OpenEMRAuthError(
-            "OpenEMR /api/user JSON must be an object",
+            f"{target_name} JSON must be an object",
             reason_code="invalid_payload_shape",
         )
-    return data
+    if has_cookie:
+        return data
+    return normalize_openemr_user_payload(data)
 
 
 async def validate_session_and_resolve_role(
@@ -136,11 +189,7 @@ async def validate_session_and_resolve_role(
     client: httpx.AsyncClient,
     request_id: str | None = None,
 ) -> str:
-    """Fetch /api/user and map to agent role; raises ``OpenEMRAuthError`` if denied.
-
-    Accepts ``Authorization`` only, ``Cookie`` only, or both. At least one must
-    be non-blank or ``OpenEMRAuthError`` is raised before any HTTP call.
-    """
+    """Fetch user context and map to agent role; raises ``OpenEMRAuthError`` if denied."""
     payload = await fetch_openemr_user_json(
         openemr_base_url,
         authorization_header_value=authorization_header_value,

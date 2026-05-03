@@ -10,7 +10,7 @@ export const strings = {
   role: "Role",
   roleFromSession: "Role",
   roleFromSessionHelp:
-    "Taken from your OpenEMR session (cookie) when the agent calls /api/user.",
+    "Taken from your OpenEMR session (cookie) when the agent validates it against OpenEMR.",
   auth: "Auth",
   authOpenEmr: "OpenEMR session",
   authDemo: "Demo bypass",
@@ -18,7 +18,7 @@ export const strings = {
   authDemoHelp: "Sends X-Agent-Demo-Role. Requires AGENT_DEMO_BYPASS=1 on the agent.",
   authBearerLabel: "Authorization (paste raw token or full Bearer …)",
   authOpenEmrHelp:
-    "Paste the Cookie header from a logged-in OpenEMR browser session (DevTools → Network → any request to OpenEMR → copy Cookie header value). The agent forwards it to OpenEMR /api/user to resolve your role.",
+    "Paste the Cookie header from a logged-in OpenEMR browser session (DevTools → Network → any request to OpenEMR → copy Cookie header value). The agent forwards it to OpenEMR to resolve your role (session probe on the Fly image).",
   authOpenEmrCookieLabel: "Cookie header (paste from DevTools)",
   conversation: "Conversation",
   emptyHint: "Send a message to start. Session id is fixed until you refresh.",

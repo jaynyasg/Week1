@@ -37,6 +37,10 @@ COPY deploy/openemr_wrapper.sh /openemr_wrapper.sh
 RUN sed -i 's/\r$//' /openemr_wrapper.sh && chmod +x /openemr_wrapper.sh
 ENTRYPOINT ["/openemr_wrapper.sh"]
 
+# Co-Pilot auth: browser session validation (PHP cookies), mounted next to other interface scripts.
+COPY deploy/copilot_session_probe.php /var/www/localhost/htdocs/openemr/interface/copilot_session_probe.php
+RUN chown apache:root /var/www/localhost/htdocs/openemr/interface/copilot_session_probe.php
+
 COPY --from=copilot_ui /ui/dist /var/www/localhost/htdocs/openemr/interface/copilot
 RUN chown -R apache:root /var/www/localhost/htdocs/openemr/interface/copilot
 

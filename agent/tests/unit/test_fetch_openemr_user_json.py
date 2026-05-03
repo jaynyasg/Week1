@@ -8,7 +8,7 @@ import pytest
 from agent.access.openemr_auth import OpenEMRAuthError, fetch_openemr_user_json
 
 
-def _req(url: str = "https://openemr.example/api/user") -> httpx.Request:
+def _req(url: str = "https://openemr.example/apis/default/api/user") -> httpx.Request:
     return httpx.Request("GET", url)
 
 
@@ -48,7 +48,7 @@ async def test_fetch_request_error_maps_to_upstream_unreachable() -> None:
 @pytest.mark.asyncio
 async def test_fetch_non_200_maps_reason_code() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        assert str(request.url).endswith("/api/user")
+        assert str(request.url).endswith("/apis/default/api/user")
         return httpx.Response(401, text="no")
 
     transport = httpx.MockTransport(handler)
@@ -103,7 +103,7 @@ async def test_fetch_non_object_json() -> None:
 
 @pytest.mark.asyncio
 async def test_fetch_success_returns_dict() -> None:
-    payload = {"data": {"groups": [{"id": 1, "name": "Physicians"}]}}
+    payload = {"data": {"agent_role": "PHYSICIAN"}}
 
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json=payload)
@@ -116,7 +116,7 @@ async def test_fetch_success_returns_dict() -> None:
             cookie_header_value=None,
             client=client,
         )
-    assert out == payload
+    assert out == {"agent_role": "PHYSICIAN"}
 
 
 @pytest.mark.asyncio
@@ -126,6 +126,7 @@ async def test_fetch_cookie_only_sends_cookie_header() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         seen["cookie"] = request.headers.get("cookie", "")
         seen["authorization"] = request.headers.get("authorization", "")
+        assert str(request.url).endswith("/interface/copilot_session_probe.php")
         return httpx.Response(200, json={"ok": True})
 
     transport = httpx.MockTransport(handler)

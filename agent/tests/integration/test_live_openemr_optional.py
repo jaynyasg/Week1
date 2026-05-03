@@ -4,7 +4,7 @@ Gated live integration checks against deployed OpenEMR (real network).
 **Never commit tokens.** Copy env from `.env.example` / `deploy/.env.example` into a
 local `.env` (gitignored).
 
-Enable the OpenEMR `/api/user` E2E checks with:
+Enable the OpenEMR live E2E checks with:
   RUN_LIVE_OPENEMR_E2E=1
   OPENEMR_BASE_URL=https://clinical-copilot-v2.fly.dev   # default in .env.example
 
@@ -92,7 +92,7 @@ async def test_live_openemr_rejects_invalid_authorization() -> None:
     reason="set OPENEMR_AUTHORIZATION or OPENEMR_BEARER_TOKEN for valid-session E2E",
 )
 async def test_live_openemr_valid_token_resolves_rbac_role() -> None:
-    """GET {OPENEMR_BASE_URL}/api/user with real Authorization → mappable agent role."""
+    """GET /apis/{site}/api/user (Bearer) with real Authorization → mappable agent role."""
     base = os.environ["OPENEMR_BASE_URL"].strip().rstrip("/")
     auth = _openemr_authorization_header()
     assert auth is not None

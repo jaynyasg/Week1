@@ -1,4 +1,4 @@
-"""OpenEMR /api/user session validation (mocked HTTP)."""
+"""OpenEMR session validation (mocked HTTP): session probe vs Standard API."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from agent.access.openemr_auth import (
     OpenEMRAuthError,
     fetch_openemr_user_json,
     map_openemr_payload_to_agent_role,
+    normalize_openemr_user_payload,
     validate_session_and_resolve_role,
 )
 
@@ -28,6 +29,14 @@ from agent.access.openemr_auth import (
 )
 def test_map_role(payload: dict, expected: str | None) -> None:
     assert map_openemr_payload_to_agent_role(payload) == expected
+
+
+def test_normalize_openemr_user_payload_unwraps_single_data_row() -> None:
+    out = normalize_openemr_user_payload(
+        {"data": [{"username": "a", "acl": ["Physicians"]}]}
+    )
+    assert out["username"] == "a"
+    assert out["groups"] == ["Physicians"]
 
 
 @pytest.mark.asyncio
@@ -87,7 +96,7 @@ async def test_fetch_openemr_user_json_success() -> None:
     assert data["agent_role"] == "NURSE"
     client.get.assert_awaited_once()
     args, kwargs = client.get.await_args
-    assert args[0].endswith("/api/user")
+    assert args[0].endswith("/apis/default/api/user")
     assert kwargs["headers"]["Authorization"] == "Bearer token"
 
 
@@ -163,6 +172,7 @@ async def test_fetch_openemr_user_json_cookie_only_sends_cookie_no_authorization
     headers = kwargs["headers"]
     assert headers["Cookie"] == "OpenEMR=abc; PHPSESSID=xyz; token_main=tok"
     assert "Authorization" not in headers
+    assert _args[0].endswith("/interface/copilot_session_probe.php")
 
 
 @pytest.mark.asyncio
@@ -184,6 +194,7 @@ async def test_fetch_openemr_user_json_authorization_only_unchanged() -> None:
     headers = kwargs["headers"]
     assert headers["Authorization"] == "Bearer token-only"
     assert "Cookie" not in headers
+    assert _args[0] == "https://example.com/openemr/apis/default/api/user"
 
 
 @pytest.mark.asyncio
@@ -206,6 +217,7 @@ async def test_fetch_openemr_user_json_both_headers_present() -> None:
     headers = kwargs["headers"]
     assert headers["Authorization"] == "Bearer t"
     assert headers["Cookie"] == "OpenEMR=abc; PHPSESSID=xyz"
+    assert _args[0].endswith("/interface/copilot_session_probe.php")
 
 
 @pytest.mark.asyncio
@@ -233,7 +245,7 @@ async def test_fetch_openemr_user_json_blank_both_raises_before_http() -> None:
 
 @pytest.mark.asyncio
 async def test_validate_session_and_resolve_role_cookie_only() -> None:
-    """End-to-end cookie-only path resolves role from /api/user JSON."""
+    """Cookie-only path hits session probe and resolves role from JSON."""
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {"groups": ["Admin"]}
@@ -251,6 +263,7 @@ async def test_validate_session_and_resolve_role_cookie_only() -> None:
     headers = kwargs["headers"]
     assert "Cookie" in headers
     assert "Authorization" not in headers
+    assert _args[0].endswith("/interface/copilot_session_probe.php")
 
 
 @pytest.mark.asyncio

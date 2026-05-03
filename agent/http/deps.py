@@ -101,12 +101,13 @@ async def resolve_agent_role(
     x_agent_demo_role: Annotated[str | None, Header(alias="X-Agent-Demo-Role")] = None,
 ) -> str:
     """
-    Validate OpenEMR session via GET /api/user and map to PHYSICIAN|NURSE|ADMIN.
+    Validate OpenEMR and map to PHYSICIAN|NURSE|ADMIN.
 
-    Accepts EITHER an ``Authorization`` header (Bearer/OAuth2) OR a ``Cookie``
-    header copied from a logged-in OpenEMR browser session (``OpenEMR=...;
-    PHPSESSID=...``). At least one must be non-blank; both may be sent together
-    and OpenEMR decides which to honor.
+    With a ``Cookie`` header, validates the UI PHP session via
+    ``OPENEMR_SESSION_VALIDATE_PATH`` (default ``/interface/copilot_session_probe.php``).
+    With ``Authorization`` only, calls Standard API ``GET /apis/{OPENEMR_SITE_ID}/api/user``
+    (Bearer). Both headers may be sent; when a cookie is present, the session probe
+    is used (cookies drive embedded co-pilot auth).
 
     Demo bypass (NOT for production): when ``AGENT_DEMO_BYPASS`` is truthy AND
     ``X-Agent-Demo-Role`` is one of ``PHYSICIAN|NURSE|ADMIN``, this returns the
