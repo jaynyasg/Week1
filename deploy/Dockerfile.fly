@@ -24,6 +24,10 @@ RUN npm run build
 # --- Stage 2: OpenEMR base
 FROM openemr/openemr:7.0.2
 
+# Install Apache mod_proxy — the base OpenEMR Alpine image ships only core modules.
+# apache2-proxy provides mod_proxy.so and mod_proxy_http.so needed for /agent proxying.
+RUN apk add --no-cache apache2-proxy
+
 COPY deploy/enable-apache-proxy-modules.sh /tmp/enable-apache-proxy-modules.sh
 RUN sed -i 's/\r$//' /tmp/enable-apache-proxy-modules.sh \
     && sh /tmp/enable-apache-proxy-modules.sh \
