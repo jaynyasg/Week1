@@ -1,6 +1,6 @@
 # Production runtime for the FastAPI agent on Fly.io (no test deps).
 httpx>=0.27.0
-fastapi>=0.115.0
+fastapi>=0.140.0
 openai>=1.40.0
 python-dotenv>=1.0.0
 slowapi>=0.1.9
